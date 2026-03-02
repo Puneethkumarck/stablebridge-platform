@@ -94,12 +94,17 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.kafka:spring-kafka-test")
     testImplementation("com.tngtech.archunit:archunit-junit5:$archunitVersion")
+    testImplementation("io.temporal:temporal-testing:$temporalVersion")
     "integrationTestImplementation"(testFixtures(project))
     "integrationTestImplementation"("org.testcontainers:postgresql:$testcontainersVersion")
+    "integrationTestImplementation"("org.testcontainers:kafka:$testcontainersVersion")
     "integrationTestImplementation"("org.testcontainers:junit-jupiter:$testcontainersVersion")
     "integrationTestImplementation"("org.wiremock:wiremock-standalone:$wiremockVersion")
     "integrationTestImplementation"("org.springframework.security:spring-security-test")
-    "integrationTestImplementation"("org.springframework.cloud:spring-cloud-stream-test-binder")
+}
+
+tasks.named("check") {
+    dependsOn(tasks.named("integrationTest"), tasks.named("businessTest"))
 }
 
 tasks.withType<JavaCompile> {
@@ -122,7 +127,13 @@ tasks.withType<Test> {
 }
 
 jacoco {
-    toolVersion = "0.8.12"
+    toolVersion = "0.8.13"
+}
+
+tasks.test {
+    configure<JacocoTaskExtension> {
+        excludes = listOf("sun.*", "jdk.*", "com.sun.*", "java.*", "javax.*")
+    }
 }
 
 tasks.jacocoTestReport {

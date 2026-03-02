@@ -1,14 +1,17 @@
+
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 
 plugins {
     id("org.springframework.boot") version "3.4.5" apply false
     id("io.spring.dependency-management") version "1.1.7" apply false
+    id("com.diffplug.spotless") version "7.0.2" apply false
     java
 }
 
 subprojects {
     apply(plugin = "java")
     apply(plugin = "io.spring.dependency-management")
+    apply(plugin = "com.diffplug.spotless")
 
     val javaVersion: String by project
     val springBootVersion: String by project
@@ -51,6 +54,15 @@ subprojects {
         useJUnitPlatform()
         testLogging {
             events(TestLogEvent.PASSED, TestLogEvent.FAILED, TestLogEvent.SKIPPED)
+        }
+    }
+
+    configure<com.diffplug.gradle.spotless.SpotlessExtension> {
+        java {
+            removeUnusedImports()
+            importOrder("", "java|javax", "\\#")
+            trimTrailingWhitespace()
+            endWithNewline()
         }
     }
 }
