@@ -59,4 +59,4 @@ jobs:
       - name: SonarCloud analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: ./gradlew sonar --build-cache -Dsonar.token="$SONAR_TOKEN" -Dsonar.branch.name=${{ github.ref_name }}
+        run: ./gradlew classes sonar --build-cache -Dsonar.token="$SONAR_TOKEN" -Dsonar.branch.name=${{ github.ref_name }}

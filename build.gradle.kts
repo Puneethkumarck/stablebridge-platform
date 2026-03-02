@@ -15,7 +15,6 @@ sonarqube {
         property("sonar.organization", "ranganathasoftware")
         property("sonar.host.url", "https://sonarcloud.io")
         property("sonar.sourceEncoding", "UTF-8")
-        property("sonar.java.binaries", "**/build/classes")
         property("sonar.exclusions", "**/build/**,**/generated/**,**/*MapperImpl.java")
         property("sonar.coverage.jacoco.xmlReportPaths",
             "**/build/reports/jacoco/test/jacocoTestReport.xml")
