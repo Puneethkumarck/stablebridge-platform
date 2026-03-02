@@ -1,6 +1,5 @@
 package com.stablecoin.payments.merchant.iam.infrastructure.persistence.entity;
 
-import io.hypersistence.utils.hibernate.type.json.JsonType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -10,7 +9,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.hibernate.annotations.Type;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -40,7 +40,7 @@ public class PermissionAuditLogEntity {
     @Column(name = "action", nullable = false, length = 50)
     private String action;
 
-    @Type(JsonType.class)
+    @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "detail", nullable = false, columnDefinition = "jsonb")
     private String detail;
 
