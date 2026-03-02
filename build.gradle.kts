@@ -14,15 +14,11 @@ sonarqube {
         property("sonar.projectKey", "Puneethkumarck_stablecoin-payments")
         property("sonar.organization", "puneethkumarck")
         property("sonar.host.url", "https://sonarcloud.io")
+        property("sonar.sourceEncoding", "UTF-8")
+        property("sonar.java.binaries", "**/build/classes")
+        property("sonar.exclusions", "**/build/**,**/generated/**,**/*MapperImpl.java")
         property("sonar.coverage.jacoco.xmlReportPaths",
             "**/build/reports/jacoco/test/jacocoTestReport.xml")
-        property("sonar.exclusions", listOf(
-            "**/entity/*Entity*",
-            "**/mapper/*Mapper*",
-            "**/*Application*",
-            "**/config/*Config*",
-            "**/fixtures/**"
-        ).joinToString(","))
     }
 }
 
