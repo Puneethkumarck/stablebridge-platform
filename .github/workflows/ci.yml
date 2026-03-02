@@ -13,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Full history required for SonarCloud blame data
+          fetch-depth: 0
 
       - uses: actions/setup-java@v4
         with:
@@ -48,15 +48,19 @@ jobs:
       - name: Business tests
         run: ./gradlew :merchant-onboarding:merchant-onboarding:businessTest --build-cache
 
-      # Switch to Java 21 for Sonar — BouncyCastle multi-release JAR used by the
-      # SonarQube plugin is not compatible with Java 25 instrumentation
+      # SonarCloud — only runs when SONAR_TOKEN is available
+      # (bot PRs from dependabot/renovate don't have access to secrets)
       - name: Set up JDK 21 for SonarCloud
+        if: env.SONAR_TOKEN != ''
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "21"
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: SonarCloud analysis
+        if: env.SONAR_TOKEN != ''
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: ./gradlew classes sonar --build-cache -Dsonar.token="$SONAR_TOKEN" -Dsonar.branch.name=${{ github.ref_name }}
