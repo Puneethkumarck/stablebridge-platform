@@ -1,0 +1,40 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.project
+.classpath
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env / secrets
+.env
+*.env.local
+credentials.json
+
+# Logs
+*.log
+
+# Claude Code
+.claude/
+
+# Project docs / specs (not tracked in git)
+playbook/
+services/
+tasks/
+stablecoin-sandwich-architecture.md
+IMPLEMENTATION_STATE.json
+IMPLEMENTATION_STATE.md
+CLAUDE.md
+*.html
+Screenshot 2026-02-27 at 09.07.14.png

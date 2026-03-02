@@ -1,0 +1,21 @@
+{
+  "request": {
+    "method": "GET",
+    "urlPathPattern": "/kyb/status/.*"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "status": "PASSED",
+      "riskScore": 15,
+      "riskSignals": {
+        "adverse_media": false,
+        "pep_check": false,
+        "sanctions_hit": false
+      }
+    }
+  }
+}

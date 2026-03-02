@@ -1,0 +1,21 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPathPattern": "/kyb/submit"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "kybId": "{{randomValue type='UUID'}}",
+      "merchantId": "{{jsonPath request.body '$.merchantId'}}",
+      "provider": "mock-kyb",
+      "providerRef": "KYB-REF-{{randomValue length=8 type='ALPHANUMERIC'}}",
+      "status": "IN_PROGRESS",
+      "initiatedAt": "{{now}}"
+    },
+    "transformers": ["response-template"]
+  }
+}

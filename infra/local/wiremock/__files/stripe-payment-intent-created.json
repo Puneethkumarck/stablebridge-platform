@@ -1,0 +1,10 @@
+{
+  "id": "pi_test_12345",
+  "object": "payment_intent",
+  "status": "requires_confirmation",
+  "amount": 1000000,
+  "currency": "usd",
+  "client_secret": "pi_test_12345_secret_abc",
+  "created": 1700000000,
+  "livemode": false
+}

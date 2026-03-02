@@ -1,0 +1,78 @@
+spring:
+  application:
+    name: merchant-onboarding
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/s11_merchant_onboarding}
+    username: ${DB_USER:sp_user}
+    password: ${DB_PASS:sp_pass}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+        default_schema: public
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: false
+    locations: classpath:db/migration
+    schemas: public
+
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: ${KAFKA_BROKERS:localhost:9092}
+          auto-create-topics: false
+      bindings:
+        merchant-activated-out-0:
+          destination: merchant.activated
+        merchant-applied-out-0:
+          destination: merchant.applied
+        merchant-suspended-out-0:
+          destination: merchant.suspended
+        merchant-closed-out-0:
+          destination: merchant.closed
+        merchant-kyb-passed-out-0:
+          destination: merchant.kyb.passed
+        merchant-kyb-failed-out-0:
+          destination: merchant.kyb.failed
+        merchant-corridor-approved-out-0:
+          destination: merchant.corridor.approved
+
+outbox:
+  relay:
+    fixed-delay-ms: 100
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+  metrics:
+    tags:
+      service: merchant-onboarding
+
+server:
+  port: ${SERVER_PORT:8081}
+  shutdown: graceful
+
+logging:
+  level:
+    com.stablecoin.payments: INFO
+    org.springframework.security: WARN

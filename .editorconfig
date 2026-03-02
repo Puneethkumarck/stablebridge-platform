@@ -1,0 +1,35 @@
+# EditorConfig
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# Per-type overrides below inherit indent_size = 2 from [*].
+# Listed explicitly so each type can be customized independently if needed.
+
+[*.java]
+indent_size = 2
+
+[*.gradle]
+indent_size = 2
+
+[*.{yml,yaml}]
+indent_size = 2
+
+[*.sql]
+indent_size = 2
+
+[*.xml]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[Makefile]
+indent_style = tab

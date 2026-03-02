@@ -1,0 +1,222 @@
+services:
+
+  # ─────────────────────────────────────────────
+  # PostgreSQL — per-service databases
+  # ─────────────────────────────────────────────
+  postgres:
+    image: postgres:17-alpine
+    container_name: sp-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: dev
+      POSTGRES_DB: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/local/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ─────────────────────────────────────────────
+  # TimescaleDB — FX rate history (S6)
+  # ─────────────────────────────────────────────
+  timescaledb:
+    image: timescale/timescaledb:latest-pg17
+    container_name: sp-timescaledb
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: dev
+      POSTGRES_DB: fx_rates
+    volumes:
+      - tsdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ─────────────────────────────────────────────
+  # Redis — caching, sessions, rate limits
+  # ─────────────────────────────────────────────
+  redis:
+    image: redis:8-alpine
+    container_name: sp-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ─────────────────────────────────────────────
+  # Redpanda — Kafka-compatible event bus (simpler than Kafka for local dev)
+  # ─────────────────────────────────────────────
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:latest
+    container_name: sp-redpanda
+    command:
+      - redpanda
+      - start
+      - --smp=1
+      - --memory=512M
+      - --overprovisioned
+      - --kafka-addr=PLAINTEXT://0.0.0.0:9092
+      - --advertise-kafka-addr=PLAINTEXT://localhost:9092
+    ports:
+      - "9092:9092"
+      - "9644:9644"   # Admin API
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health | grep -q 'Healthy: true'"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  redpanda-console:
+    image: docker.redpanda.com/redpandadata/console:latest
+    container_name: sp-redpanda-console
+    ports:
+      - "9090:8080"
+    environment:
+      KAFKA_BROKERS: redpanda:9092
+    depends_on:
+      redpanda:
+        condition: service_healthy
+
+  # ─────────────────────────────────────────────
+  # Kafka topic init — creates all required topics
+  # ─────────────────────────────────────────────
+  kafka-init:
+    image: docker.redpanda.com/redpandadata/redpanda:latest
+    container_name: sp-kafka-init
+    depends_on:
+      redpanda:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-c"]
+    command: |
+      "
+      rpk --brokers redpanda:9092 topic create payment.initiated --partitions 3 --replicas 1 &&
+      rpk --brokers redpanda:9092 topic create compliance.result --partitions 3 --replicas 1 &&
+      rpk --brokers redpanda:9092 topic create fx.rate.locked --partitions 3 --replicas 1 &&
+      rpk --brokers redpanda:9092 topic create fiat.collected --partitions 3 --replicas 1 &&
+      rpk --brokers redpanda:9092 topic create chain.transfer.submitted --partitions 3 --replicas 1 &&
+      rpk --brokers redpanda:9092 topic create chain.transfer.confirmed --partitions 3 --replicas 1 &&
+      rpk --brokers redpanda:9092 topic create fiat.payout.completed --partitions 3 --replicas 1 &&
+      rpk --brokers redpanda:9092 topic create payment.completed --partitions 3 --replicas 1 &&
+      rpk --brokers redpanda:9092 topic create payment.failed --partitions 3 --replicas 1 &&
+      rpk --brokers redpanda:9092 topic create audit.event --partitions 3 --replicas 1 &&
+      rpk --brokers redpanda:9092 topic create reconciliation.discrepancy --partitions 1 --replicas 1 &&
+      rpk --brokers redpanda:9092 topic create merchant.activated --partitions 3 --replicas 1 &&
+      rpk --brokers redpanda:9092 topic create merchant.suspended --partitions 3 --replicas 1 &&
+      rpk --brokers redpanda:9092 topic create partner.degraded --partitions 1 --replicas 1 &&
+      rpk --brokers redpanda:9092 topic create partner.recovered --partitions 1 --replicas 1 &&
+      rpk --brokers redpanda:9092 topic create agent.payment.approved --partitions 3 --replicas 1 &&
+      echo 'All topics created successfully'
+      "
+    restart: on-failure
+
+  # ─────────────────────────────────────────────
+  # Elasticsearch — transaction search (S12)
+  # ─────────────────────────────────────────────
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.0
+    container_name: sp-elasticsearch
+    ports:
+      - "9200:9200"
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms256m -Xmx256m"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -qv '\"status\":\"red\"'"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+  # ─────────────────────────────────────────────
+  # Temporal — durable workflow engine (S1, S11, S14)
+  # ─────────────────────────────────────────────
+  temporal:
+    image: temporalio/auto-setup:latest
+    container_name: sp-temporal
+    ports:
+      - "7233:7233"
+    environment:
+      DB: postgresql
+      DB_PORT: 5432
+      POSTGRES_USER: dev
+      POSTGRES_PWD: dev
+      POSTGRES_SEEDS: postgres
+      DYNAMIC_CONFIG_FILE_PATH: /etc/temporal/config/dynamicconfig/development-sql.yaml
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "temporal operator cluster health 2>/dev/null | grep -q 'OK' || exit 0"]
+      interval: 15s
+      timeout: 10s
+      retries: 15
+
+  temporal-ui:
+    image: temporalio/ui:latest
+    container_name: sp-temporal-ui
+    ports:
+      - "8233:8080"
+    environment:
+      TEMPORAL_ADDRESS: temporal:7233
+      TEMPORAL_CORS_ORIGINS: http://localhost:3000
+    depends_on:
+      - temporal
+
+  # ─────────────────────────────────────────────
+  # Vault — secrets management (dev mode)
+  # ─────────────────────────────────────────────
+  vault:
+    image: hashicorp/vault:latest
+    container_name: sp-vault
+    ports:
+      - "8200:8200"
+    environment:
+      VAULT_DEV_ROOT_TOKEN_ID: dev-root-token
+      VAULT_DEV_LISTEN_ADDRESS: 0.0.0.0:8200
+    cap_add:
+      - IPC_LOCK
+    healthcheck:
+      test: ["CMD", "vault", "status"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ─────────────────────────────────────────────
+  # Mailhog — captures outbound email (replaces SendGrid in dev)
+  # ─────────────────────────────────────────────
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: sp-mailhog
+    ports:
+      - "1025:1025"   # SMTP — point SMTP config here
+      - "8025:8025"   # Web UI — view captured emails
+
+  # ─────────────────────────────────────────────
+  # WireMock — stubs for external providers
+  # (Stripe, Onfido, Alchemy, Modulr, Fireblocks, etc.)
+  # ─────────────────────────────────────────────
+  wiremock:
+    image: wiremock/wiremock:latest
+    container_name: sp-wiremock
+    ports:
+      - "4444:8080"
+    volumes:
+      - ./infra/local/wiremock/mappings:/home/wiremock/mappings
+      - ./infra/local/wiremock/__files:/home/wiremock/__files
+    command: --verbose
+
+volumes:
+  pgdata:
+  tsdata:

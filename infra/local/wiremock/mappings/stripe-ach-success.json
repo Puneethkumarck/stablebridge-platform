@@ -1,0 +1,11 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPattern": "/v1/payment_intents"
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "bodyFileName": "stripe-payment-intent-created.json"
+  }
+}
