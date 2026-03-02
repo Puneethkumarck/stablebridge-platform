@@ -103,10 +103,6 @@ dependencies {
     "integrationTestImplementation"("org.springframework.security:spring-security-test")
 }
 
-tasks.named("check") {
-    dependsOn(tasks.named("integrationTest"), tasks.named("businessTest"))
-}
-
 tasks.withType<JavaCompile> {
     options.compilerArgs.addAll(listOf(
         "-Amapstruct.defaultComponentModel=spring",
@@ -134,7 +130,17 @@ tasks.test {
     configure<JacocoTaskExtension> {
         excludes = listOf("sun.*", "jdk.*", "com.sun.*", "java.*", "javax.*")
     }
+    finalizedBy(tasks.jacocoTestReport)
 }
+
+val jacocoExclusions = listOf(
+    "**/entity/**",
+    "**/mapper/**",
+    "**/config/**",
+    "**/*Application*",
+    "**/generated/**",
+    "**/*MapperImpl*"
+)
 
 tasks.jacocoTestReport {
     dependsOn(tasks.test)
@@ -143,19 +149,28 @@ tasks.jacocoTestReport {
         html.required.set(true)
     }
     classDirectories.setFrom(files(classDirectories.files.map {
-        fileTree(it) {
-            exclude(
-                "**/entity/*Entity*",
-                "**/mapper/*Mapper*",
-                "**/config/*Config*",
-                "**/*Application*"
-            )
-        }
+        fileTree(it) { exclude(jacocoExclusions) }
     }))
 }
 
-tasks.register("testCoverage") {
-    dependsOn(tasks.test, tasks.named("integrationTest"), tasks.jacocoTestReport)
-    group = "verification"
-    description = "Runs all tests and generates coverage report"
+tasks.jacocoTestCoverageVerification {
+    dependsOn(tasks.jacocoTestReport)
+    violationRules {
+        rule {
+            limit {
+                minimum = "0.80".toBigDecimal()
+            }
+        }
+    }
+    classDirectories.setFrom(files(classDirectories.files.map {
+        fileTree(it) { exclude(jacocoExclusions) }
+    }))
+}
+
+tasks.named("check") {
+    dependsOn(
+        tasks.named("integrationTest"),
+        tasks.named("businessTest"),
+        tasks.jacocoTestCoverageVerification
+    )
 }
