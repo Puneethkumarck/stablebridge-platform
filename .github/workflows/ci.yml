@@ -48,11 +48,15 @@ jobs:
       - name: Business tests
         run: ./gradlew :merchant-onboarding:merchant-onboarding:businessTest --build-cache
 
+      # Switch to Java 21 for Sonar — BouncyCastle multi-release JAR used by the
+      # SonarQube plugin is not compatible with Java 25 instrumentation
+      - name: Set up JDK 21 for SonarCloud
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
       - name: SonarCloud analysis
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: |
-          ./gradlew sonar --build-cache \
-            -Dsonar.gradle.skipCompile=true \
-            -Dorg.gradle.jvmargs="-Xmx2048m --enable-native-access=ALL-UNNAMED --add-opens=java.base/java.lang=ALL-UNNAMED --add-opens=java.base/java.security=ALL-UNNAMED"
+        run: ./gradlew sonar --build-cache -Dsonar.token="$SONAR_TOKEN" -Dsonar.branch.name=${{ github.ref_name }}
