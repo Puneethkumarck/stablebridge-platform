@@ -1,0 +1,69 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "schedule": ["before 6am on Monday"],
+  "timezone": "Europe/London",
+  "labels": ["infra"],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "automerge": false,
+  "separateMajorMinor": true,
+  "packageRules": [
+    {
+      "description": "Spring Boot & Spring Cloud — group together",
+      "matchPackagePatterns": ["^org.springframework"],
+      "groupName": "Spring",
+      "labels": ["infra", "phase-1"]
+    },
+    {
+      "description": "Temporal SDK",
+      "matchPackagePatterns": ["^io.temporal"],
+      "groupName": "Temporal",
+      "labels": ["infra"]
+    },
+    {
+      "description": "Testcontainers — group together",
+      "matchPackagePatterns": ["^org.testcontainers"],
+      "groupName": "Testcontainers",
+      "labels": ["infra", "test"]
+    },
+    {
+      "description": "Flyway",
+      "matchPackagePatterns": ["^org.flywaydb"],
+      "groupName": "Flyway",
+      "labels": ["infra"]
+    },
+    {
+      "description": "Gradle plugins",
+      "matchManagers": ["gradle"],
+      "matchDepTypes": ["plugin"],
+      "groupName": "Gradle plugins",
+      "labels": ["infra"]
+    },
+    {
+      "description": "GitHub Actions — group together",
+      "matchManagers": ["github-actions"],
+      "groupName": "GitHub Actions",
+      "labels": ["infra"],
+      "automerge": true
+    },
+    {
+      "description": "Lombok — patch automerge",
+      "matchPackageNames": ["org.projectlombok:lombok"],
+      "automerge": true,
+      "matchUpdateTypes": ["patch"]
+    },
+    {
+      "description": "Test libraries — patch automerge",
+      "matchPackagePatterns": [
+        "^com.tngtech.archunit",
+        "^org.wiremock",
+        "^io.github.resilience4j"
+      ],
+      "automerge": true,
+      "matchUpdateTypes": ["patch"]
+    }
+  ]
+}
