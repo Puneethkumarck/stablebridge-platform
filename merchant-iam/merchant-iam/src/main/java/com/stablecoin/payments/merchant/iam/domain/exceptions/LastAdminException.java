@@ -4,7 +4,12 @@ import java.util.UUID;
 
 public class LastAdminException extends RuntimeException {
 
-    public LastAdminException(UUID merchantId) {
-        super("Cannot remove or demote the last admin for merchant: " + merchantId);
+    private LastAdminException(String message) {
+        super(message);
+    }
+
+    public static LastAdminException forMerchant(UUID merchantId) {
+        return new LastAdminException(
+                "Cannot remove or demote the last admin for merchant: " + merchantId);
     }
 }

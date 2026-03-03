@@ -1,0 +1,117 @@
+# CodeRabbit Configuration for stablecoin-payments
+# Docs: https://docs.coderabbit.ai/configure/coderabbit-yaml
+
+language: "en-US"
+
+# Tone for review comments — concise and professional
+tone_instructions: |
+  Be concise and direct. Focus on actionable improvements.
+  Use enterprise Java/Spring Boot terminology. Avoid repeating obvious things.
+  Prioritise security issues first, then correctness, then design.
+
+reviews:
+  # Request changes for critical issues; leave comments for suggestions
+  request_changes_workflow: true
+
+  # Post a high-level summary on every PR
+  high_level_summary: true
+
+  # Include a poem at the end of summaries (set false to keep it serious)
+  poem: false
+
+  # Collapse walkthrough by default to reduce noise
+  collapse_walkthrough: false
+
+  # Review auto-generated or vendor files
+  auto_review:
+    enabled: true
+    # Only auto-review PRs targeting main
+    base_branches:
+      - main
+    # Skip drafts — only review when PR is ready
+    drafts: false
+
+  profile: "assertive"
+
+  path_filters:
+    # Ignore compiled output, Gradle caches, and generated code
+    - "!**/build/**"
+    - "!**/.gradle/**"
+    - "!**/generated/**"
+    - "!**/*.class"
+    - "!gradle/wrapper/**"
+    - "!gradlew"
+    - "!gradlew.bat"
+    # Ignore local infra config (WireMock stubs, DB init scripts)
+    - "!infra/local/**"
+
+  path_instructions:
+    # Merchant Onboarding — hexagonal architecture + KYB compliance focus
+    - path: "merchant-onboarding/**"
+      instructions: |
+        This service follows strict hexagonal architecture.
+        - Spring annotations (e.g. @Entity, @Table, @Column, @Transactional, @Value) are
+          permitted in domain classes — do NOT flag these as architecture violations
+        - All external calls go through ports (interfaces) in the domain layer
+        - Adapters live in infrastructure/ and must implement domain ports
+        - Controllers live in application.controller — never in a web/ package
+        - Check for the outbox pattern: OutboxEvent entity + OutboxEventRepository + OutboxRelayJob
+        - No wildcard imports allowed — every import must be fully qualified
+        - Use static imports for assertions, enum constants, and factory methods
+        - KYB and merchant PII data must never appear in logs
+        - Saga steps must be idempotent
+
+    # Merchant IAM — security-critical, extra scrutiny
+    - path: "merchant-iam/**"
+      instructions: |
+        This is the identity and access management service — security is paramount.
+        - Spring annotations (e.g. @Entity, @Table, @Column, @Transactional, @Value) are
+          permitted in domain classes — do NOT flag these as architecture violations
+        - Verify JWT validation is correct and tokens are verified on every request
+        - Role assignments must be authorised — check for privilege escalation risks
+        - Sensitive fields (tokens, secrets, passwords) must never be logged
+        - All endpoints must have explicit authorisation annotations
+        - No wildcard imports allowed
+        - Check hexagonal architecture compliance (same rules as merchant-onboarding)
+
+    # GitHub Actions workflows — CI/CD hygiene
+    - path: ".github/workflows/**"
+      instructions: |
+        - Ensure all action versions are pinned (prefer SHA or explicit version tags, not @latest)
+        - Check for secret exposure — secrets must only be passed via env: or with:, never echoed
+        - Verify permissions are minimal (least privilege per job)
+        - Check for potential injection via ${{ github.event.* }} inputs
+
+    # Gradle build files — dependency and build hygiene
+    - path: "**/*.gradle.kts"
+      instructions: |
+        - Flag any newly added dependencies and ask if they are necessary
+        - Ensure no test-scoped dependencies leak into main compile scope
+        - Check for version catalog alignment (all versions should come from libs.versions.toml if present)
+        - Wildcard dependency exclusions should be justified
+
+    # Database migrations — irreversible changes need extra care
+    - path: "**/db/migration/**"
+      instructions: |
+        - Flyway migrations must be immutable once merged — flag any modification to existing scripts
+        - Destructive operations (DROP, TRUNCATE, DELETE without WHERE) must have a justification comment
+        - Check that new columns have sensible defaults for existing rows
+        - Verify index naming follows the project convention
+
+    # Tests — coverage and quality
+    - path: "**/*Test*.java"
+      instructions: |
+        - Every new public method should have at least one test
+        - Integration tests must use @SpringBootTest or Testcontainers — no mocking of DB
+        - Business tests should read like specifications (Gherkin-style naming preferred)
+        - No hardcoded secrets or real PII in test fixtures
+        - Assert on meaningful values — avoid assertTrue(result != null)
+
+  finishing_touches:
+    # Suggest adding docstrings to public API methods
+    docstrings:
+      enabled: true
+
+chat:
+  # Allow @coderabbitai commands in PR comments
+  auto_reply: true

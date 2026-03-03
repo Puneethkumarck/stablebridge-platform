@@ -4,11 +4,15 @@ import java.util.UUID;
 
 public class InvitationNotFoundException extends RuntimeException {
 
-    public InvitationNotFoundException(UUID invitationId) {
-        super("Invitation not found: " + invitationId);
+    private InvitationNotFoundException(String message) {
+        super(message);
     }
 
-    public InvitationNotFoundException(String tokenHash) {
-        super("Invitation not found for token");
+    public static InvitationNotFoundException withId(UUID invitationId) {
+        return new InvitationNotFoundException("Invitation not found: " + invitationId);
+    }
+
+    public static InvitationNotFoundException withToken() {
+        return new InvitationNotFoundException("Invitation not found for token");
     }
 }

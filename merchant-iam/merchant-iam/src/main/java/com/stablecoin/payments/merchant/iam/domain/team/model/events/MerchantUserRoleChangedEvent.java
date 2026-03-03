@@ -7,15 +7,19 @@ import java.util.UUID;
 
 @Builder
 public record MerchantUserRoleChangedEvent(
+        String schemaVersion,
         String eventId,
         String eventType,
         UUID merchantId,
         UUID userId,
         UUID previousRoleId,
+        String previousRoleName,
         UUID newRoleId,
+        String newRoleName,
         UUID changedBy,
         Instant occurredAt
 ) {
     public static final String TOPIC = "merchant.user.role.changed";
     public static final String EVENT_TYPE = "merchant.user.role.changed";
+    public static final String SCHEMA_VERSION = "1.0";
 }

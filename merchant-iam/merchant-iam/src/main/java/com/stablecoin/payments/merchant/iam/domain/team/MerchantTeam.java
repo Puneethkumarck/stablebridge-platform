@@ -1,7 +1,9 @@
 package com.stablecoin.payments.merchant.iam.domain.team;
 
+import com.stablecoin.payments.merchant.iam.domain.exceptions.BuiltInRoleModificationException;
 import com.stablecoin.payments.merchant.iam.domain.exceptions.InvitationExpiredException;
 import com.stablecoin.payments.merchant.iam.domain.exceptions.LastAdminException;
+import com.stablecoin.payments.merchant.iam.domain.exceptions.RoleInUseException;
 import com.stablecoin.payments.merchant.iam.domain.exceptions.RoleNotFoundException;
 import com.stablecoin.payments.merchant.iam.domain.exceptions.UserAlreadyExistsException;
 import com.stablecoin.payments.merchant.iam.domain.exceptions.UserNotFoundException;
@@ -11,6 +13,7 @@ import com.stablecoin.payments.merchant.iam.domain.team.model.Role;
 import com.stablecoin.payments.merchant.iam.domain.team.model.core.AuthProvider;
 import com.stablecoin.payments.merchant.iam.domain.team.model.core.BuiltInRole;
 import com.stablecoin.payments.merchant.iam.domain.team.model.core.InvitationStatus;
+import com.stablecoin.payments.merchant.iam.domain.team.model.core.Permission;
 import com.stablecoin.payments.merchant.iam.domain.team.model.core.UserStatus;
 import com.stablecoin.payments.merchant.iam.domain.team.model.events.AllSessionsRevokedEvent;
 import com.stablecoin.payments.merchant.iam.domain.team.model.events.MerchantUserActivatedEvent;
@@ -78,9 +81,9 @@ public class MerchantTeam {
      * Seeds the 4 built-in roles for a newly activated merchant.
      */
     public List<Role> seedBuiltInRoles() {
-        List<Role> seeded = new ArrayList<>();
+        var seeded = new ArrayList<Role>();
         for (BuiltInRole builtIn : BuiltInRole.values()) {
-            Role role = Role.builder()
+            var role = Role.builder()
                     .roleId(UUID.randomUUID())
                     .merchantId(merchantId)
                     .roleName(builtIn.name())
@@ -98,14 +101,85 @@ public class MerchantTeam {
     }
 
     /**
+     * Creates a custom (non-builtin) role for this merchant.
+     */
+    public Role createCustomRole(String roleName, String description,
+                                 List<Permission> permissions, UUID createdBy) {
+        var nameExists = roles.stream()
+                .filter(Role::active)
+                .anyMatch(r -> r.roleName().equalsIgnoreCase(roleName));
+        if (nameExists) {
+            throw new IllegalArgumentException("Role name already exists: " + roleName);
+        }
+
+        var now = Instant.now();
+        var role = Role.builder()
+                .roleId(UUID.randomUUID())
+                .merchantId(merchantId)
+                .roleName(roleName)
+                .description(description)
+                .builtin(false)
+                .active(true)
+                .permissions(List.copyOf(permissions))
+                .createdBy(createdBy)
+                .createdAt(now)
+                .updatedAt(now)
+                .build();
+
+        roles.add(role);
+        return role;
+    }
+
+    /**
+     * Deletes (deactivates) a custom role. Built-in roles cannot be deleted.
+     * Roles with active users assigned cannot be deleted.
+     */
+    public Role deleteCustomRole(UUID roleId) {
+        var roleIdx = findRoleIndex(roleId);
+        var role = roles.get(roleIdx);
+
+        if (role.builtin()) {
+            throw BuiltInRoleModificationException.forRole(roleId, role.roleName());
+        }
+
+        var activeUsersWithRole = users.stream()
+                .filter(u -> u.roleId().equals(roleId)
+                        && u.status() != UserStatus.DEACTIVATED)
+                .count();
+        if (activeUsersWithRole > 0) {
+            throw RoleInUseException.forRole(roleId, activeUsersWithRole);
+        }
+
+        var deactivated = role.deactivate();
+        roles.set(roleIdx, deactivated);
+        return deactivated;
+    }
+
+    /**
+     * Updates permissions on a custom role. Built-in roles cannot be modified.
+     */
+    public Role updateCustomRolePermissions(UUID roleId, List<Permission> newPermissions) {
+        var roleIdx = findRoleIndex(roleId);
+        var role = roles.get(roleIdx);
+
+        if (role.builtin()) {
+            throw BuiltInRoleModificationException.forRole(roleId, role.roleName());
+        }
+
+        var updated = role.updatePermissions(newPermissions);
+        roles.set(roleIdx, updated);
+        return updated;
+    }
+
+    /**
      * Creates the first ADMIN user when a merchant is activated.
      * The user starts in ACTIVE status (no invitation needed).
      */
     public MerchantUser createFirstAdmin(String email, String emailHash, String fullName,
                                          String passwordHash) {
-        Role adminRole = findRoleByName(BuiltInRole.ADMIN.name());
+        var adminRole = findRoleByName(BuiltInRole.ADMIN.name());
 
-        MerchantUser user = MerchantUser.builder()
+        var user = MerchantUser.builder()
                 .userId(UUID.randomUUID())
                 .merchantId(merchantId)
                 .email(email)
@@ -124,12 +198,14 @@ public class MerchantTeam {
         users.add(user);
 
         domainEvents.add(MerchantUserActivatedEvent.builder()
+                .schemaVersion(MerchantUserActivatedEvent.SCHEMA_VERSION)
                 .eventId(UUID.randomUUID().toString())
                 .eventType(MerchantUserActivatedEvent.EVENT_TYPE)
                 .merchantId(merchantId)
                 .userId(user.userId())
-                .email(email)
+                .emailHash(emailHash)
                 .roleId(adminRole.roleId())
+                .roleName(adminRole.roleName())
                 .occurredAt(Instant.now())
                 .build());
 
@@ -143,19 +219,19 @@ public class MerchantTeam {
     public InviteResult inviteUser(String email, String emailHash, String fullName,
                                    UUID roleId, UUID invitedBy, String tokenHash) {
         // Invariant: email unique within merchant (among non-deactivated users)
-        boolean emailExists = users.stream()
+        var emailExists = users.stream()
                 .anyMatch(u -> u.emailHash().equals(emailHash)
                         && u.status() != UserStatus.DEACTIVATED);
         if (emailExists) {
-            throw new UserAlreadyExistsException(merchantId, email);
+            throw UserAlreadyExistsException.forMerchant(merchantId, email);
         }
 
         // Verify role exists
-        findRoleById(roleId);
+        var role = findRoleById(roleId);
 
-        Instant now = Instant.now();
+        var now = Instant.now();
 
-        MerchantUser user = MerchantUser.builder()
+        var user = MerchantUser.builder()
                 .userId(UUID.randomUUID())
                 .merchantId(merchantId)
                 .email(email)
@@ -170,12 +246,11 @@ public class MerchantTeam {
                 .updatedAt(now)
                 .build();
 
-        Invitation invitation = Invitation.builder()
+        var invitation = Invitation.builder()
                 .invitationId(UUID.randomUUID())
                 .merchantId(merchantId)
                 .email(email)
                 .emailHash(emailHash)
-                .fullName(fullName)
                 .roleId(roleId)
                 .invitedBy(invitedBy)
                 .tokenHash(tokenHash)
@@ -188,12 +263,15 @@ public class MerchantTeam {
         invitations.add(invitation);
 
         domainEvents.add(MerchantUserInvitedEvent.builder()
+                .schemaVersion(MerchantUserInvitedEvent.SCHEMA_VERSION)
                 .eventId(UUID.randomUUID().toString())
                 .eventType(MerchantUserInvitedEvent.EVENT_TYPE)
-                .merchantId(merchantId)
+                .invitationId(invitation.invitationId())
                 .userId(user.userId())
-                .email(email)
+                .merchantId(merchantId)
+                .emailHash(emailHash)
                 .roleId(roleId)
+                .roleName(role.roleName())
                 .invitedBy(invitedBy)
                 .occurredAt(now)
                 .build());
@@ -205,34 +283,38 @@ public class MerchantTeam {
      * Accepts a pending invitation. Transitions user INVITED → ACTIVE.
      */
     public MerchantUser acceptInvitation(UUID invitationId, String fullName, String passwordHash) {
-        int invIdx = findInvitationIndex(invitationId);
-        Invitation invitation = invitations.get(invIdx);
+        var invIdx = findInvitationIndex(invitationId);
+        var invitation = invitations.get(invIdx);
 
         if (invitation.isExpired()) {
             invitations.set(invIdx, invitation.expire());
-            throw new InvitationExpiredException(invitationId);
+            throw InvitationExpiredException.withId(invitationId);
         }
 
-        Invitation accepted = invitation.accept();
+        var accepted = invitation.accept();
         if (accepted.status() == InvitationStatus.EXPIRED) {
             invitations.set(invIdx, accepted);
-            throw new InvitationExpiredException(invitationId);
+            throw InvitationExpiredException.withId(invitationId);
         }
         invitations.set(invIdx, accepted);
 
         // Find the corresponding INVITED user by emailHash
-        int userIdx = findUserIndexByEmailHash(invitation.emailHash(), UserStatus.INVITED);
-        MerchantUser user = users.get(userIdx);
-        MerchantUser activated = user.acceptInvitation(fullName, passwordHash);
+        var userIdx = findUserIndexByEmailHash(invitation.emailHash(), UserStatus.INVITED);
+        var user = users.get(userIdx);
+        var activated = user.acceptInvitation(fullName, passwordHash);
         users.set(userIdx, activated);
 
+        var role = findRoleById(activated.roleId());
+
         domainEvents.add(MerchantUserActivatedEvent.builder()
+                .schemaVersion(MerchantUserActivatedEvent.SCHEMA_VERSION)
                 .eventId(UUID.randomUUID().toString())
                 .eventType(MerchantUserActivatedEvent.EVENT_TYPE)
                 .merchantId(merchantId)
                 .userId(activated.userId())
-                .email(activated.email())
+                .emailHash(activated.emailHash())
                 .roleId(activated.roleId())
+                .roleName(role.roleName())
                 .occurredAt(Instant.now())
                 .build());
 
@@ -243,30 +325,34 @@ public class MerchantTeam {
      * Changes a user's role. Enforces last-admin invariant.
      */
     public MerchantUser changeUserRole(UUID userId, UUID newRoleId, UUID changedBy) {
-        int userIdx = findUserIndex(userId);
-        MerchantUser user = users.get(userIdx);
-        Role newRole = findRoleById(newRoleId);
-        UUID previousRoleId = user.roleId();
+        var userIdx = findUserIndex(userId);
+        var user = users.get(userIdx);
+        var newRole = findRoleById(newRoleId);
+        var previousRoleId = user.roleId();
+        var previousRole = findRoleById(previousRoleId);
 
         // Invariant: cannot demote the last admin
-        Role adminRole = findRoleByName(BuiltInRole.ADMIN.name());
+        var adminRole = findRoleByName(BuiltInRole.ADMIN.name());
         if (user.isAdmin(adminRole.roleId()) && !newRoleId.equals(adminRole.roleId())) {
-            long adminCount = countActiveAdmins(adminRole.roleId());
+            var adminCount = countActiveAdmins(adminRole.roleId());
             if (adminCount <= 1) {
-                throw new LastAdminException(merchantId);
+                throw LastAdminException.forMerchant(merchantId);
             }
         }
 
-        MerchantUser changed = user.changeRole(newRole.roleId());
+        var changed = user.changeRole(newRole.roleId());
         users.set(userIdx, changed);
 
         domainEvents.add(MerchantUserRoleChangedEvent.builder()
+                .schemaVersion(MerchantUserRoleChangedEvent.SCHEMA_VERSION)
                 .eventId(UUID.randomUUID().toString())
                 .eventType(MerchantUserRoleChangedEvent.EVENT_TYPE)
                 .merchantId(merchantId)
                 .userId(userId)
                 .previousRoleId(previousRoleId)
+                .previousRoleName(previousRole.roleName())
                 .newRoleId(newRoleId)
+                .newRoleName(newRole.roleName())
                 .changedBy(changedBy)
                 .occurredAt(Instant.now())
                 .build());
@@ -278,22 +364,23 @@ public class MerchantTeam {
      * Suspends a user. Transitions ACTIVE → SUSPENDED.
      */
     public MerchantUser suspendUser(UUID userId, String reason, UUID suspendedBy) {
-        int userIdx = findUserIndex(userId);
-        MerchantUser user = users.get(userIdx);
+        var userIdx = findUserIndex(userId);
+        var user = users.get(userIdx);
 
         // Invariant: cannot suspend the last admin
-        Role adminRole = findRoleByName(BuiltInRole.ADMIN.name());
+        var adminRole = findRoleByName(BuiltInRole.ADMIN.name());
         if (user.isAdmin(adminRole.roleId())) {
-            long adminCount = countActiveAdmins(adminRole.roleId());
+            var adminCount = countActiveAdmins(adminRole.roleId());
             if (adminCount <= 1) {
-                throw new LastAdminException(merchantId);
+                throw LastAdminException.forMerchant(merchantId);
             }
         }
 
-        MerchantUser suspended = user.suspend();
+        var suspended = user.suspend();
         users.set(userIdx, suspended);
 
         domainEvents.add(MerchantUserSuspendedEvent.builder()
+                .schemaVersion(MerchantUserSuspendedEvent.SCHEMA_VERSION)
                 .eventId(UUID.randomUUID().toString())
                 .eventType(MerchantUserSuspendedEvent.EVENT_TYPE)
                 .merchantId(merchantId)
@@ -310,18 +397,22 @@ public class MerchantTeam {
      * Reactivates a suspended user. Transitions SUSPENDED → ACTIVE.
      */
     public MerchantUser reactivateUser(UUID userId) {
-        int userIdx = findUserIndex(userId);
-        MerchantUser user = users.get(userIdx);
-        MerchantUser reactivated = user.reactivate();
+        var userIdx = findUserIndex(userId);
+        var user = users.get(userIdx);
+        var reactivated = user.reactivate();
         users.set(userIdx, reactivated);
 
+        var role = findRoleById(reactivated.roleId());
+
         domainEvents.add(MerchantUserActivatedEvent.builder()
+                .schemaVersion(MerchantUserActivatedEvent.SCHEMA_VERSION)
                 .eventId(UUID.randomUUID().toString())
                 .eventType(MerchantUserActivatedEvent.EVENT_TYPE)
                 .merchantId(merchantId)
                 .userId(reactivated.userId())
-                .email(reactivated.email())
+                .emailHash(reactivated.emailHash())
                 .roleId(reactivated.roleId())
+                .roleName(role.roleName())
                 .occurredAt(Instant.now())
                 .build());
 
@@ -332,22 +423,23 @@ public class MerchantTeam {
      * Deactivates a user (terminal state). Enforces last-admin invariant.
      */
     public MerchantUser deactivateUser(UUID userId, String reason, UUID deactivatedBy) {
-        int userIdx = findUserIndex(userId);
-        MerchantUser user = users.get(userIdx);
+        var userIdx = findUserIndex(userId);
+        var user = users.get(userIdx);
 
         // Invariant: cannot deactivate the last admin
-        Role adminRole = findRoleByName(BuiltInRole.ADMIN.name());
+        var adminRole = findRoleByName(BuiltInRole.ADMIN.name());
         if (user.isAdmin(adminRole.roleId()) && user.isActive()) {
-            long adminCount = countActiveAdmins(adminRole.roleId());
+            var adminCount = countActiveAdmins(adminRole.roleId());
             if (adminCount <= 1) {
-                throw new LastAdminException(merchantId);
+                throw LastAdminException.forMerchant(merchantId);
             }
         }
 
-        MerchantUser deactivated = user.deactivate();
+        var deactivated = user.deactivate();
         users.set(userIdx, deactivated);
 
         domainEvents.add(MerchantUserDeactivatedEvent.builder()
+                .schemaVersion(MerchantUserDeactivatedEvent.SCHEMA_VERSION)
                 .eventId(UUID.randomUUID().toString())
                 .eventType(MerchantUserDeactivatedEvent.EVENT_TYPE)
                 .merchantId(merchantId)
@@ -364,7 +456,8 @@ public class MerchantTeam {
      * Revokes all sessions for this merchant (e.g., merchant suspended).
      */
     public AllSessionsRevokedEvent revokeAllSessions(String reason) {
-        AllSessionsRevokedEvent event = AllSessionsRevokedEvent.builder()
+        var event = AllSessionsRevokedEvent.builder()
+                .schemaVersion(AllSessionsRevokedEvent.SCHEMA_VERSION)
                 .eventId(UUID.randomUUID().toString())
                 .eventType(AllSessionsRevokedEvent.EVENT_TYPE)
                 .merchantId(merchantId)
@@ -394,17 +487,17 @@ public class MerchantTeam {
                 return i;
             }
         }
-        throw new UserNotFoundException(userId);
+        throw UserNotFoundException.withId(userId);
     }
 
     private int findUserIndexByEmailHash(String emailHash, UserStatus requiredStatus) {
         for (int i = 0; i < users.size(); i++) {
-            MerchantUser u = users.get(i);
+            var u = users.get(i);
             if (u.emailHash().equals(emailHash) && u.status() == requiredStatus) {
                 return i;
             }
         }
-        throw new UserNotFoundException(merchantId, emailHash);
+        throw UserNotFoundException.withEmailHash(merchantId, emailHash);
     }
 
     private int findInvitationIndex(UUID invitationId) {
@@ -416,18 +509,27 @@ public class MerchantTeam {
         throw new IllegalArgumentException("Invitation not in aggregate: " + invitationId);
     }
 
+    private int findRoleIndex(UUID roleId) {
+        for (int i = 0; i < roles.size(); i++) {
+            if (roles.get(i).roleId().equals(roleId)) {
+                return i;
+            }
+        }
+        throw RoleNotFoundException.withId(roleId);
+    }
+
     private Role findRoleById(UUID roleId) {
         return roles.stream()
                 .filter(r -> r.roleId().equals(roleId))
                 .findFirst()
-                .orElseThrow(() -> new RoleNotFoundException(roleId));
+                .orElseThrow(() -> RoleNotFoundException.withId(roleId));
     }
 
     private Role findRoleByName(String roleName) {
         return roles.stream()
                 .filter(r -> r.roleName().equals(roleName))
                 .findFirst()
-                .orElseThrow(() -> new RoleNotFoundException(merchantId, roleName));
+                .orElseThrow(() -> RoleNotFoundException.withName(merchantId, roleName));
     }
 
     private long countActiveAdmins(UUID adminRoleId) {

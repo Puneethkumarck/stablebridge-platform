@@ -4,7 +4,12 @@ import java.util.UUID;
 
 public class RoleInUseException extends RuntimeException {
 
-    public RoleInUseException(UUID roleId, long activeUserCount) {
-        super("Cannot delete role %s: %d active users assigned".formatted(roleId, activeUserCount));
+    private RoleInUseException(String message) {
+        super(message);
+    }
+
+    public static RoleInUseException forRole(UUID roleId, long activeUserCount) {
+        return new RoleInUseException(
+                "Cannot delete role %s: %d active users assigned".formatted(roleId, activeUserCount));
     }
 }

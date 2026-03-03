@@ -4,11 +4,16 @@ import java.util.UUID;
 
 public class RoleNotFoundException extends RuntimeException {
 
-    public RoleNotFoundException(UUID roleId) {
-        super("Role not found: " + roleId);
+    private RoleNotFoundException(String message) {
+        super(message);
     }
 
-    public RoleNotFoundException(UUID merchantId, String roleName) {
-        super("Role not found: merchant=%s name=%s".formatted(merchantId, roleName));
+    public static RoleNotFoundException withId(UUID roleId) {
+        return new RoleNotFoundException("Role not found: " + roleId);
+    }
+
+    public static RoleNotFoundException withName(UUID merchantId, String roleName) {
+        return new RoleNotFoundException(
+                "Role not found: merchant=%s name=%s".formatted(merchantId, roleName));
     }
 }

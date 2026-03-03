@@ -4,7 +4,12 @@ import java.util.UUID;
 
 public class UserAlreadyExistsException extends RuntimeException {
 
-    public UserAlreadyExistsException(UUID merchantId, String email) {
-        super("User already exists for merchant=%s email=%s".formatted(merchantId, email));
+    private UserAlreadyExistsException(String message) {
+        super(message);
+    }
+
+    public static UserAlreadyExistsException forMerchant(UUID merchantId, String email) {
+        return new UserAlreadyExistsException(
+                "User already exists for merchant=%s email=%s".formatted(merchantId, email));
     }
 }

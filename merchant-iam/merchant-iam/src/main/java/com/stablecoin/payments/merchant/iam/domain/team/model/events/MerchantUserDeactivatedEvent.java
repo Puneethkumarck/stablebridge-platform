@@ -7,6 +7,7 @@ import java.util.UUID;
 
 @Builder
 public record MerchantUserDeactivatedEvent(
+        String schemaVersion,
         String eventId,
         String eventType,
         UUID merchantId,
@@ -17,4 +18,5 @@ public record MerchantUserDeactivatedEvent(
 ) {
     public static final String TOPIC = "merchant.user.deactivated";
     public static final String EVENT_TYPE = "merchant.user.deactivated";
+    public static final String SCHEMA_VERSION = "1.0";
 }

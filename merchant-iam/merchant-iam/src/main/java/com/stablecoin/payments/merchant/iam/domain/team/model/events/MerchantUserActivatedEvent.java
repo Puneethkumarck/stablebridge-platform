@@ -7,14 +7,17 @@ import java.util.UUID;
 
 @Builder
 public record MerchantUserActivatedEvent(
+        String schemaVersion,
         String eventId,
         String eventType,
         UUID merchantId,
         UUID userId,
-        String email,
+        String emailHash,
         UUID roleId,
+        String roleName,
         Instant occurredAt
 ) {
     public static final String TOPIC = "merchant.user.activated";
     public static final String EVENT_TYPE = "merchant.user.activated";
+    public static final String SCHEMA_VERSION = "1.0";
 }

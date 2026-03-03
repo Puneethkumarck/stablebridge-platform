@@ -12,7 +12,6 @@ public record Invitation(
         UUID merchantId,
         String email,
         String emailHash,
-        String fullName,
         UUID roleId,
         UUID invitedBy,
         String tokenHash,

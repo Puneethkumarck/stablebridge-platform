@@ -4,11 +4,16 @@ import java.util.UUID;
 
 public class UserNotFoundException extends RuntimeException {
 
-    public UserNotFoundException(UUID userId) {
-        super("User not found: " + userId);
+    private UserNotFoundException(String message) {
+        super(message);
     }
 
-    public UserNotFoundException(UUID merchantId, String emailHash) {
-        super("User not found for merchant=%s emailHash=%s".formatted(merchantId, emailHash));
+    public static UserNotFoundException withId(UUID userId) {
+        return new UserNotFoundException("User not found: " + userId);
+    }
+
+    public static UserNotFoundException withEmailHash(UUID merchantId, String emailHash) {
+        return new UserNotFoundException(
+                "User not found for merchant=%s emailHash=%s".formatted(merchantId, emailHash));
     }
 }

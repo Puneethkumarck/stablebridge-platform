@@ -23,6 +23,8 @@ public class SecurityConfig {
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/v1/auth/**").permitAll()
                         .requestMatchers("/v1/invitations/**").permitAll()
+                        .requestMatchers("/v1/.well-known/**").permitAll()
+                        .requestMatchers("/v1/*/auth/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .build();

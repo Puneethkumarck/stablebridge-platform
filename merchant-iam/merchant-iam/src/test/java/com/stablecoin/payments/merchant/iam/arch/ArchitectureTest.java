@@ -24,10 +24,26 @@ class ArchitectureTest {
             .should().dependOnClassesThat().resideInAPackage("..application..")
             .allowEmptyShould(true);
 
+    // Domain services may use Spring stereotype (@Service, @Component) and transaction
+    // (@Transactional) annotations — consistent with the reference implementation
+    // (fiat-payout-processor: PayoutCreationService, PayoutInternalRetryService, etc.).
+    // Forbidden: Spring web, data, security, cloud, integration, and framework internals.
     @ArchTest
-    static final ArchRule domain_must_not_import_spring = noClasses()
+    static final ArchRule domain_must_not_import_spring_web = noClasses()
             .that().resideInAPackage("..domain..")
-            .should().dependOnClassesThat().resideInAPackage("org.springframework..")
+            .should().dependOnClassesThat().resideInAPackage("org.springframework.web..")
+            .allowEmptyShould(true);
+
+    @ArchTest
+    static final ArchRule domain_must_not_import_spring_data = noClasses()
+            .that().resideInAPackage("..domain..")
+            .should().dependOnClassesThat().resideInAPackage("org.springframework.data..")
+            .allowEmptyShould(true);
+
+    @ArchTest
+    static final ArchRule domain_must_not_import_spring_security = noClasses()
+            .that().resideInAPackage("..domain..")
+            .should().dependOnClassesThat().resideInAPackage("org.springframework.security..")
             .allowEmptyShould(true);
 
     @ArchTest

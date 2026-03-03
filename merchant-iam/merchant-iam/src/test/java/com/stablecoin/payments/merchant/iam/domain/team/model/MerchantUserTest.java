@@ -42,21 +42,26 @@ class MerchantUserTest {
 
         @Test
         void transitions_invited_to_active() {
-            MerchantUser user = buildUser(INVITED);
+            var user =buildUser(INVITED);
 
-            MerchantUser accepted = user.acceptInvitation("Full Name", "hashedPassword");
+            var accepted =user.acceptInvitation("Full Name", "hashedPassword");
 
-            assertThat(accepted.status()).isEqualTo(ACTIVE);
-            assertThat(accepted.fullName()).isEqualTo("Full Name");
-            assertThat(accepted.passwordHash()).isEqualTo("hashedPassword");
+            var expected = MerchantUser.builder()
+                    .status(ACTIVE)
+                    .fullName("Full Name")
+                    .passwordHash("hashedPassword")
+                    .build();
+            assertThat(accepted).usingRecursiveComparison()
+                    .comparingOnlyFields("status", "fullName", "passwordHash")
+                    .isEqualTo(expected);
             assertThat(accepted.activatedAt()).isNotNull();
         }
 
         @Test
         void returns_new_instance() {
-            MerchantUser user = buildUser(INVITED);
+            var user =buildUser(INVITED);
 
-            MerchantUser accepted = user.acceptInvitation("Name", "pass");
+            var accepted =user.acceptInvitation("Name", "pass");
 
             assertThat(accepted).isNotSameAs(user);
             assertThat(user.status()).isEqualTo(INVITED); // original unchanged
@@ -64,7 +69,7 @@ class MerchantUserTest {
 
         @Test
         void rejects_if_already_active() {
-            MerchantUser user = buildUser(ACTIVE);
+            var user =buildUser(ACTIVE);
 
             assertThatThrownBy(() -> user.acceptInvitation("Name", "pass"))
                     .isInstanceOf(StateMachineException.class);
@@ -72,7 +77,7 @@ class MerchantUserTest {
 
         @Test
         void rejects_if_suspended() {
-            MerchantUser user = buildUser(SUSPENDED);
+            var user =buildUser(SUSPENDED);
 
             assertThatThrownBy(() -> user.acceptInvitation("Name", "pass"))
                     .isInstanceOf(StateMachineException.class);
@@ -84,9 +89,9 @@ class MerchantUserTest {
 
         @Test
         void transitions_active_to_suspended() {
-            MerchantUser user = buildUser(ACTIVE);
+            var user =buildUser(ACTIVE);
 
-            MerchantUser suspended = user.suspend();
+            var suspended =user.suspend();
 
             assertThat(suspended.status()).isEqualTo(SUSPENDED);
             assertThat(suspended.suspendedAt()).isNotNull();
@@ -94,7 +99,7 @@ class MerchantUserTest {
 
         @Test
         void rejects_if_invited() {
-            MerchantUser user = buildUser(INVITED);
+            var user =buildUser(INVITED);
 
             assertThatThrownBy(user::suspend)
                     .isInstanceOf(StateMachineException.class);
@@ -102,7 +107,7 @@ class MerchantUserTest {
 
         @Test
         void rejects_if_deactivated() {
-            MerchantUser user = buildUser(DEACTIVATED);
+            var user =buildUser(DEACTIVATED);
 
             assertThatThrownBy(user::suspend)
                     .isInstanceOf(StateMachineException.class);
@@ -114,9 +119,9 @@ class MerchantUserTest {
 
         @Test
         void transitions_suspended_to_active() {
-            MerchantUser user = buildUser(SUSPENDED);
+            var user =buildUser(SUSPENDED);
 
-            MerchantUser reactivated = user.reactivate();
+            var reactivated =user.reactivate();
 
             assertThat(reactivated.status()).isEqualTo(ACTIVE);
             assertThat(reactivated.suspendedAt()).isNull();
@@ -124,7 +129,7 @@ class MerchantUserTest {
 
         @Test
         void rejects_if_active() {
-            MerchantUser user = buildUser(ACTIVE);
+            var user =buildUser(ACTIVE);
 
             assertThatThrownBy(user::reactivate)
                     .isInstanceOf(StateMachineException.class);
@@ -132,7 +137,7 @@ class MerchantUserTest {
 
         @Test
         void rejects_if_deactivated() {
-            MerchantUser user = buildUser(DEACTIVATED);
+            var user =buildUser(DEACTIVATED);
 
             assertThatThrownBy(user::reactivate)
                     .isInstanceOf(StateMachineException.class);
@@ -144,9 +149,9 @@ class MerchantUserTest {
 
         @Test
         void transitions_active_to_deactivated() {
-            MerchantUser user = buildUser(ACTIVE);
+            var user =buildUser(ACTIVE);
 
-            MerchantUser deactivated = user.deactivate();
+            var deactivated =user.deactivate();
 
             assertThat(deactivated.status()).isEqualTo(DEACTIVATED);
             assertThat(deactivated.deactivatedAt()).isNotNull();
@@ -154,9 +159,9 @@ class MerchantUserTest {
 
         @Test
         void transitions_suspended_to_deactivated() {
-            MerchantUser user = buildUser(SUSPENDED);
+            var user =buildUser(SUSPENDED);
 
-            MerchantUser deactivated = user.deactivate();
+            var deactivated =user.deactivate();
 
             assertThat(deactivated.status()).isEqualTo(DEACTIVATED);
             assertThat(deactivated.deactivatedAt()).isNotNull();
@@ -164,7 +169,7 @@ class MerchantUserTest {
 
         @Test
         void rejects_if_invited() {
-            MerchantUser user = buildUser(INVITED);
+            var user =buildUser(INVITED);
 
             assertThatThrownBy(user::deactivate)
                     .isInstanceOf(StateMachineException.class);
@@ -172,7 +177,7 @@ class MerchantUserTest {
 
         @Test
         void deactivated_is_terminal() {
-            MerchantUser user = buildUser(DEACTIVATED);
+            var user =buildUser(DEACTIVATED);
 
             assertThatThrownBy(user::deactivate)
                     .isInstanceOf(StateMachineException.class);
@@ -188,10 +193,10 @@ class MerchantUserTest {
 
         @Test
         void returns_new_instance_with_updated_role() {
-            MerchantUser user = buildUser(ACTIVE);
-            UUID newRoleId = UUID.randomUUID();
+            var user =buildUser(ACTIVE);
+            var newRoleId =UUID.randomUUID();
 
-            MerchantUser changed = user.changeRole(newRoleId);
+            var changed =user.changeRole(newRoleId);
 
             assertThat(changed.roleId()).isEqualTo(newRoleId);
             assertThat(user.roleId()).isEqualTo(ROLE_ID); // original unchanged
@@ -203,9 +208,9 @@ class MerchantUserTest {
 
         @Test
         void enable_mfa_sets_secret_ref() {
-            MerchantUser user = buildUser(ACTIVE);
+            var user =buildUser(ACTIVE);
 
-            MerchantUser withMfa = user.enableMfa("vault:secret/mfa/abc");
+            var withMfa =user.enableMfa("vault:secret/mfa/abc");
 
             assertThat(withMfa.mfaEnabled()).isTrue();
             assertThat(withMfa.mfaSecretRef()).isEqualTo("vault:secret/mfa/abc");
@@ -213,10 +218,10 @@ class MerchantUserTest {
 
         @Test
         void disable_mfa_clears_secret_ref() {
-            MerchantUser user = buildUser(ACTIVE);
-            MerchantUser withMfa = user.enableMfa("vault:secret/mfa/abc");
+            var user =buildUser(ACTIVE);
+            var withMfa =user.enableMfa("vault:secret/mfa/abc");
 
-            MerchantUser withoutMfa = withMfa.disableMfa();
+            var withoutMfa =withMfa.disableMfa();
 
             assertThat(withoutMfa.mfaEnabled()).isFalse();
             assertThat(withoutMfa.mfaSecretRef()).isNull();
@@ -228,14 +233,14 @@ class MerchantUserTest {
 
         @Test
         void returns_true_when_role_matches() {
-            MerchantUser user = buildUser(ACTIVE);
+            var user =buildUser(ACTIVE);
 
             assertThat(user.isAdmin(ROLE_ID)).isTrue();
         }
 
         @Test
         void returns_false_when_role_differs() {
-            MerchantUser user = buildUser(ACTIVE);
+            var user =buildUser(ACTIVE);
 
             assertThat(user.isAdmin(UUID.randomUUID())).isFalse();
         }
