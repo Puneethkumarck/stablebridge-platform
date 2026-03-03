@@ -80,6 +80,15 @@ dependencies {
     annotationProcessor("org.mapstruct:mapstruct-processor:$mapstructVersion")
     annotationProcessor("org.projectlombok:lombok-mapstruct-binding:$lombokMapstructBindingVersion")
 
+    // Email
+    implementation("org.springframework.boot:spring-boot-starter-mail")
+
+    // Auth — JWT ES256 (Nimbus, BOM-managed via oauth2-jose)
+    implementation("org.springframework.security:spring-security-oauth2-jose")
+
+    // Auth — TOTP RFC 6238 (Google Authenticator compatible)
+    implementation("dev.samstevens.totp:totp:1.7.1")
+
     // Database
     runtimeOnly("org.postgresql:postgresql")
     implementation("org.springframework.boot:spring-boot-starter-flyway")
@@ -87,7 +96,7 @@ dependencies {
     // hypersistence-utils removed: using native Hibernate 7 @JdbcTypeCode(SqlTypes.JSON) for JSONB
 
     // Outbox (namastack)
-    implementation("io.namastack:namastack-outbox-starter-jdbc:1.1.0")
+    implementation("io.namastack:namastack-outbox-starter-jdbc:1.0.0")
 
     // Test
     testImplementation("org.springframework.boot:spring-boot-starter-test")

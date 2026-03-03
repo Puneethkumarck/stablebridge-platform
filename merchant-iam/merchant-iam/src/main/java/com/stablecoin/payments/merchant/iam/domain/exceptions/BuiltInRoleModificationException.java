@@ -4,7 +4,12 @@ import java.util.UUID;
 
 public class BuiltInRoleModificationException extends RuntimeException {
 
-    public BuiltInRoleModificationException(UUID roleId, String roleName) {
-        super("Cannot modify built-in role: %s (%s)".formatted(roleName, roleId));
+    private BuiltInRoleModificationException(String message) {
+        super(message);
+    }
+
+    public static BuiltInRoleModificationException forRole(UUID roleId, String roleName) {
+        return new BuiltInRoleModificationException(
+                "Cannot modify built-in role: %s (%s)".formatted(roleName, roleId));
     }
 }

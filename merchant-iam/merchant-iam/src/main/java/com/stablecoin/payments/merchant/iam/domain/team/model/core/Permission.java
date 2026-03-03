@@ -1,10 +1,24 @@
 package com.stablecoin.payments.merchant.iam.domain.team.model.core;
 
 import java.util.Objects;
+import java.util.Set;
 
 public record Permission(String namespace, String action) {
 
     public static final String WILDCARD = "*";
+
+    /**
+     * Allowed permission namespaces per spec Section 2.
+     * Wildcard is permitted for ADMIN roles only.
+     */
+    public static final Set<String> ALLOWED_NAMESPACES = Set.of(
+            "*", "payments", "transactions", "webhooks", "api_keys",
+            "team", "roles", "settings", "exports", "compliance"
+    );
+
+    public static final Set<String> ALLOWED_ACTIONS = Set.of(
+            "*", "read", "write", "cancel", "manage", "export"
+    );
 
     public Permission {
         Objects.requireNonNull(namespace, "namespace must not be null");
@@ -14,6 +28,14 @@ public record Permission(String namespace, String action) {
         }
         if (action.isBlank()) {
             throw new IllegalArgumentException("action must not be blank");
+        }
+        if (!ALLOWED_NAMESPACES.contains(namespace)) {
+            throw new IllegalArgumentException(
+                    "Invalid permission namespace '" + namespace + "'. Allowed: " + ALLOWED_NAMESPACES);
+        }
+        if (!ALLOWED_ACTIONS.contains(action)) {
+            throw new IllegalArgumentException(
+                    "Invalid permission action '" + action + "'. Allowed: " + ALLOWED_ACTIONS);
         }
     }
 

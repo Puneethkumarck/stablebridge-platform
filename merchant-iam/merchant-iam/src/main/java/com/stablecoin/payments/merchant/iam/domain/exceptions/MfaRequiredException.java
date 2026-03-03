@@ -7,10 +7,15 @@ public class MfaRequiredException extends RuntimeException {
     private final UUID userId;
     private final UUID sessionId;
 
-    public MfaRequiredException(UUID userId, UUID sessionId) {
-        super("MFA verification required for user: " + userId);
+    private MfaRequiredException(String message, UUID userId, UUID sessionId) {
+        super(message);
         this.userId = userId;
         this.sessionId = sessionId;
+    }
+
+    public static MfaRequiredException forUser(UUID userId, UUID sessionId) {
+        return new MfaRequiredException(
+                "MFA verification required for user: " + userId, userId, sessionId);
     }
 
     public UUID getUserId() {

@@ -2,7 +2,11 @@ package com.stablecoin.payments.merchant.iam.domain.exceptions;
 
 public class InvalidCredentialsException extends RuntimeException {
 
-    public InvalidCredentialsException() {
-        super("Invalid email or password");
+    private InvalidCredentialsException(String message) {
+        super(message);
+    }
+
+    public static InvalidCredentialsException invalidEmailOrPassword() {
+        return new InvalidCredentialsException("Invalid email or password");
     }
 }

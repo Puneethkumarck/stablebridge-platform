@@ -1,7 +1,9 @@
 package com.stablecoin.payments.merchant.iam.domain.team;
 
+import com.stablecoin.payments.merchant.iam.domain.exceptions.BuiltInRoleModificationException;
 import com.stablecoin.payments.merchant.iam.domain.exceptions.InvitationExpiredException;
 import com.stablecoin.payments.merchant.iam.domain.exceptions.LastAdminException;
+import com.stablecoin.payments.merchant.iam.domain.exceptions.RoleInUseException;
 import com.stablecoin.payments.merchant.iam.domain.exceptions.RoleNotFoundException;
 import com.stablecoin.payments.merchant.iam.domain.exceptions.UserAlreadyExistsException;
 import com.stablecoin.payments.merchant.iam.domain.exceptions.UserNotFoundException;
@@ -69,7 +71,7 @@ class MerchantTeamTest {
     private MerchantUser inviteAndAccept(String email, String emailHash, String fullName,
                                           UUID roleId, UUID invitedBy, String tokenHash,
                                           String acceptName, String password) {
-        InviteResult result = team.inviteUser(email, emailHash, fullName, roleId, invitedBy, tokenHash);
+        var result = team.inviteUser(email, emailHash, fullName, roleId, invitedBy, tokenHash);
         return team.acceptInvitation(result.invitation().invitationId(), acceptName, password);
     }
 
@@ -80,16 +82,15 @@ class MerchantTeamTest {
 
         @Test
         void creates_four_built_in_roles() {
-            List<Role> roles = seedRoles();
+            var roles = seedRoles();
 
-            assertThat(roles).hasSize(4);
             assertThat(roles).extracting(Role::roleName)
                     .containsExactlyInAnyOrder("ADMIN", "PAYMENTS_OPERATOR", "VIEWER", "DEVELOPER");
         }
 
         @Test
         void all_roles_are_builtin_and_active() {
-            List<Role> roles = seedRoles();
+            var roles = seedRoles();
 
             assertThat(roles).allMatch(Role::builtin);
             assertThat(roles).allMatch(Role::active);
@@ -98,7 +99,7 @@ class MerchantTeamTest {
         @Test
         void admin_role_has_wildcard_permission() {
             seedRoles();
-            Role admin = findRole("ADMIN");
+            var admin = findRole("ADMIN");
 
             assertThat(admin.permissions()).containsExactly(Permission.of("*", "*"));
         }
@@ -106,7 +107,7 @@ class MerchantTeamTest {
         @Test
         void payments_operator_has_correct_permissions() {
             seedRoles();
-            Role role = findRole("PAYMENTS_OPERATOR");
+            var role = findRole("PAYMENTS_OPERATOR");
 
             assertThat(role.permissions()).containsExactlyInAnyOrderElementsOf(
                     BuiltInRole.PAYMENTS_OPERATOR.defaultPermissions());
@@ -126,24 +127,29 @@ class MerchantTeamTest {
         @Test
         void creates_active_user_with_admin_role() {
             seedRoles();
-            MerchantUser admin = team.createFirstAdmin(
+            var admin = team.createFirstAdmin(
                     "admin@test.com", "admin-hash", "Admin User", "pwd-hash");
 
-            assertThat(admin.status()).isEqualTo(UserStatus.ACTIVE);
-            assertThat(admin.email()).isEqualTo("admin@test.com");
-            assertThat(admin.fullName()).isEqualTo("Admin User");
-            assertThat(admin.passwordHash()).isEqualTo("pwd-hash");
-            assertThat(admin.authProvider()).isEqualTo(AuthProvider.LOCAL);
+            var expected = MerchantUser.builder()
+                    .status(UserStatus.ACTIVE)
+                    .email("admin@test.com")
+                    .fullName("Admin User")
+                    .passwordHash("pwd-hash")
+                    .authProvider(AuthProvider.LOCAL)
+                    .merchantId(MERCHANT_ID)
+                    .build();
+            assertThat(admin).usingRecursiveComparison()
+                    .comparingOnlyFields("status", "email", "fullName", "passwordHash", "authProvider", "merchantId")
+                    .isEqualTo(expected);
             assertThat(admin.activatedAt()).isNotNull();
-            assertThat(admin.merchantId()).isEqualTo(MERCHANT_ID);
         }
 
         @Test
         void assigns_admin_role_id() {
             seedRoles();
-            Role adminRole = findRole("ADMIN");
+            var adminRole = findRole("ADMIN");
 
-            MerchantUser admin = team.createFirstAdmin(
+            var admin = team.createFirstAdmin(
                     "admin@test.com", "admin-hash", "Admin User", "pwd-hash");
 
             assertThat(admin.roleId()).isEqualTo(adminRole.roleId());
@@ -154,12 +160,10 @@ class MerchantTeamTest {
             seedRoles();
             team.createFirstAdmin("admin@test.com", "admin-hash", "Admin User", "pwd-hash");
 
-            assertThat(team.domainEvents()).hasSize(1);
-            assertThat(team.domainEvents().getFirst()).isInstanceOf(MerchantUserActivatedEvent.class);
-
-            MerchantUserActivatedEvent event = (MerchantUserActivatedEvent) team.domainEvents().getFirst();
-            assertThat(event.merchantId()).isEqualTo(MERCHANT_ID);
-            assertThat(event.email()).isEqualTo("admin@test.com");
+            assertThat(team.domainEvents()).singleElement()
+                    .isInstanceOf(MerchantUserActivatedEvent.class)
+                    .extracting("merchantId", "emailHash", "roleName", "schemaVersion")
+                    .containsExactly(MERCHANT_ID, "admin-hash", "ADMIN", "1.0");
         }
 
         @Test
@@ -181,29 +185,39 @@ class MerchantTeamTest {
 
         @Test
         void creates_invited_user_and_pending_invitation() {
-            Role viewerRole = findRole("VIEWER");
-            UUID invitedBy = team.getUsers().getFirst().userId();
+            var viewerRole = findRole("VIEWER");
+            var invitedBy = team.getUsers().getFirst().userId();
 
-            InviteResult result = team.inviteUser(
+            var result = team.inviteUser(
                     "new@test.com", "new-hash", "New User",
                     viewerRole.roleId(), invitedBy, "token-hash");
 
-            assertThat(result.user().status()).isEqualTo(UserStatus.INVITED);
-            assertThat(result.user().email()).isEqualTo("new@test.com");
-            assertThat(result.user().roleId()).isEqualTo(viewerRole.roleId());
-            assertThat(result.user().invitedBy()).isEqualTo(invitedBy);
+            var expectedUser = MerchantUser.builder()
+                    .status(UserStatus.INVITED)
+                    .email("new@test.com")
+                    .roleId(viewerRole.roleId())
+                    .invitedBy(invitedBy)
+                    .build();
+            assertThat(result.user()).usingRecursiveComparison()
+                    .comparingOnlyFields("status", "email", "roleId", "invitedBy")
+                    .isEqualTo(expectedUser);
 
-            assertThat(result.invitation().status()).isEqualTo(InvitationStatus.PENDING);
-            assertThat(result.invitation().tokenHash()).isEqualTo("token-hash");
+            var expectedInvitation = Invitation.builder()
+                    .status(InvitationStatus.PENDING)
+                    .tokenHash("token-hash")
+                    .build();
+            assertThat(result.invitation()).usingRecursiveComparison()
+                    .comparingOnlyFields("status", "tokenHash")
+                    .isEqualTo(expectedInvitation);
             assertThat(result.invitation().expiresAt()).isAfter(Instant.now());
         }
 
         @Test
         void invitation_expires_in_7_days() {
-            Role viewerRole = findRole("VIEWER");
-            UUID invitedBy = team.getUsers().getFirst().userId();
+            var viewerRole = findRole("VIEWER");
+            var invitedBy = team.getUsers().getFirst().userId();
 
-            InviteResult result = team.inviteUser(
+            var result = team.inviteUser(
                     "new@test.com", "new-hash", "New User",
                     viewerRole.roleId(), invitedBy, "token-hash");
 
@@ -215,24 +229,26 @@ class MerchantTeamTest {
 
         @Test
         void produces_invited_event() {
-            Role viewerRole = findRole("VIEWER");
-            UUID invitedBy = team.getUsers().getFirst().userId();
+            var viewerRole = findRole("VIEWER");
+            var invitedBy = team.getUsers().getFirst().userId();
 
             team.inviteUser("new@test.com", "new-hash", "New User",
                     viewerRole.roleId(), invitedBy, "token-hash");
 
-            assertThat(team.domainEvents()).hasSize(1);
-            assertThat(team.domainEvents().getFirst()).isInstanceOf(MerchantUserInvitedEvent.class);
-
-            MerchantUserInvitedEvent event = (MerchantUserInvitedEvent) team.domainEvents().getFirst();
-            assertThat(event.email()).isEqualTo("new@test.com");
-            assertThat(event.invitedBy()).isEqualTo(invitedBy);
+            assertThat(team.domainEvents()).singleElement()
+                    .isInstanceOf(MerchantUserInvitedEvent.class)
+                    .satisfies(e -> {
+                        var event = (MerchantUserInvitedEvent) e;
+                        assertThat(event.invitationId()).isNotNull();
+                        assertThat(event).extracting("emailHash", "roleName", "invitedBy", "schemaVersion")
+                                .containsExactly("new-hash", "VIEWER", invitedBy, "1.0");
+                    });
         }
 
         @Test
         void rejects_duplicate_email() {
-            Role viewerRole = findRole("VIEWER");
-            UUID invitedBy = team.getUsers().getFirst().userId();
+            var viewerRole = findRole("VIEWER");
+            var invitedBy = team.getUsers().getFirst().userId();
 
             // admin@test.com already exists with hash "admin-hash"
             assertThatThrownBy(() -> team.inviteUser(
@@ -243,24 +259,24 @@ class MerchantTeamTest {
 
         @Test
         void allows_reuse_of_deactivated_user_email() {
-            Role viewerRole = findRole("VIEWER");
-            UUID adminUserId = team.getUsers().getFirst().userId();
+            var viewerRole = findRole("VIEWER");
+            var adminUserId = team.getUsers().getFirst().userId();
 
             // Add a second admin so first can be deactivated
             team.createFirstAdmin("admin2@test.com", "admin2-hash", "Admin 2", "pwd2");
             team.clearDomainEvents();
 
             // Invite a user, accept through aggregate, then deactivate
-            InviteResult invited = team.inviteUser(
+            var invited = team.inviteUser(
                     "reuse@test.com", "reuse-hash", "Reuse User",
                     viewerRole.roleId(), adminUserId, "token1");
-            MerchantUser accepted = team.acceptInvitation(
+            var accepted = team.acceptInvitation(
                     invited.invitation().invitationId(), "Reuse User", "pwd");
             team.deactivateUser(accepted.userId(), "cleanup", adminUserId);
             team.clearDomainEvents();
 
             // Re-invite same email should succeed
-            InviteResult reinvited = team.inviteUser(
+            var reinvited = team.inviteUser(
                     "reuse@test.com", "reuse-hash", "Reuse User Again",
                     viewerRole.roleId(), adminUserId, "token2");
 
@@ -269,7 +285,7 @@ class MerchantTeamTest {
 
         @Test
         void rejects_invalid_role() {
-            UUID invitedBy = team.getUsers().getFirst().userId();
+            var invitedBy = team.getUsers().getFirst().userId();
 
             assertThatThrownBy(() -> team.inviteUser(
                     "new@test.com", "new-hash", "New User",
@@ -286,8 +302,8 @@ class MerchantTeamTest {
         @BeforeEach
         void setUp() {
             createAdmin();
-            Role viewerRole = findRole("VIEWER");
-            UUID invitedBy = team.getUsers().getFirst().userId();
+            var viewerRole = findRole("VIEWER");
+            var invitedBy = team.getUsers().getFirst().userId();
             inviteResult = team.inviteUser(
                     "invited@test.com", "invited-hash", "Invited User",
                     viewerRole.roleId(), invitedBy, "token-hash");
@@ -296,13 +312,18 @@ class MerchantTeamTest {
 
         @Test
         void transitions_user_to_active() {
-            MerchantUser accepted = team.acceptInvitation(
+            var accepted = team.acceptInvitation(
                     inviteResult.invitation().invitationId(),
                     "Accepted User", "new-password-hash");
 
-            assertThat(accepted.status()).isEqualTo(UserStatus.ACTIVE);
-            assertThat(accepted.fullName()).isEqualTo("Accepted User");
-            assertThat(accepted.passwordHash()).isEqualTo("new-password-hash");
+            var expected = MerchantUser.builder()
+                    .status(UserStatus.ACTIVE)
+                    .fullName("Accepted User")
+                    .passwordHash("new-password-hash")
+                    .build();
+            assertThat(accepted).usingRecursiveComparison()
+                    .comparingOnlyFields("status", "fullName", "passwordHash")
+                    .isEqualTo(expected);
             assertThat(accepted.activatedAt()).isNotNull();
         }
 
@@ -312,7 +333,7 @@ class MerchantTeamTest {
                     inviteResult.invitation().invitationId(),
                     "Accepted User", "new-password-hash");
 
-            Invitation invitation = team.getInvitations().stream()
+            var invitation = team.getInvitations().stream()
                     .filter(i -> i.invitationId().equals(inviteResult.invitation().invitationId()))
                     .findFirst()
                     .orElseThrow();
@@ -327,19 +348,18 @@ class MerchantTeamTest {
                     inviteResult.invitation().invitationId(),
                     "Accepted User", "new-password-hash");
 
-            assertThat(team.domainEvents()).hasSize(1);
-            assertThat(team.domainEvents().getFirst()).isInstanceOf(MerchantUserActivatedEvent.class);
+            assertThat(team.domainEvents()).singleElement()
+                    .isInstanceOf(MerchantUserActivatedEvent.class);
         }
 
         @Test
         void rejects_expired_invitation() {
             // Build team with an already-expired invitation
-            Invitation expiredInvitation = Invitation.builder()
+            var expiredInvitation = Invitation.builder()
                     .invitationId(UUID.randomUUID())
                     .merchantId(MERCHANT_ID)
                     .email("expired@test.com")
                     .emailHash("expired-hash")
-                    .fullName("Expired User")
                     .roleId(findRole("VIEWER").roleId())
                     .invitedBy(team.getUsers().getFirst().userId())
                     .tokenHash("expired-token")
@@ -348,7 +368,7 @@ class MerchantTeamTest {
                     .expiresAt(Instant.now().minus(1, ChronoUnit.DAYS))
                     .build();
 
-            MerchantUser expiredUser = MerchantUser.builder()
+            var expiredUser = MerchantUser.builder()
                     .userId(UUID.randomUUID())
                     .merchantId(MERCHANT_ID)
                     .email("expired@test.com")
@@ -362,7 +382,7 @@ class MerchantTeamTest {
                     .updatedAt(Instant.now())
                     .build();
 
-            MerchantTeam teamWithExpired = new MerchantTeam(MERCHANT_ID,
+            var teamWithExpired = new MerchantTeam(MERCHANT_ID,
                     new ArrayList<>(team.getRoles()),
                     new ArrayList<>(List.of(team.getUsers().getFirst(), expiredUser)),
                     new ArrayList<>(List.of(expiredInvitation)));
@@ -384,31 +404,29 @@ class MerchantTeamTest {
 
         @Test
         void changes_role_and_produces_event() {
-            Role viewerRole = findRole("VIEWER");
-            UUID adminId = team.getUsers().getFirst().userId();
-            MerchantUser activated = inviteAndAccept(
+            var viewerRole = findRole("VIEWER");
+            var adminId = team.getUsers().getFirst().userId();
+            var activated = inviteAndAccept(
                     "user@test.com", "user-hash", "User",
                     viewerRole.roleId(), adminId, "token",
                     "User", "pwd");
             team.clearDomainEvents();
 
-            Role operatorRole = findRole("PAYMENTS_OPERATOR");
-            MerchantUser changed = team.changeUserRole(
+            var operatorRole = findRole("PAYMENTS_OPERATOR");
+            var changed = team.changeUserRole(
                     activated.userId(), operatorRole.roleId(), adminId);
 
             assertThat(changed.roleId()).isEqualTo(operatorRole.roleId());
-            assertThat(team.domainEvents()).hasSize(1);
-            assertThat(team.domainEvents().getFirst()).isInstanceOf(MerchantUserRoleChangedEvent.class);
-
-            MerchantUserRoleChangedEvent event = (MerchantUserRoleChangedEvent) team.domainEvents().getFirst();
-            assertThat(event.previousRoleId()).isEqualTo(viewerRole.roleId());
-            assertThat(event.newRoleId()).isEqualTo(operatorRole.roleId());
+            assertThat(team.domainEvents()).singleElement()
+                    .isInstanceOf(MerchantUserRoleChangedEvent.class)
+                    .extracting("previousRoleId", "newRoleId")
+                    .containsExactly(viewerRole.roleId(), operatorRole.roleId());
         }
 
         @Test
         void rejects_demoting_last_admin() {
-            UUID adminId = team.getUsers().getFirst().userId();
-            Role viewerRole = findRole("VIEWER");
+            var adminId = team.getUsers().getFirst().userId();
+            var viewerRole = findRole("VIEWER");
 
             assertThatThrownBy(() -> team.changeUserRole(adminId, viewerRole.roleId(), adminId))
                     .isInstanceOf(LastAdminException.class);
@@ -416,16 +434,16 @@ class MerchantTeamTest {
 
         @Test
         void allows_demoting_admin_when_others_exist() {
-            Role adminRole = findRole("ADMIN");
-            UUID firstAdminId = team.getUsers().getFirst().userId();
-            MerchantUser secondAdmin = inviteAndAccept(
+            var adminRole = findRole("ADMIN");
+            var firstAdminId = team.getUsers().getFirst().userId();
+            var secondAdmin = inviteAndAccept(
                     "admin2@test.com", "admin2-hash", "Admin 2",
                     adminRole.roleId(), firstAdminId, "token2",
                     "Admin 2", "pwd");
             team.clearDomainEvents();
 
-            Role viewerRole = findRole("VIEWER");
-            MerchantUser demoted = team.changeUserRole(
+            var viewerRole = findRole("VIEWER");
+            var demoted = team.changeUserRole(
                     firstAdminId, viewerRole.roleId(), secondAdmin.userId());
 
             assertThat(demoted.roleId()).isEqualTo(viewerRole.roleId());
@@ -433,8 +451,8 @@ class MerchantTeamTest {
 
         @Test
         void rejects_unknown_user() {
-            Role viewerRole = findRole("VIEWER");
-            UUID adminId = team.getUsers().getFirst().userId();
+            var viewerRole = findRole("VIEWER");
+            var adminId = team.getUsers().getFirst().userId();
 
             assertThatThrownBy(() -> team.changeUserRole(UUID.randomUUID(), viewerRole.roleId(), adminId))
                     .isInstanceOf(UserNotFoundException.class);
@@ -442,7 +460,7 @@ class MerchantTeamTest {
 
         @Test
         void rejects_unknown_role() {
-            UUID adminId = team.getUsers().getFirst().userId();
+            var adminId = team.getUsers().getFirst().userId();
 
             assertThatThrownBy(() -> team.changeUserRole(adminId, UUID.randomUUID(), adminId))
                     .isInstanceOf(RoleNotFoundException.class);
@@ -460,26 +478,26 @@ class MerchantTeamTest {
 
         @Test
         void suspends_active_user() {
-            Role viewerRole = findRole("VIEWER");
-            UUID adminId = team.getUsers().getFirst().userId();
-            MerchantUser activated = inviteAndAccept(
+            var viewerRole = findRole("VIEWER");
+            var adminId = team.getUsers().getFirst().userId();
+            var activated = inviteAndAccept(
                     "user@test.com", "user-hash", "User",
                     viewerRole.roleId(), adminId, "token",
                     "User", "pwd");
             team.clearDomainEvents();
 
-            MerchantUser suspended = team.suspendUser(
+            var suspended = team.suspendUser(
                     activated.userId(), "policy violation", adminId);
 
             assertThat(suspended.status()).isEqualTo(UserStatus.SUSPENDED);
             assertThat(suspended.suspendedAt()).isNotNull();
-            assertThat(team.domainEvents()).hasSize(1);
-            assertThat(team.domainEvents().getFirst()).isInstanceOf(MerchantUserSuspendedEvent.class);
+            assertThat(team.domainEvents()).singleElement()
+                    .isInstanceOf(MerchantUserSuspendedEvent.class);
         }
 
         @Test
         void rejects_suspending_last_admin() {
-            UUID adminId = team.getUsers().getFirst().userId();
+            var adminId = team.getUsers().getFirst().userId();
 
             assertThatThrownBy(() -> team.suspendUser(adminId, "test", adminId))
                     .isInstanceOf(LastAdminException.class);
@@ -487,9 +505,9 @@ class MerchantTeamTest {
 
         @Test
         void rejects_suspending_invited_user() {
-            Role viewerRole = findRole("VIEWER");
-            UUID adminId = team.getUsers().getFirst().userId();
-            InviteResult invited = team.inviteUser(
+            var viewerRole = findRole("VIEWER");
+            var adminId = team.getUsers().getFirst().userId();
+            var invited = team.inviteUser(
                     "user@test.com", "user-hash", "User",
                     viewerRole.roleId(), adminId, "token");
             team.clearDomainEvents();
@@ -510,27 +528,27 @@ class MerchantTeamTest {
 
         @Test
         void reactivates_suspended_user() {
-            Role viewerRole = findRole("VIEWER");
-            UUID adminId = team.getUsers().getFirst().userId();
-            MerchantUser activated = inviteAndAccept(
+            var viewerRole = findRole("VIEWER");
+            var adminId = team.getUsers().getFirst().userId();
+            var activated = inviteAndAccept(
                     "user@test.com", "user-hash", "User",
                     viewerRole.roleId(), adminId, "token",
                     "User", "pwd");
             team.suspendUser(activated.userId(), "reason", adminId);
             team.clearDomainEvents();
 
-            MerchantUser reactivated = team.reactivateUser(activated.userId());
+            var reactivated = team.reactivateUser(activated.userId());
 
             assertThat(reactivated.status()).isEqualTo(UserStatus.ACTIVE);
-            assertThat(team.domainEvents()).hasSize(1);
-            assertThat(team.domainEvents().getFirst()).isInstanceOf(MerchantUserActivatedEvent.class);
+            assertThat(team.domainEvents()).singleElement()
+                    .isInstanceOf(MerchantUserActivatedEvent.class);
         }
 
         @Test
         void rejects_reactivating_active_user() {
-            Role viewerRole = findRole("VIEWER");
-            UUID adminId = team.getUsers().getFirst().userId();
-            MerchantUser activated = inviteAndAccept(
+            var viewerRole = findRole("VIEWER");
+            var adminId = team.getUsers().getFirst().userId();
+            var activated = inviteAndAccept(
                     "user@test.com", "user-hash", "User",
                     viewerRole.roleId(), adminId, "token",
                     "User", "pwd");
@@ -552,26 +570,26 @@ class MerchantTeamTest {
 
         @Test
         void deactivates_active_user() {
-            Role viewerRole = findRole("VIEWER");
-            UUID adminId = team.getUsers().getFirst().userId();
-            MerchantUser activated = inviteAndAccept(
+            var viewerRole = findRole("VIEWER");
+            var adminId = team.getUsers().getFirst().userId();
+            var activated = inviteAndAccept(
                     "user@test.com", "user-hash", "User",
                     viewerRole.roleId(), adminId, "token",
                     "User", "pwd");
             team.clearDomainEvents();
 
-            MerchantUser deactivated = team.deactivateUser(
+            var deactivated = team.deactivateUser(
                     activated.userId(), "leaving", adminId);
 
             assertThat(deactivated.status()).isEqualTo(UserStatus.DEACTIVATED);
             assertThat(deactivated.deactivatedAt()).isNotNull();
-            assertThat(team.domainEvents()).hasSize(1);
-            assertThat(team.domainEvents().getFirst()).isInstanceOf(MerchantUserDeactivatedEvent.class);
+            assertThat(team.domainEvents()).singleElement()
+                    .isInstanceOf(MerchantUserDeactivatedEvent.class);
         }
 
         @Test
         void rejects_deactivating_last_admin() {
-            UUID adminId = team.getUsers().getFirst().userId();
+            var adminId = team.getUsers().getFirst().userId();
 
             assertThatThrownBy(() -> team.deactivateUser(adminId, "test", adminId))
                     .isInstanceOf(LastAdminException.class);
@@ -579,15 +597,15 @@ class MerchantTeamTest {
 
         @Test
         void allows_deactivating_admin_when_others_exist() {
-            Role adminRole = findRole("ADMIN");
-            UUID firstAdminId = team.getUsers().getFirst().userId();
-            MerchantUser secondAdmin = inviteAndAccept(
+            var adminRole = findRole("ADMIN");
+            var firstAdminId = team.getUsers().getFirst().userId();
+            var secondAdmin = inviteAndAccept(
                     "admin2@test.com", "admin2-hash", "Admin 2",
                     adminRole.roleId(), firstAdminId, "token2",
                     "Admin 2", "pwd");
             team.clearDomainEvents();
 
-            MerchantUser deactivated = team.deactivateUser(
+            var deactivated = team.deactivateUser(
                     firstAdminId, "leaving", secondAdmin.userId());
 
             assertThat(deactivated.status()).isEqualTo(UserStatus.DEACTIVATED);
@@ -602,12 +620,130 @@ class MerchantTeamTest {
             createAdmin();
             team.clearDomainEvents();
 
-            AllSessionsRevokedEvent event = team.revokeAllSessions("merchant_suspended");
+            var event = team.revokeAllSessions("merchant_suspended");
 
-            assertThat(event.merchantId()).isEqualTo(MERCHANT_ID);
-            assertThat(event.reason()).isEqualTo("merchant_suspended");
-            assertThat(team.domainEvents()).hasSize(1);
-            assertThat(team.domainEvents().getFirst()).isInstanceOf(AllSessionsRevokedEvent.class);
+            assertThat(event).extracting("merchantId", "reason")
+                    .containsExactly(MERCHANT_ID, "merchant_suspended");
+            assertThat(team.domainEvents()).singleElement()
+                    .isInstanceOf(AllSessionsRevokedEvent.class);
+        }
+    }
+
+    @Nested
+    class CustomRoles {
+
+        @BeforeEach
+        void setUp() {
+            createAdmin();
+            team.clearDomainEvents();
+        }
+
+        @Test
+        void creates_custom_role() {
+            var adminId = team.getUsers().getFirst().userId();
+            var custom = team.createCustomRole("FINANCE_AUDITOR", "Read-only finance",
+                    List.of(Permission.of("transactions", "read"), Permission.of("exports", "read")),
+                    adminId);
+
+            assertThat(custom).extracting("roleName", "builtin", "active", "createdBy")
+                    .containsExactly("FINANCE_AUDITOR", false, true, adminId);
+            assertThat(custom.permissions()).containsExactlyInAnyOrder(
+                    Permission.of("transactions", "read"), Permission.of("exports", "read"));
+            assertThat(team.getRoles()).hasSize(5); // 4 built-in + 1 custom
+        }
+
+        @Test
+        void rejects_duplicate_role_name() {
+            var adminId = team.getUsers().getFirst().userId();
+
+            assertThatThrownBy(() -> team.createCustomRole("ADMIN", "Duplicate",
+                    List.of(Permission.of("payments", "read")), adminId))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("already exists");
+        }
+
+        @Test
+        void deletes_custom_role_with_no_users() {
+            var adminId = team.getUsers().getFirst().userId();
+            var custom = team.createCustomRole("TEMP_ROLE", "Temporary",
+                    List.of(Permission.of("payments", "read")), adminId);
+
+            var deleted = team.deleteCustomRole(custom.roleId());
+
+            assertThat(deleted.active()).isFalse();
+        }
+
+        @Test
+        void rejects_deleting_builtin_role() {
+            var adminRole = findRole("ADMIN");
+
+            assertThatThrownBy(() -> team.deleteCustomRole(adminRole.roleId()))
+                    .isInstanceOf(BuiltInRoleModificationException.class);
+        }
+
+        @Test
+        void rejects_deleting_role_with_active_users() {
+            var adminId = team.getUsers().getFirst().userId();
+            var custom = team.createCustomRole("CUSTOM", "Custom",
+                    List.of(Permission.of("payments", "read")), adminId);
+
+            // Invite and accept a user with the custom role
+            inviteAndAccept("user@test.com", "user-hash", "User",
+                    custom.roleId(), adminId, "token", "User", "pwd");
+
+            assertThatThrownBy(() -> team.deleteCustomRole(custom.roleId()))
+                    .isInstanceOf(RoleInUseException.class);
+        }
+
+        @Test
+        void updates_custom_role_permissions() {
+            var adminId = team.getUsers().getFirst().userId();
+            var custom = team.createCustomRole("CUSTOM", "Custom",
+                    List.of(Permission.of("payments", "read")), adminId);
+
+            var newPerms = List.of(
+                    Permission.of("payments", "read"),
+                    Permission.of("transactions", "read"));
+            var updated = team.updateCustomRolePermissions(custom.roleId(), newPerms);
+
+            assertThat(updated.permissions()).containsExactlyInAnyOrderElementsOf(newPerms);
+        }
+
+        @Test
+        void rejects_updating_builtin_role_permissions() {
+            var adminRole = findRole("ADMIN");
+
+            assertThatThrownBy(() -> team.updateCustomRolePermissions(
+                    adminRole.roleId(), List.of(Permission.of("payments", "read"))))
+                    .isInstanceOf(BuiltInRoleModificationException.class);
+        }
+    }
+
+    @Nested
+    class RoleChangedEventEnrichment {
+
+        @BeforeEach
+        void setUp() {
+            createAdmin();
+            team.clearDomainEvents();
+        }
+
+        @Test
+        void role_changed_event_includes_role_names() {
+            var viewerRole = findRole("VIEWER");
+            var adminId = team.getUsers().getFirst().userId();
+            var activated = inviteAndAccept(
+                    "user@test.com", "user-hash", "User",
+                    viewerRole.roleId(), adminId, "token",
+                    "User", "pwd");
+            team.clearDomainEvents();
+
+            var operatorRole = findRole("PAYMENTS_OPERATOR");
+            team.changeUserRole(activated.userId(), operatorRole.roleId(), adminId);
+
+            assertThat(team.domainEvents().getFirst())
+                    .extracting("previousRoleName", "newRoleName", "schemaVersion")
+                    .containsExactly("VIEWER", "PAYMENTS_OPERATOR", "1.0");
         }
     }
 
@@ -628,9 +764,9 @@ class MerchantTeamTest {
         @Test
         void domain_events_returns_immutable_copy() {
             createAdmin();
-            List<Object> events = team.domainEvents();
+            var events = team.domainEvents();
 
-            assertThat(events).hasSize(1);
+            assertThat(events).isNotEmpty();
             assertThatThrownBy(() -> events.add("should fail"))
                     .isInstanceOf(UnsupportedOperationException.class);
         }

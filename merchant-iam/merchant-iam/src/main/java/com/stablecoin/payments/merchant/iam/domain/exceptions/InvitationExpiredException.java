@@ -4,7 +4,11 @@ import java.util.UUID;
 
 public class InvitationExpiredException extends RuntimeException {
 
-    public InvitationExpiredException(UUID invitationId) {
-        super("Invitation has expired: " + invitationId);
+    private InvitationExpiredException(String message) {
+        super(message);
+    }
+
+    public static InvitationExpiredException withId(UUID invitationId) {
+        return new InvitationExpiredException("Invitation has expired: " + invitationId);
     }
 }

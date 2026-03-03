@@ -11,24 +11,27 @@ public enum BuiltInRole {
     )),
 
     PAYMENTS_OPERATOR("Payments Operator", List.of(
-            of("payments", "read"),
-            of("payments", "write"),
-            of("payments", "cancel"),
+            of("payments", "*"),
+            of("transactions", "*"),
+            of("exports", "read"),
             of("team", "read")
     )),
 
     VIEWER("Viewer", List.of(
             of("payments", "read"),
+            of("transactions", "read"),
+            of("transactions", "export"),
+            of("exports", "read"),
+            of("settings", "read"),
             of("team", "read"),
             of("roles", "read")
     )),
 
     DEVELOPER("Developer", List.of(
-            of("api_keys", "read"),
-            of("api_keys", "write"),
-            of("webhooks", "read"),
-            of("webhooks", "write"),
-            of("payments", "read")
+            of("payments", "read"),
+            of("transactions", "read"),
+            of("webhooks", "*"),
+            of("api_keys", "*")
     ));
 
     private final String description;

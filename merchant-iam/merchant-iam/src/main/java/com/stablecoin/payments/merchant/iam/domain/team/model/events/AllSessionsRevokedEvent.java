@@ -7,6 +7,7 @@ import java.util.UUID;
 
 @Builder
 public record AllSessionsRevokedEvent(
+        String schemaVersion,
         String eventId,
         String eventType,
         UUID merchantId,
@@ -15,4 +16,5 @@ public record AllSessionsRevokedEvent(
 ) {
     public static final String TOPIC = "merchant.sessions.revoked";
     public static final String EVENT_TYPE = "merchant.sessions.revoked";
+    public static final String SCHEMA_VERSION = "1.0";
 }

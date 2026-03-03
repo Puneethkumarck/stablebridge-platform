@@ -7,6 +7,7 @@ import java.util.UUID;
 
 @Builder
 public record MerchantUserSuspendedEvent(
+        String schemaVersion,
         String eventId,
         String eventType,
         UUID merchantId,
@@ -17,4 +18,5 @@ public record MerchantUserSuspendedEvent(
 ) {
     public static final String TOPIC = "merchant.user.suspended";
     public static final String EVENT_TYPE = "merchant.user.suspended";
+    public static final String SCHEMA_VERSION = "1.0";
 }
