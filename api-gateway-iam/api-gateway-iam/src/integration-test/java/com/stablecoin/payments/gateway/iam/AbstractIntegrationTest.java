@@ -1,6 +1,5 @@
 package com.stablecoin.payments.gateway.iam;
 
-import com.stablecoin.payments.gateway.iam.config.TestInfraConfig;
 import com.stablecoin.payments.gateway.iam.config.TestSecurityConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +19,7 @@ import org.testcontainers.utility.DockerImageName;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("integration-test")
 @AutoConfigureMockMvc
-@Import({TestSecurityConfig.class, TestInfraConfig.class})
+@Import(TestSecurityConfig.class)
 public abstract class AbstractIntegrationTest {
 
     static final PostgreSQLContainer<?> POSTGRES =
