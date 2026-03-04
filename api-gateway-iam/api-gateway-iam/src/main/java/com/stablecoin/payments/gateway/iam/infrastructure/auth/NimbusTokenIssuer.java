@@ -105,6 +105,15 @@ public class NimbusTokenIssuer implements TokenIssuer {
 
             var claims = jwt.getJWTClaimsSet();
 
+            if (!properties.issuer().equals(claims.getIssuer())) {
+                throw new IllegalArgumentException("JWT issuer mismatch");
+            }
+
+            if (claims.getAudience() == null
+                    || !claims.getAudience().contains(properties.audience())) {
+                throw new IllegalArgumentException("JWT audience mismatch");
+            }
+
             if (claims.getExpirationTime() == null
                     || claims.getExpirationTime().before(new Date())) {
                 throw new IllegalArgumentException("JWT has expired");
@@ -112,7 +121,9 @@ public class NimbusTokenIssuer implements TokenIssuer {
 
             var scopeStr = claims.getStringClaim("scope");
             var scopes = scopeStr != null && !scopeStr.isBlank()
-                    ? Arrays.asList(scopeStr.split(" "))
+                    ? Arrays.stream(scopeStr.trim().split("\\s+"))
+                            .filter(s -> !s.isBlank())
+                            .toList()
                     : List.<String>of();
 
             return new ParsedToken(

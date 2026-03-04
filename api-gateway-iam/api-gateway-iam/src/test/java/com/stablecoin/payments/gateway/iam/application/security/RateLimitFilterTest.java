@@ -98,6 +98,19 @@ class RateLimitFilterTest {
     }
 
     @Test
+    void shouldRejectWhenMerchantNotFound() throws ServletException, IOException {
+        setAuthentication();
+        when(merchantRepository.findById(merchantId)).thenReturn(Optional.empty());
+
+        filter.doFilterInternal(request, response, filterChain);
+
+        verify(filterChain, never()).doFilter(request, response);
+        assertThat(response.getStatus()).isEqualTo(401);
+        assertThat(response.getContentAsString()).contains("GW-1001");
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
+    }
+
+    @Test
     void shouldSkipRateLimitingForUnlimitedTier() throws ServletException, IOException {
         setAuthentication();
         when(merchantRepository.findById(merchantId))
@@ -110,6 +123,29 @@ class RateLimitFilterTest {
     }
 
     @Nested
+    class PathNormalization {
+
+        @Test
+        void shouldReplaceUuidsWithPlaceholder() {
+            var result = RateLimitFilter.normalizePath(
+                    "/v1/merchants/550e8400-e29b-41d4-a716-446655440000/payments");
+            assertThat(result).isEqualTo("/v1/merchants/{id}/payments");
+        }
+
+        @Test
+        void shouldReplaceNumericIdsWithPlaceholder() {
+            var result = RateLimitFilter.normalizePath("/v1/payments/12345");
+            assertThat(result).isEqualTo("/v1/payments/{id}");
+        }
+
+        @Test
+        void shouldPreserveNonIdSegments() {
+            var result = RateLimitFilter.normalizePath("/v1/payments");
+            assertThat(result).isEqualTo("/v1/payments");
+        }
+    }
+
+    @Nested
     class WhenWithinLimits {
 
         @Test
@@ -118,7 +154,7 @@ class RateLimitFilterTest {
             var merchant = buildMerchant(RateLimitTier.STARTER);
             when(merchantRepository.findById(merchantId)).thenReturn(Optional.of(merchant));
             when(rateLimiter.check(eq(merchantId), any(), any()))
-                    .thenReturn(new RateLimitResult(true, 5, 60, "1m"));
+                    .thenReturn(new RateLimitResult(true, 5, 60, "1m", 0));
 
             filter.doFilterInternal(request, response, filterChain);
 
@@ -137,7 +173,7 @@ class RateLimitFilterTest {
             var merchant = buildMerchant(RateLimitTier.STARTER);
             when(merchantRepository.findById(merchantId)).thenReturn(Optional.of(merchant));
             when(rateLimiter.check(eq(merchantId), any(), any()))
-                    .thenReturn(new RateLimitResult(false, 61, 60, "1m"));
+                    .thenReturn(new RateLimitResult(false, 61, 60, "1m", 60));
 
             filter.doFilterInternal(request, response, filterChain);
 
@@ -153,7 +189,7 @@ class RateLimitFilterTest {
             var merchant = buildMerchant(RateLimitTier.STARTER);
             when(merchantRepository.findById(merchantId)).thenReturn(Optional.of(merchant));
             when(rateLimiter.check(eq(merchantId), any(), any()))
-                    .thenReturn(new RateLimitResult(false, 10001, 10000, "1d"));
+                    .thenReturn(new RateLimitResult(false, 10001, 10000, "1d", 3600));
 
             filter.doFilterInternal(request, response, filterChain);
 
@@ -168,7 +204,7 @@ class RateLimitFilterTest {
             var merchant = buildMerchant(RateLimitTier.STARTER);
             when(merchantRepository.findById(merchantId)).thenReturn(Optional.of(merchant));
             when(rateLimiter.check(eq(merchantId), any(), any()))
-                    .thenReturn(new RateLimitResult(false, 61, 60, "1m"));
+                    .thenReturn(new RateLimitResult(false, 61, 60, "1m", 60));
 
             filter.doFilterInternal(request, response, filterChain);
 

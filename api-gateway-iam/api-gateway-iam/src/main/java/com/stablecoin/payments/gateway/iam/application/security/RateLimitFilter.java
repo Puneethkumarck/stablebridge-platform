@@ -17,10 +17,15 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 @Slf4j
 @RequiredArgsConstructor
 public class RateLimitFilter extends OncePerRequestFilter {
+
+    private static final Pattern UUID_PATTERN =
+            Pattern.compile("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
+    private static final Pattern NUMERIC_PATTERN = Pattern.compile("\\d+");
 
     private final RateLimiter rateLimiter;
     private final MerchantRepository merchantRepository;
@@ -38,11 +43,16 @@ public class RateLimitFilter extends OncePerRequestFilter {
         }
 
         var merchantId = merchantAuth.merchantId();
-        var endpoint = request.getMethod() + " " + request.getRequestURI();
+        var endpoint = request.getMethod() + " " + normalizePath(request.getRequestURI());
 
         var merchant = merchantRepository.findById(merchantId).orElse(null);
         if (merchant == null) {
-            chain.doFilter(request, response);
+            log.warn("Authenticated merchant not found merchantId={}", merchantId);
+            SecurityContextHolder.clearContext();
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType("application/json");
+            response.getWriter().write(
+                    "{\"code\":\"GW-1001\",\"status\":\"Unauthorized\",\"message\":\"Unknown merchant\"}");
             return;
         }
 
@@ -59,7 +69,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
                 String.valueOf(Math.max(0, result.limit() - result.currentCount())));
 
         if (!result.allowed()) {
-            var retryAfter = "1m".equals(result.window()) ? 60 : 3600;
+            var retryAfter = result.retryAfterSeconds();
             response.setHeader("Retry-After", String.valueOf(retryAfter));
 
             persistRateLimitEvent(merchantId, endpoint, merchant.getRateLimitTier(),
@@ -78,6 +88,17 @@ public class RateLimitFilter extends OncePerRequestFilter {
         }
 
         chain.doFilter(request, response);
+    }
+
+    static String normalizePath(String path) {
+        var segments = path.split("/");
+        for (int i = 0; i < segments.length; i++) {
+            if (UUID_PATTERN.matcher(segments[i]).matches()
+                    || NUMERIC_PATTERN.matcher(segments[i]).matches()) {
+                segments[i] = "{id}";
+            }
+        }
+        return String.join("/", segments);
     }
 
     private void persistRateLimitEvent(UUID merchantId, String endpoint, RateLimitTier tier,

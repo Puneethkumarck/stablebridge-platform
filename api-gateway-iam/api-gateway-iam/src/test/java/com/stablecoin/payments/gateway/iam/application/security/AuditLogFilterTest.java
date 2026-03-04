@@ -21,7 +21,9 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
@@ -114,13 +116,24 @@ class AuditLogFilterTest {
 
         @Test
         void shouldNotFailWhenRepositoryThrows() throws ServletException, IOException {
-            org.mockito.Mockito.doThrow(new RuntimeException("DB down"))
+            doThrow(new RuntimeException("DB down"))
                     .when(auditLogRepository).save(any());
 
             filter.doFilterInternal(request, response, filterChain);
 
             verify(filterChain).doFilter(request, response);
             // No exception propagated — filter swallows it
+        }
+
+        @Test
+        void shouldAuditEvenWhenFilterChainThrows() throws ServletException, IOException {
+            doThrow(new ServletException("downstream error"))
+                    .when(filterChain).doFilter(request, response);
+
+            assertThatThrownBy(() -> filter.doFilterInternal(request, response, filterChain))
+                    .isInstanceOf(ServletException.class);
+
+            verify(auditLogRepository).save(any());
         }
     }
 }

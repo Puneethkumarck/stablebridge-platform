@@ -26,8 +26,14 @@ public class AuditLogFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain chain) throws ServletException, IOException {
-        chain.doFilter(request, response);
+        try {
+            chain.doFilter(request, response);
+        } finally {
+            writeAuditLog(request, response);
+        }
+    }
 
+    private void writeAuditLog(HttpServletRequest request, HttpServletResponse response) {
         var auth = SecurityContextHolder.getContext().getAuthentication();
         if (!(auth instanceof MerchantAuthentication merchantAuth)) {
             return;

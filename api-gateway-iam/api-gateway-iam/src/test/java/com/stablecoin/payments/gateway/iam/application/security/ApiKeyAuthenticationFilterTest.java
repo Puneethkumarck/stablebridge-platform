@@ -87,7 +87,7 @@ class ApiKeyAuthenticationFilterTest {
 
         @Test
         void shouldAuthenticateWithValidKey() throws ServletException, IOException {
-            var rawKey = "sk_live_abc123";
+            var rawKey = "test-api-key-value";
             request.addHeader("X-API-Key", rawKey);
             request.setRemoteAddr("10.0.0.1");
 
@@ -95,7 +95,7 @@ class ApiKeyAuthenticationFilterTest {
                     .keyId(keyId)
                     .merchantId(merchantId)
                     .keyHash("hash")
-                    .keyPrefix("sk_live_")
+                    .keyPrefix("test-api")
                     .name("test")
                     .environment(ApiKeyEnvironment.LIVE)
                     .scopes(List.of("payments:read", "payments:write"))

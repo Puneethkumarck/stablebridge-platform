@@ -1,5 +1,9 @@
 package com.stablecoin.payments.gateway.iam.application.security;
 
+import com.stablecoin.payments.gateway.iam.domain.exception.ApiKeyExpiredException;
+import com.stablecoin.payments.gateway.iam.domain.exception.ApiKeyNotFoundException;
+import com.stablecoin.payments.gateway.iam.domain.exception.ApiKeyRevokedException;
+import com.stablecoin.payments.gateway.iam.domain.exception.IpNotAllowedException;
 import com.stablecoin.payments.gateway.iam.domain.service.ApiKeyService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -53,20 +57,23 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
             SecurityContextHolder.getContext().setAuthentication(auth);
             log.debug("API key authenticated merchantId={} keyPrefix={}",
                     apiKey.getMerchantId(), apiKey.getKeyPrefix());
-        } catch (RuntimeException e) {
+        } catch (ApiKeyNotFoundException | ApiKeyRevokedException
+                 | ApiKeyExpiredException | IpNotAllowedException e) {
             log.info("API key authentication failed: {}", e.getMessage());
-            sendUnauthorized(response, e.getMessage());
+            sendUnauthorized(response);
             return;
+        } catch (RuntimeException e) {
+            log.error("Unexpected error during API key authentication", e);
+            throw e;
         }
 
         chain.doFilter(request, response);
     }
 
-    private void sendUnauthorized(HttpServletResponse response, String message) throws IOException {
+    private void sendUnauthorized(HttpServletResponse response) throws IOException {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json");
         response.getWriter().write(
-                "{\"code\":\"GW-1001\",\"status\":\"Unauthorized\",\"message\":\"%s\"}".formatted(message)
-        );
+                "{\"code\":\"GW-1001\",\"status\":\"Unauthorized\",\"message\":\"Invalid API key\"}");
     }
 }

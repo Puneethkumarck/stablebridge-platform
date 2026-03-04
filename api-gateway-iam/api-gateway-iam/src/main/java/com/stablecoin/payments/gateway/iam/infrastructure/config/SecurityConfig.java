@@ -42,7 +42,7 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(apiKeyFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(jwtFilter, ApiKeyAuthenticationFilter.class)
                 .addFilterAfter(rateLimitFilter, JwtAuthenticationFilter.class)
                 .addFilterAfter(auditLogFilter, RateLimitFilter.class)
                 .build();

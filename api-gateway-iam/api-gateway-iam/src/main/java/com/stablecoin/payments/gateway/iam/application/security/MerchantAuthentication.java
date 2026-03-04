@@ -4,6 +4,7 @@ import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 public class MerchantAuthentication extends AbstractAuthenticationToken {
@@ -15,13 +16,13 @@ public class MerchantAuthentication extends AbstractAuthenticationToken {
 
     public MerchantAuthentication(UUID merchantId, UUID clientId, List<String> scopes,
                                   AuthMethod authMethod) {
-        super(scopes.stream()
+        super(Objects.requireNonNull(scopes, "scopes must not be null").stream()
                 .map(s -> new SimpleGrantedAuthority("SCOPE_" + s))
                 .toList());
-        this.merchantId = merchantId;
-        this.clientId = clientId;
+        this.merchantId = Objects.requireNonNull(merchantId, "merchantId must not be null");
+        this.clientId = Objects.requireNonNull(clientId, "clientId must not be null");
         this.scopes = List.copyOf(scopes);
-        this.authMethod = authMethod;
+        this.authMethod = Objects.requireNonNull(authMethod, "authMethod must not be null");
         setAuthenticated(true);
     }
 
