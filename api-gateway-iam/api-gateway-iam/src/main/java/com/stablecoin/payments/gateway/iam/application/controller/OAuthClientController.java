@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -32,6 +33,7 @@ public class OAuthClientController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("@merchantScopeEnforcer.hasAccess(#merchantId)")
     public OAuthClientResponse createOAuthClient(
             @PathVariable UUID merchantId,
             @Valid @RequestBody CreateOAuthClientRequest request) {
@@ -47,6 +49,7 @@ public class OAuthClientController {
     }
 
     @GetMapping
+    @PreAuthorize("@merchantScopeEnforcer.hasAccess(#merchantId)")
     public List<OAuthClientSummaryResponse> listOAuthClients(@PathVariable UUID merchantId) {
         log.info("List OAuth clients merchantId={}", merchantId);
         return oauthClientCommandHandler.listByMerchantId(merchantId).stream()
