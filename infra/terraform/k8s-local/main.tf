@@ -39,25 +39,6 @@ resource "kind_cluster" "local" {
             node-labels: "ingress-ready=true"
         EOT
       ]
-
-      # Mount JAR build output directories into the kind node
-      extra_mounts {
-        host_path      = "${var.project_root}/api-gateway-iam/api-gateway-iam/build/libs"
-        container_path = "/app-jars/api-gateway-iam"
-        read_only      = true
-      }
-
-      extra_mounts {
-        host_path      = "${var.project_root}/merchant-onboarding/merchant-onboarding/build/libs"
-        container_path = "/app-jars/merchant-onboarding"
-        read_only      = true
-      }
-
-      extra_mounts {
-        host_path      = "${var.project_root}/merchant-iam/merchant-iam/build/libs"
-        container_path = "/app-jars/merchant-iam"
-        read_only      = true
-      }
     }
   }
 }
