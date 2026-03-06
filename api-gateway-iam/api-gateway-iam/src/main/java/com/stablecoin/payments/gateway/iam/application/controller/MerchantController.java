@@ -9,6 +9,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import static com.stablecoin.payments.gateway.iam.application.security.SecurityExpressions.HAS_MERCHANT_ACCESS;
+import static com.stablecoin.payments.gateway.iam.application.security.SecurityExpressions.HAS_MERCHANT_ACCESS_VIA_RESPONSE;
+
 import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -55,14 +58,14 @@ public class MerchantController {
     }
 
     @GetMapping("/{merchantId}")
-    @PreAuthorize("@merchantScopeEnforcer.hasAccess(#merchantId)")
+    @PreAuthorize(HAS_MERCHANT_ACCESS)
     public MerchantResponse getMerchant(@PathVariable UUID merchantId) {
         var merchant = merchantCommandHandler.findById(merchantId);
         return mapper.toMerchantResponse(merchant);
     }
 
     @GetMapping(params = "externalId")
-    @PostAuthorize("@merchantScopeEnforcer.hasAccess(returnObject.merchantId())")
+    @PostAuthorize(HAS_MERCHANT_ACCESS_VIA_RESPONSE)
     public MerchantResponse getMerchantByExternalId(@RequestParam UUID externalId) {
         var merchant = merchantCommandHandler.findByExternalId(externalId);
         return mapper.toMerchantResponse(merchant);

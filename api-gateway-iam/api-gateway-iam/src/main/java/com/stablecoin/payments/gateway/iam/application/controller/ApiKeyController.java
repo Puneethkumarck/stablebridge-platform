@@ -9,6 +9,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import static com.stablecoin.payments.gateway.iam.application.security.SecurityExpressions.HAS_MERCHANT_ACCESS_VIA_REQUEST;
+
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -33,7 +35,7 @@ public class ApiKeyController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("@merchantScopeEnforcer.hasAccess(#request.merchantId())")
+    @PreAuthorize(HAS_MERCHANT_ACCESS_VIA_REQUEST)
     public ApiKeyResponse createApiKey(@Valid @RequestBody CreateApiKeyRequest request) {
         log.info("Create API key merchantId={} name={} env={}",
                 request.merchantId(), request.name(), request.environment());
