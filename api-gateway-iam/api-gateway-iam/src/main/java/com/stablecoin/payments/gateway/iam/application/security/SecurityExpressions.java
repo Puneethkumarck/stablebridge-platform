@@ -14,6 +14,9 @@ public final class SecurityExpressions {
     public static final String HAS_MERCHANT_ACCESS_VIA_API_KEY =
             "@merchantScopeEnforcer.hasAccessToApiKey(#keyId)";
 
+    public static final String HAS_TOKEN_OWNERSHIP =
+            "@merchantScopeEnforcer.hasAccessToToken(#request.jti())";
+
     private SecurityExpressions() {
     }
 }

@@ -2,6 +2,8 @@ package com.stablecoin.payments.gateway.iam.application.security;
 
 import com.stablecoin.payments.gateway.iam.domain.exception.ApiKeyNotFoundException;
 import com.stablecoin.payments.gateway.iam.domain.exception.MerchantAccessDeniedException;
+import com.stablecoin.payments.gateway.iam.domain.exception.TokenRevokedException;
+import com.stablecoin.payments.gateway.iam.domain.port.AccessTokenRepository;
 import com.stablecoin.payments.gateway.iam.domain.port.ApiKeyRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -20,6 +22,7 @@ import java.util.UUID;
 public class MerchantScopeEnforcer {
 
     private final ApiKeyRepository apiKeyRepository;
+    private final AccessTokenRepository accessTokenRepository;
 
     /**
      * Checks whether the authenticated principal has access to the given merchant.
@@ -46,6 +49,19 @@ public class MerchantScopeEnforcer {
         var apiKey = apiKeyRepository.findById(keyId)
                 .orElseThrow(() -> ApiKeyNotFoundException.byId(keyId));
         return hasAccess(apiKey.getMerchantId());
+    }
+
+    /**
+     * Checks whether the authenticated principal owns the access token.
+     *
+     * @return true if the token's merchant ID matches the principal's
+     * @throws TokenRevokedException if the token does not exist
+     * @throws MerchantAccessDeniedException if the principal does not own the token
+     */
+    public boolean hasAccessToToken(UUID jti) {
+        var token = accessTokenRepository.findByJti(jti)
+                .orElseThrow(() -> TokenRevokedException.of(jti));
+        return hasAccess(token.getMerchantId());
     }
 
     /**

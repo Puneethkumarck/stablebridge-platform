@@ -2,7 +2,10 @@ package com.stablecoin.payments.gateway.iam.application.security;
 
 import com.stablecoin.payments.gateway.iam.domain.exception.ApiKeyNotFoundException;
 import com.stablecoin.payments.gateway.iam.domain.exception.MerchantAccessDeniedException;
+import com.stablecoin.payments.gateway.iam.domain.exception.TokenRevokedException;
+import com.stablecoin.payments.gateway.iam.domain.model.AccessToken;
 import com.stablecoin.payments.gateway.iam.domain.model.ApiKey;
+import com.stablecoin.payments.gateway.iam.domain.port.AccessTokenRepository;
 import com.stablecoin.payments.gateway.iam.domain.port.ApiKeyRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -28,6 +31,9 @@ class MerchantScopeEnforcerTest {
 
     @Mock
     private ApiKeyRepository apiKeyRepository;
+
+    @Mock
+    private AccessTokenRepository accessTokenRepository;
 
     @InjectMocks
     private MerchantScopeEnforcer enforcer;
@@ -126,6 +132,46 @@ class MerchantScopeEnforcerTest {
 
             assertThatThrownBy(() -> enforcer.hasAccessToApiKey(keyId))
                     .isInstanceOf(ApiKeyNotFoundException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("hasAccessToToken")
+    class HasAccessToToken {
+
+        @Test
+        @DisplayName("should return true when principal owns the token")
+        void shouldReturnTrueWhenOwner() {
+            var merchantId = UUID.randomUUID();
+            var jti = UUID.randomUUID();
+            setMerchantAuth(merchantId);
+            given(accessTokenRepository.findByJti(jti)).willReturn(
+                    Optional.of(AccessToken.builder().jti(jti).merchantId(merchantId).build()));
+
+            assertThat(enforcer.hasAccessToToken(jti)).isTrue();
+        }
+
+        @Test
+        @DisplayName("should throw when principal does not own the token")
+        void shouldThrowWhenNotOwner() {
+            var jti = UUID.randomUUID();
+            setMerchantAuth(UUID.randomUUID());
+            given(accessTokenRepository.findByJti(jti)).willReturn(
+                    Optional.of(AccessToken.builder().jti(jti).merchantId(UUID.randomUUID()).build()));
+
+            assertThatThrownBy(() -> enforcer.hasAccessToToken(jti))
+                    .isInstanceOf(MerchantAccessDeniedException.class);
+        }
+
+        @Test
+        @DisplayName("should throw when token not found")
+        void shouldThrowWhenTokenNotFound() {
+            var jti = UUID.randomUUID();
+            setMerchantAuth(UUID.randomUUID());
+            given(accessTokenRepository.findByJti(jti)).willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> enforcer.hasAccessToToken(jti))
+                    .isInstanceOf(TokenRevokedException.class);
         }
     }
 
