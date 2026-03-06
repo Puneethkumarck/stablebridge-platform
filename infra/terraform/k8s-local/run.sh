@@ -6,36 +6,61 @@
 #   ./run.sh up      # Build images, create kind cluster, deploy services
 #   ./run.sh down    # Destroy kind cluster
 #   ./run.sh deploy  # Re-build images, reload into kind, re-deploy manifests
-#   ./run.sh build   # Build container images only (Jib → local Docker daemon)
+#   ./run.sh build   # Build all container images (BE via Jib, FE via Docker)
 #   ./run.sh status  # Show cluster and pod status
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+FE_ROOT="$(cd "$PROJECT_ROOT/../stablebridge-web" 2>/dev/null && pwd || echo "")"
 INFRA_TF_DIR="$SCRIPT_DIR/../local"
 K8S_TF_DIR="$SCRIPT_DIR"
 
 CLUSTER_NAME="stablebridge-local"
 
-# Service images built by Jib
+# All images to load into kind
 IMAGES=(
   "stablebridge/api-gateway-iam:latest"
   "stablebridge/merchant-onboarding:latest"
   "stablebridge/merchant-iam:latest"
+  "stablebridge/merchant-portal:latest"
 )
 
 # ─────────────────────────────────────────────
-# Build container images via Jib
+# Build BE container images via Jib
 # ─────────────────────────────────────────────
-build_images() {
-  echo "==> Building container images via Jib..."
+build_be_images() {
+  echo "==> Building BE container images via Jib..."
   cd "$PROJECT_ROOT"
   ./gradlew :api-gateway-iam:api-gateway-iam:jibDockerBuild \
             :merchant-onboarding:merchant-onboarding:jibDockerBuild \
             :merchant-iam:merchant-iam:jibDockerBuild \
             --parallel --no-daemon
-  echo "==> Container images built successfully"
+  echo "==> BE images built successfully"
+}
+
+# ─────────────────────────────────────────────
+# Build FE container images via Docker
+# ─────────────────────────────────────────────
+build_fe_images() {
+  if [ -z "$FE_ROOT" ]; then
+    echo "==> WARN: stablebridge-web repo not found at $PROJECT_ROOT/../stablebridge-web — skipping FE build"
+    return 0
+  fi
+  echo "==> Building FE container images via Docker..."
+  docker build --build-arg APP_NAME=merchant-portal \
+    -t stablebridge/merchant-portal:latest \
+    "$FE_ROOT"
+  echo "==> FE images built successfully"
+}
+
+# ─────────────────────────────────────────────
+# Build all images
+# ─────────────────────────────────────────────
+build_images() {
+  build_be_images
+  build_fe_images
 }
 
 # ─────────────────────────────────────────────
@@ -44,7 +69,11 @@ build_images() {
 load_images() {
   echo "==> Loading images into kind cluster..."
   for img in "${IMAGES[@]}"; do
-    kind load docker-image "$img" --name "$CLUSTER_NAME"
+    if docker image inspect "$img" >/dev/null 2>&1; then
+      kind load docker-image "$img" --name "$CLUSTER_NAME"
+    else
+      echo "    WARN: $img not found locally — skipping"
+    fi
   done
   echo "==> Images loaded into kind"
 }
@@ -139,10 +168,10 @@ show_status() {
   kubectl get ingress -n stablebridge
   echo ""
   echo "=== Access URLs (path-based routing) ==="
+  echo "  Merchant Portal:       http://localhost"
   echo "  API Gateway (S10):     http://localhost/gateway"
   echo "  Onboarding (S11):      http://localhost/onboarding"
   echo "  IAM (S13):             http://localhost/iam"
-  echo "  Merchant Portal:       http://localhost"
   echo ""
   echo "  OpenAPI docs:"
   echo "    http://localhost/gateway/swagger-ui.html"
