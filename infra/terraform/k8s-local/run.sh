@@ -3,10 +3,10 @@
 # StableBridge Platform — Local K8s Setup
 #
 # Usage:
-#   ./run.sh up      # Build JARs, create kind cluster, deploy services
+#   ./run.sh up      # Build images, create kind cluster, deploy services
 #   ./run.sh down    # Destroy kind cluster
-#   ./run.sh deploy  # Re-deploy kustomize manifests (after code changes)
-#   ./run.sh build   # Build JARs only
+#   ./run.sh deploy  # Re-build images, reload into kind, re-deploy manifests
+#   ./run.sh build   # Build container images only (Jib → local Docker daemon)
 #   ./run.sh status  # Show cluster and pod status
 # ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
@@ -16,17 +16,37 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 INFRA_TF_DIR="$SCRIPT_DIR/../local"
 K8S_TF_DIR="$SCRIPT_DIR"
 
+CLUSTER_NAME="stablebridge-local"
+
+# Service images built by Jib
+IMAGES=(
+  "stablebridge/api-gateway-iam:latest"
+  "stablebridge/merchant-onboarding:latest"
+  "stablebridge/merchant-iam:latest"
+)
+
 # ─────────────────────────────────────────────
-# Build application JARs
+# Build container images via Jib
 # ─────────────────────────────────────────────
-build_jars() {
-  echo "==> Building application JARs..."
+build_images() {
+  echo "==> Building container images via Jib..."
   cd "$PROJECT_ROOT"
-  ./gradlew :merchant-onboarding:merchant-onboarding:bootJar \
-            :merchant-iam:merchant-iam:bootJar \
-            :api-gateway-iam:api-gateway-iam:bootJar \
+  ./gradlew :api-gateway-iam:api-gateway-iam:jibDockerBuild \
+            :merchant-onboarding:merchant-onboarding:jibDockerBuild \
+            :merchant-iam:merchant-iam:jibDockerBuild \
             --parallel --no-daemon
-  echo "==> JARs built successfully"
+  echo "==> Container images built successfully"
+}
+
+# ─────────────────────────────────────────────
+# Load images into kind cluster
+# ─────────────────────────────────────────────
+load_images() {
+  echo "==> Loading images into kind cluster..."
+  for img in "${IMAGES[@]}"; do
+    kind load docker-image "$img" --name "$CLUSTER_NAME"
+  done
+  echo "==> Images loaded into kind"
 }
 
 # ─────────────────────────────────────────────
@@ -51,6 +71,10 @@ create_cluster() {
   echo "==> Cluster ready"
 
   export KUBECONFIG=$(terraform output -raw kubeconfig_path)
+
+  echo "==> Loading images into kind..."
+  load_images
+
   echo "==> Waiting for ingress controller to be ready..."
   kubectl wait --namespace ingress-nginx \
     --for=condition=ready pod \
@@ -67,11 +91,16 @@ create_cluster() {
 }
 
 # ─────────────────────────────────────────────
-# Re-deploy kustomize manifests
+# Re-deploy: rebuild images, reload, apply manifests
 # ─────────────────────────────────────────────
 deploy() {
+  build_images
+
   cd "$K8S_TF_DIR"
   export KUBECONFIG=$(terraform output -raw kubeconfig_path)
+
+  load_images
+
   echo "==> Applying kustomize manifests..."
   kubectl apply -k "$PROJECT_ROOT/infra/k8s/overlays/local"
   echo "==> Restarting deployments..."
@@ -126,7 +155,7 @@ show_status() {
 # ─────────────────────────────────────────────
 case "${1:-help}" in
   up)
-    build_jars
+    build_images
     start_infra
     create_cluster
     ;;
@@ -137,7 +166,7 @@ case "${1:-help}" in
     deploy
     ;;
   build)
-    build_jars
+    build_images
     ;;
   status)
     show_status

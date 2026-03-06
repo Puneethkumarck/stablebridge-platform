@@ -1,8 +1,22 @@
 plugins {
     id("org.springframework.boot")
+    id("com.google.cloud.tools.jib")
     java
     `java-test-fixtures`
     jacoco
+}
+
+jib {
+    from {
+        image = "eclipse-temurin:25-jre-alpine"
+    }
+    to {
+        image = "stablebridge/api-gateway-iam"
+        tags = setOf("latest")
+    }
+    container {
+        creationTime.set("USE_CURRENT_TIMESTAMP")
+    }
 }
 
 val integrationTestSourceSet: SourceSet = sourceSets.create("integrationTest") {

@@ -19,12 +19,8 @@ spec:
     spec:
       containers:
         - name: s13-merchant-iam
-          image: eclipse-temurin:25-jre-alpine
-          command: ["/bin/sh", "-c"]
-          args:
-            - |
-              JAR=$(find /libs -name '*.jar' ! -name '*-plain.jar' ! -name '*-test-fixtures.jar' | head -1)
-              exec java -jar $JAR
+          image: stablebridge/merchant-iam:latest
+          imagePullPolicy: Never
           ports:
             - containerPort: 8083
               protocol: TCP
@@ -54,12 +50,3 @@ spec:
             periodSeconds: 15
             timeoutSeconds: 5
             failureThreshold: 5
-          volumeMounts:
-            - name: app-jar
-              mountPath: /libs
-              readOnly: true
-      volumes:
-        - name: app-jar
-          hostPath:
-            path: /app-jars/merchant-iam
-            type: Directory
