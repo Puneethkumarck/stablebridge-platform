@@ -14,5 +14,6 @@ public record AmlResult(
         List<String> flagReasons,
         String chainAnalysis,
         String provider,
+        String providerRef,
         Instant screenedAt
 ) {}
