@@ -1,0 +1,31 @@
+app:
+  security:
+    enabled: false
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/s6_fx_engine
+    username: sp_user
+    password: sp_pass
+
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
+
+logging:
+  level:
+    com.stablecoin.payments: DEBUG
+    org.springframework.cloud.stream: DEBUG

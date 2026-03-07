@@ -1,0 +1,124 @@
+spring:
+  application:
+    name: fx-liquidity-engine
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/s6_fx_engine}
+    username: ${DB_USER:sp_user}
+    password: ${DB_PASS:sp_pass}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: false
+        default_schema: public
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: false
+    locations: classpath:db/migration
+    schemas: public
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BROKERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+  cloud:
+    stream:
+      kafka:
+        binder:
+          brokers: ${KAFKA_BROKERS:localhost:9092}
+          auto-create-topics: false
+
+namastack:
+  outbox:
+    poll-interval: 2000
+    batch-size: 20
+    jdbc:
+      table-prefix: "fx_"
+      schema-initialization:
+        enabled: false
+    retry:
+      policy: exponential
+      max-retries: 5
+      exponential:
+        initial-delay: 1000
+        max-delay: 60000
+        multiplier: 2.0
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+      group:
+        readiness:
+          include: db
+        liveness:
+          include: livenessState
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+      service: fx-liquidity-engine
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318/v1/traces}
+
+server:
+  port: ${SERVER_PORT:8084}
+  servlet:
+    context-path: /fx
+  shutdown: graceful
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+  info:
+    title: S6 FX & Liquidity Engine API
+    description: FX rate quoting, rate locking, and liquidity pool management
+    version: 1.0.0
+
+app:
+  fx:
+    rate-ttl-seconds: ${RATE_TTL_SECONDS:5}
+    lock-ttl-seconds: ${LOCK_TTL_SECONDS:30}
+    default-spread-bps: ${DEFAULT_SPREAD_BPS:30}
+
+logging:
+  level:
+    com.stablecoin.payments: INFO
+    org.springframework.security: WARN
