@@ -30,14 +30,10 @@ class CustomerRiskProfilePersistenceAdapterIT extends AbstractIntegrationTest {
         var profile = aRiskProfile();
         adapter.save(profile);
 
-        var found = adapter.findByCustomerId(profile.customerId());
-
-        assertThat(found).isPresent();
-        assertThat(found.get().customerId()).isEqualTo(profile.customerId());
-        assertThat(found.get().kycTier()).isEqualTo(KycTier.KYC_TIER_2);
-        assertThat(found.get().kycVerifiedAt()).isEqualTo(BASE_TIME);
-        assertThat(found.get().riskBand()).isEqualTo(RiskBand.LOW);
-        assertThat(found.get().riskScore()).isEqualTo(20);
+        assertThat(adapter.findByCustomerId(profile.customerId())).isPresent().get()
+                .usingRecursiveComparison()
+                .withComparatorForType(BigDecimal::compareTo, BigDecimal.class)
+                .isEqualTo(profile);
     }
 
     @Test
@@ -63,12 +59,11 @@ class CustomerRiskProfilePersistenceAdapterIT extends AbstractIntegrationTest {
                 .build();
         adapter.save(updated);
 
-        var found = adapter.findByCustomerId(profile.customerId()).orElseThrow();
-
-        assertThat(found.kycTier()).isEqualTo(KycTier.KYC_TIER_3);
-        assertThat(found.riskBand()).isEqualTo(RiskBand.MEDIUM);
-        assertThat(found.riskScore()).isEqualTo(45);
-        assertThat(found.perTxnLimitUsd()).isEqualByComparingTo(new BigDecimal("25000.00"));
+        assertThat(adapter.findByCustomerId(profile.customerId())).isPresent().get()
+                .usingRecursiveComparison()
+                .withComparatorForType(BigDecimal::compareTo, BigDecimal.class)
+                .ignoringFields("updatedAt")
+                .isEqualTo(updated);
     }
 
     // ── Precision & nullable ────────────────────────────────────────────
@@ -90,11 +85,10 @@ class CustomerRiskProfilePersistenceAdapterIT extends AbstractIntegrationTest {
                 .build();
         adapter.save(profile);
 
-        var found = adapter.findByCustomerId(profile.customerId()).orElseThrow();
-
-        assertThat(found.perTxnLimitUsd()).isEqualByComparingTo(new BigDecimal("12345.67"));
-        assertThat(found.dailyLimitUsd()).isEqualByComparingTo(new BigDecimal("98765.43"));
-        assertThat(found.monthlyLimitUsd()).isEqualByComparingTo(new BigDecimal("1234567.89"));
+        assertThat(adapter.findByCustomerId(profile.customerId())).isPresent().get()
+                .usingRecursiveComparison()
+                .withComparatorForType(BigDecimal::compareTo, BigDecimal.class)
+                .isEqualTo(profile);
     }
 
     @Test
@@ -105,9 +99,10 @@ class CustomerRiskProfilePersistenceAdapterIT extends AbstractIntegrationTest {
                 .build();
         adapter.save(profile);
 
-        var found = adapter.findByCustomerId(profile.customerId()).orElseThrow();
-
-        assertThat(found.kycVerifiedAt()).isNull();
+        assertThat(adapter.findByCustomerId(profile.customerId())).isPresent().get()
+                .usingRecursiveComparison()
+                .withComparatorForType(BigDecimal::compareTo, BigDecimal.class)
+                .isEqualTo(profile);
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────

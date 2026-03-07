@@ -3,12 +3,10 @@ package com.stablecoin.payments.compliance.infrastructure.persistence;
 import com.stablecoin.payments.compliance.AbstractIntegrationTest;
 import com.stablecoin.payments.compliance.domain.model.AmlResult;
 import com.stablecoin.payments.compliance.domain.model.ComplianceCheck;
-import com.stablecoin.payments.compliance.domain.model.ComplianceCheckStatus;
 import com.stablecoin.payments.compliance.domain.model.KycResult;
 import com.stablecoin.payments.compliance.domain.model.KycStatus;
 import com.stablecoin.payments.compliance.domain.model.KycTier;
 import com.stablecoin.payments.compliance.domain.model.Money;
-import com.stablecoin.payments.compliance.domain.model.OverallResult;
 import com.stablecoin.payments.compliance.domain.model.RiskBand;
 import com.stablecoin.payments.compliance.domain.model.RiskScore;
 import com.stablecoin.payments.compliance.domain.model.SanctionsResult;
@@ -45,36 +43,24 @@ class ComplianceCheckPersistenceAdapterIT extends AbstractIntegrationTest {
         var check = createPendingCheck();
         var saved = adapter.save(check);
 
-        var found = adapter.findById(saved.checkId());
-
-        assertThat(found).isPresent();
-        assertThat(found.get().checkId()).isEqualTo(check.checkId());
-        assertThat(found.get().paymentId()).isEqualTo(check.paymentId());
-        assertThat(found.get().senderId()).isEqualTo(check.senderId());
-        assertThat(found.get().recipientId()).isEqualTo(check.recipientId());
-        assertThat(found.get().status()).isEqualTo(ComplianceCheckStatus.PENDING);
-        assertThat(found.get().sourceAmount()).isEqualByComparingTo(new BigDecimal("1000.00"));
-        assertThat(found.get().sourceCurrency()).isEqualTo("USD");
-        assertThat(found.get().targetCurrency()).isEqualTo("EUR");
-        assertThat(found.get().sourceCountry()).isEqualTo("US");
-        assertThat(found.get().targetCountry()).isEqualTo("DE");
-        assertThat(found.get().overallResult()).isNull();
-        assertThat(found.get().kycResult()).isNull();
-        assertThat(found.get().sanctionsResult()).isNull();
-        assertThat(found.get().amlResult()).isNull();
-        assertThat(found.get().travelRulePackage()).isNull();
+        assertThat(adapter.findById(saved.checkId())).isPresent().get()
+                .usingRecursiveComparison()
+                .withComparatorForType(BigDecimal::compareTo, BigDecimal.class)
+                .ignoringFields("createdAt")
+                .isEqualTo(saved);
     }
 
     @Test
     @DisplayName("should find check by payment id")
     void shouldFindByPaymentId() {
         var check = createPendingCheck();
-        adapter.save(check);
+        var saved = adapter.save(check);
 
-        var found = adapter.findByPaymentId(check.paymentId());
-
-        assertThat(found).isPresent();
-        assertThat(found.get().checkId()).isEqualTo(check.checkId());
+        assertThat(adapter.findByPaymentId(check.paymentId())).isPresent().get()
+                .usingRecursiveComparison()
+                .withComparatorForType(BigDecimal::compareTo, BigDecimal.class)
+                .ignoringFields("createdAt")
+                .isEqualTo(saved);
     }
 
     @Test
@@ -110,15 +96,11 @@ class ComplianceCheckPersistenceAdapterIT extends AbstractIntegrationTest {
         check = check.passKyc(kycResult);
         adapter.save(check);
 
-        var found = adapter.findById(check.checkId()).orElseThrow();
-
-        assertThat(found.status()).isEqualTo(ComplianceCheckStatus.SANCTIONS_SCREENING);
-        assertThat(found.kycResult()).isNotNull();
-        assertThat(found.kycResult().kycResultId()).isEqualTo(kycResult.kycResultId());
-        assertThat(found.kycResult().senderKycTier()).isEqualTo(KycTier.KYC_TIER_2);
-        assertThat(found.kycResult().senderStatus()).isEqualTo(KycStatus.VERIFIED);
-        assertThat(found.kycResult().recipientStatus()).isEqualTo(KycStatus.VERIFIED);
-        assertThat(found.kycResult().provider()).isEqualTo("onfido");
+        assertThat(adapter.findById(check.checkId())).isPresent().get()
+                .usingRecursiveComparison()
+                .withComparatorForType(BigDecimal::compareTo, BigDecimal.class)
+                .ignoringFields("createdAt")
+                .isEqualTo(check);
     }
 
     @Test
@@ -141,14 +123,11 @@ class ComplianceCheckPersistenceAdapterIT extends AbstractIntegrationTest {
         check = check.sanctionsHitDetected(sanctionsResult);
         adapter.save(check);
 
-        var found = adapter.findById(check.checkId()).orElseThrow();
-
-        assertThat(found.status()).isEqualTo(ComplianceCheckStatus.SANCTIONS_HIT);
-        assertThat(found.sanctionsResult()).isNotNull();
-        assertThat(found.sanctionsResult().senderHit()).isTrue();
-        assertThat(found.sanctionsResult().recipientHit()).isFalse();
-        assertThat(found.sanctionsResult().hitDetails()).contains("OFAC").contains("0.95");
-        assertThat(found.sanctionsResult().listsChecked()).containsExactly("OFAC", "EU", "UN");
+        assertThat(adapter.findById(check.checkId())).isPresent().get()
+                .usingRecursiveComparison()
+                .withComparatorForType(BigDecimal::compareTo, BigDecimal.class)
+                .ignoringFields("createdAt", "sanctionsResult.hitDetails")
+                .isEqualTo(check);
     }
 
     @Test
@@ -168,13 +147,11 @@ class ComplianceCheckPersistenceAdapterIT extends AbstractIntegrationTest {
         check = check.amlFlagged(amlResult);
         adapter.save(check);
 
-        var found = adapter.findById(check.checkId()).orElseThrow();
-
-        assertThat(found.status()).isEqualTo(ComplianceCheckStatus.MANUAL_REVIEW);
-        assertThat(found.amlResult()).isNotNull();
-        assertThat(found.amlResult().flagged()).isTrue();
-        assertThat(found.amlResult().flagReasons()).containsExactly("high_risk_jurisdiction", "unusual_pattern");
-        assertThat(found.amlResult().chainAnalysis()).contains("high").contains("darknet");
+        assertThat(adapter.findById(check.checkId())).isPresent().get()
+                .usingRecursiveComparison()
+                .withComparatorForType(BigDecimal::compareTo, BigDecimal.class)
+                .ignoringFields("createdAt", "amlResult.chainAnalysis")
+                .isEqualTo(check);
     }
 
     @Test
@@ -196,18 +173,11 @@ class ComplianceCheckPersistenceAdapterIT extends AbstractIntegrationTest {
         check = check.completeTravelRule(travelRule);
         adapter.save(check);
 
-        var found = adapter.findById(check.checkId()).orElseThrow();
-
-        assertThat(found.status()).isEqualTo(ComplianceCheckStatus.PASSED);
-        assertThat(found.travelRulePackage()).isNotNull();
-        assertThat(found.travelRulePackage().originatorVasp().vaspId()).isEqualTo("vasp-1");
-        assertThat(found.travelRulePackage().originatorVasp().name()).isEqualTo("StableBridge US");
-        assertThat(found.travelRulePackage().beneficiaryVasp().country()).isEqualTo("DE");
-        assertThat(found.travelRulePackage().beneficiaryVasp().did()).isEqualTo("did:web:stablebridge.de");
-        assertThat(found.travelRulePackage().originatorData()).isEqualTo("{\"name\":\"John Doe\",\"account\":\"US123\"}");
-        assertThat(found.travelRulePackage().beneficiaryData()).isEqualTo("{\"name\":\"Hans Mueller\",\"account\":\"DE456\"}");
-        assertThat(found.travelRulePackage().protocol()).isEqualTo(TravelRuleProtocol.IVMS101);
-        assertThat(found.travelRulePackage().transmissionStatus()).isEqualTo(TransmissionStatus.TRANSMITTED);
+        assertThat(adapter.findById(check.checkId())).isPresent().get()
+                .usingRecursiveComparison()
+                .withComparatorForType(BigDecimal::compareTo, BigDecimal.class)
+                .ignoringFields("createdAt")
+                .isEqualTo(check);
     }
 
     // ── Full pipeline ───────────────────────────────────────────────────
@@ -218,40 +188,27 @@ class ComplianceCheckPersistenceAdapterIT extends AbstractIntegrationTest {
         var check = createPendingCheck();
         check = adapter.save(check);
 
-        // KYC
         check = check.startKyc();
         check = check.passKyc(aKycResult(check.checkId()));
         check = adapter.save(check);
 
-        // Sanctions
         check = check.sanctionsClear(aSanctionsClearResult(check.checkId()));
         check = adapter.save(check);
 
-        // AML
         check = check.amlClear(anAmlClearResult(check.checkId()));
         check = adapter.save(check);
 
-        // Risk scoring with factors (verifies text[] round-trip)
         check = check.riskScored(new RiskScore(25, RiskBand.LOW, List.of("low_amount", "known_corridor")));
         check = adapter.save(check);
 
-        // Travel rule
         check = check.completeTravelRule(aTravelRulePackage(check.checkId()));
         check = adapter.save(check);
 
-        var found = adapter.findById(check.checkId()).orElseThrow();
-
-        assertThat(found.status()).isEqualTo(ComplianceCheckStatus.PASSED);
-        assertThat(found.overallResult()).isEqualTo(OverallResult.PASSED);
-        assertThat(found.completedAt()).isNotNull();
-        assertThat(found.kycResult()).isNotNull();
-        assertThat(found.sanctionsResult()).isNotNull();
-        assertThat(found.amlResult()).isNotNull();
-        assertThat(found.travelRulePackage()).isNotNull();
-        assertThat(found.riskScore()).isNotNull();
-        assertThat(found.riskScore().score()).isEqualTo(25);
-        assertThat(found.riskScore().band()).isEqualTo(RiskBand.LOW);
-        assertThat(found.riskScore().factors()).containsExactly("low_amount", "known_corridor");
+        assertThat(adapter.findById(check.checkId())).isPresent().get()
+                .usingRecursiveComparison()
+                .withComparatorForType(BigDecimal::compareTo, BigDecimal.class)
+                .ignoringFields("createdAt", "completedAt")
+                .isEqualTo(check);
     }
 
     // ── Update & constraints ────────────────────────────────────────────
@@ -265,9 +222,11 @@ class ComplianceCheckPersistenceAdapterIT extends AbstractIntegrationTest {
         check = check.startKyc();
         adapter.save(check);
 
-        var found = adapter.findById(check.checkId()).orElseThrow();
-
-        assertThat(found.status()).isEqualTo(ComplianceCheckStatus.KYC_IN_PROGRESS);
+        assertThat(adapter.findById(check.checkId())).isPresent().get()
+                .usingRecursiveComparison()
+                .withComparatorForType(BigDecimal::compareTo, BigDecimal.class)
+                .ignoringFields("createdAt")
+                .isEqualTo(check);
     }
 
     @Test
