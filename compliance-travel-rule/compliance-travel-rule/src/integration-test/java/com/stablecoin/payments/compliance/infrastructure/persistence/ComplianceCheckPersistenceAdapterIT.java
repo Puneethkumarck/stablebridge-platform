@@ -25,10 +25,10 @@ import java.util.UUID;
 
 import static com.stablecoin.payments.compliance.fixtures.ComplianceCheckFixtures.SOURCE_AMOUNT;
 import static com.stablecoin.payments.compliance.fixtures.ComplianceCheckFixtures.aKycResult;
-import static com.stablecoin.payments.compliance.fixtures.ComplianceCheckFixtures.anAmlClearResult;
 import static com.stablecoin.payments.compliance.fixtures.ComplianceCheckFixtures.aPendingCheck;
 import static com.stablecoin.payments.compliance.fixtures.ComplianceCheckFixtures.aSanctionsClearResult;
 import static com.stablecoin.payments.compliance.fixtures.ComplianceCheckFixtures.aTravelRulePackage;
+import static com.stablecoin.payments.compliance.fixtures.ComplianceCheckFixtures.anAmlClearResult;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
