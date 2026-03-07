@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.math.BigDecimal;
 import java.time.Instant;
 
+import static com.stablecoin.payments.fx.fixtures.RateHistoryFixtures.aRateEntry;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RateHistoryJpaRepositoryIT extends AbstractIntegrationTest {
@@ -40,10 +41,10 @@ class RateHistoryJpaRepositoryIT extends AbstractIntegrationTest {
     @Test
     void shouldFindByCorridorOrderedByRecordedAtDesc() {
         var now = Instant.now();
-        repository.save(rateEntry("USD", "EUR", "0.9100000000", now.minusSeconds(60)));
-        repository.save(rateEntry("USD", "EUR", "0.9150000000", now.minusSeconds(30)));
-        repository.save(rateEntry("USD", "EUR", "0.9200000000", now));
-        repository.save(rateEntry("GBP", "USD", "1.2700000000", now));
+        repository.save(aRateEntry("USD", "EUR", "0.9100000000", now.minusSeconds(60)));
+        repository.save(aRateEntry("USD", "EUR", "0.9150000000", now.minusSeconds(30)));
+        repository.save(aRateEntry("USD", "EUR", "0.9200000000", now));
+        repository.save(aRateEntry("GBP", "USD", "1.2700000000", now));
 
         var results = repository.findByFromCurrencyAndToCurrencyOrderByRecordedAtDesc("USD", "EUR");
 
@@ -119,16 +120,5 @@ class RateHistoryJpaRepositoryIT extends AbstractIntegrationTest {
                     .withComparatorForType(BigDecimal::compareTo, BigDecimal.class)
                     .isEqualTo(saved);
         }
-    }
-
-    private RateHistoryEntity rateEntry(String from, String to, String rate, Instant recordedAt) {
-        return RateHistoryEntity.builder()
-                .fromCurrency(from)
-                .toCurrency(to)
-                .rate(new BigDecimal(rate))
-                .provider("REFINITIV")
-                .sourceType(RateSourceType.CEX)
-                .recordedAt(recordedAt)
-                .build();
     }
 }

@@ -2,7 +2,6 @@ package com.stablecoin.payments.fx.infrastructure.persistence;
 
 import com.stablecoin.payments.fx.AbstractIntegrationTest;
 import com.stablecoin.payments.fx.domain.model.FxQuote;
-import com.stablecoin.payments.fx.domain.model.FxQuoteStatus;
 import com.stablecoin.payments.fx.domain.model.FxRateLock;
 import com.stablecoin.payments.fx.domain.model.FxRateLockStatus;
 import com.stablecoin.payments.fx.domain.port.FxQuoteRepository;
@@ -15,6 +14,8 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
+import static com.stablecoin.payments.fx.fixtures.FxQuoteFixtures.anActiveQuote;
+import static com.stablecoin.payments.fx.fixtures.FxRateLockFixtures.anActiveLock;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -29,7 +30,7 @@ class FxRateLockPersistenceAdapterIT extends AbstractIntegrationTest {
     @Test
     void shouldSaveAndFindRateLock() {
         var quote = saveQuote();
-        var lock = activeLock(quote.quoteId());
+        var lock = anActiveLock(quote.quoteId());
         var saved = repository.save(lock);
 
         assertThat(repository.findById(saved.lockId())).isPresent().get()
@@ -46,7 +47,7 @@ class FxRateLockPersistenceAdapterIT extends AbstractIntegrationTest {
     @Test
     void shouldFindByPaymentId() {
         var quote = saveQuote();
-        var lock = activeLock(quote.quoteId());
+        var lock = anActiveLock(quote.quoteId());
         repository.save(lock);
 
         assertThat(repository.findByPaymentId(lock.paymentId())).isPresent().get()
@@ -87,7 +88,7 @@ class FxRateLockPersistenceAdapterIT extends AbstractIntegrationTest {
     @Test
     void shouldUpdateLockStatusViaUpsert() {
         var quote = saveQuote();
-        var lock = activeLock(quote.quoteId());
+        var lock = anActiveLock(quote.quoteId());
         repository.save(lock);
 
         var consumedAt = Instant.now();
@@ -117,7 +118,7 @@ class FxRateLockPersistenceAdapterIT extends AbstractIntegrationTest {
     @Test
     void shouldPersistNullConsumedAt() {
         var quote = saveQuote();
-        var lock = activeLock(quote.quoteId());
+        var lock = anActiveLock(quote.quoteId());
         repository.save(lock);
 
         assertThat(repository.findById(lock.lockId())).isPresent().get()
@@ -165,22 +166,6 @@ class FxRateLockPersistenceAdapterIT extends AbstractIntegrationTest {
     }
 
     private FxQuote saveQuote() {
-        var quote = new FxQuote(
-                UUID.randomUUID(), "USD", "EUR",
-                new BigDecimal("10000.00000000"), new BigDecimal("9200.00000000"),
-                new BigDecimal("0.9200000000"), new BigDecimal("1.0869565217"),
-                0, 30, new BigDecimal("30.00000000"), "REFINITIV", null,
-                FxQuoteStatus.ACTIVE, Instant.now(), Instant.now().plusSeconds(300)
-        );
-        return quoteRepository.save(quote);
-    }
-
-    private FxRateLock activeLock(UUID quoteId) {
-        return new FxRateLock(
-                UUID.randomUUID(), quoteId, UUID.randomUUID(), UUID.randomUUID(),
-                "USD", "EUR", new BigDecimal("10000.00000000"), new BigDecimal("9200.00000000"),
-                new BigDecimal("0.9200000000"), 30, new BigDecimal("30.00000000"),
-                "US", "DE", FxRateLockStatus.ACTIVE, Instant.now(), Instant.now().plusSeconds(30), null
-        );
+        return quoteRepository.save(anActiveQuote());
     }
 }

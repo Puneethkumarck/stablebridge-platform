@@ -12,6 +12,8 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
+import static com.stablecoin.payments.compliance.fixtures.CustomerRiskProfileFixtures.BASE_TIME;
+import static com.stablecoin.payments.compliance.fixtures.CustomerRiskProfileFixtures.aRiskProfile;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DisplayName("CustomerRiskProfilePersistenceAdapter IT")
@@ -19,8 +21,6 @@ class CustomerRiskProfilePersistenceAdapterIT extends AbstractIntegrationTest {
 
     @Autowired
     private CustomerRiskProfilePersistenceAdapter adapter;
-
-    private static final Instant BASE_TIME = Instant.parse("2026-01-01T00:00:00Z");
 
     // ── Basic CRUD ──────────────────────────────────────────────────────
 
@@ -103,23 +103,5 @@ class CustomerRiskProfilePersistenceAdapterIT extends AbstractIntegrationTest {
                 .usingRecursiveComparison()
                 .withComparatorForType(BigDecimal::compareTo, BigDecimal.class)
                 .isEqualTo(profile);
-    }
-
-    // ── Helpers ─────────────────────────────────────────────────────────
-
-    private static CustomerRiskProfile aRiskProfile() {
-        return CustomerRiskProfile.builder()
-                .customerId(UUID.randomUUID())
-                .kycTier(KycTier.KYC_TIER_2)
-                .kycVerifiedAt(BASE_TIME)
-                .riskBand(RiskBand.LOW)
-                .riskScore(20)
-                .perTxnLimitUsd(new BigDecimal("10000.00"))
-                .dailyLimitUsd(new BigDecimal("50000.00"))
-                .monthlyLimitUsd(new BigDecimal("500000.00"))
-                .lastScoredAt(BASE_TIME)
-                .createdAt(BASE_TIME)
-                .updatedAt(BASE_TIME)
-                .build();
     }
 }

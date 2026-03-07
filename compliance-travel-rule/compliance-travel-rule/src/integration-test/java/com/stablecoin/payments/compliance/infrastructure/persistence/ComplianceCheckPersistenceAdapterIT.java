@@ -6,7 +6,6 @@ import com.stablecoin.payments.compliance.domain.model.ComplianceCheck;
 import com.stablecoin.payments.compliance.domain.model.KycResult;
 import com.stablecoin.payments.compliance.domain.model.KycStatus;
 import com.stablecoin.payments.compliance.domain.model.KycTier;
-import com.stablecoin.payments.compliance.domain.model.Money;
 import com.stablecoin.payments.compliance.domain.model.RiskBand;
 import com.stablecoin.payments.compliance.domain.model.RiskScore;
 import com.stablecoin.payments.compliance.domain.model.SanctionsResult;
@@ -24,6 +23,12 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+import static com.stablecoin.payments.compliance.fixtures.ComplianceCheckFixtures.SOURCE_AMOUNT;
+import static com.stablecoin.payments.compliance.fixtures.ComplianceCheckFixtures.aKycResult;
+import static com.stablecoin.payments.compliance.fixtures.ComplianceCheckFixtures.anAmlClearResult;
+import static com.stablecoin.payments.compliance.fixtures.ComplianceCheckFixtures.aPendingCheck;
+import static com.stablecoin.payments.compliance.fixtures.ComplianceCheckFixtures.aSanctionsClearResult;
+import static com.stablecoin.payments.compliance.fixtures.ComplianceCheckFixtures.aTravelRulePackage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -33,14 +38,12 @@ class ComplianceCheckPersistenceAdapterIT extends AbstractIntegrationTest {
     @Autowired
     private ComplianceCheckPersistenceAdapter adapter;
 
-    private static final Money SOURCE_AMOUNT = new Money(new BigDecimal("1000.00"), "USD");
-
     // ── Basic CRUD ──────────────────────────────────────────────────────
 
     @Test
     @DisplayName("should save and find pending check by id")
     void shouldSaveAndFindPendingCheckById() {
-        var check = createPendingCheck();
+        var check = aPendingCheck();
         var saved = adapter.save(check);
 
         assertThat(adapter.findById(saved.checkId())).isPresent().get()
@@ -53,7 +56,7 @@ class ComplianceCheckPersistenceAdapterIT extends AbstractIntegrationTest {
     @Test
     @DisplayName("should find check by payment id")
     void shouldFindByPaymentId() {
-        var check = createPendingCheck();
+        var check = aPendingCheck();
         var saved = adapter.save(check);
 
         assertThat(adapter.findByPaymentId(check.paymentId())).isPresent().get()
@@ -80,7 +83,7 @@ class ComplianceCheckPersistenceAdapterIT extends AbstractIntegrationTest {
     @Test
     @DisplayName("should save check with KYC result and verify JSONB raw response default")
     void shouldSaveCheckWithKycResult() {
-        var check = createPendingCheck();
+        var check = aPendingCheck();
         check = adapter.save(check);
         check = check.startKyc();
         var kycResult = KycResult.builder()
@@ -185,7 +188,7 @@ class ComplianceCheckPersistenceAdapterIT extends AbstractIntegrationTest {
     @Test
     @DisplayName("should save full compliance pipeline from PENDING to PASSED with risk factors")
     void shouldSaveFullCompliancePipeline() {
-        var check = createPendingCheck();
+        var check = aPendingCheck();
         check = adapter.save(check);
 
         check = check.startKyc();
@@ -216,7 +219,7 @@ class ComplianceCheckPersistenceAdapterIT extends AbstractIntegrationTest {
     @Test
     @DisplayName("should update existing check status via adapter upsert path")
     void shouldUpdateExistingCheckStatus() {
-        var check = createPendingCheck();
+        var check = aPendingCheck();
         check = adapter.save(check);
 
         check = check.startKyc();
@@ -248,14 +251,8 @@ class ComplianceCheckPersistenceAdapterIT extends AbstractIntegrationTest {
 
     // ── Helpers ─────────────────────────────────────────────────────────
 
-    private static ComplianceCheck createPendingCheck() {
-        return ComplianceCheck.initiate(
-                UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(),
-                SOURCE_AMOUNT, "US", "DE", "EUR");
-    }
-
     private ComplianceCheck progressToSanctionsScreening() {
-        var check = createPendingCheck();
+        var check = aPendingCheck();
         check = adapter.save(check);
         check = check.startKyc();
         check = check.passKyc(aKycResult(check.checkId()));
@@ -274,57 +271,5 @@ class ComplianceCheckPersistenceAdapterIT extends AbstractIntegrationTest {
         check = adapter.save(check);
         check = check.riskScored(new RiskScore(25, RiskBand.LOW, List.of("low_amount")));
         return adapter.save(check);
-    }
-
-    private static KycResult aKycResult(UUID checkId) {
-        return KycResult.builder()
-                .kycResultId(UUID.randomUUID())
-                .checkId(checkId)
-                .senderKycTier(KycTier.KYC_TIER_2)
-                .senderStatus(KycStatus.VERIFIED)
-                .recipientStatus(KycStatus.VERIFIED)
-                .provider("onfido")
-                .providerRef("ref-kyc-" + UUID.randomUUID())
-                .checkedAt(Instant.now())
-                .build();
-    }
-
-    private static SanctionsResult aSanctionsClearResult(UUID checkId) {
-        return SanctionsResult.builder()
-                .sanctionsResultId(UUID.randomUUID())
-                .checkId(checkId)
-                .senderScreened(true)
-                .recipientScreened(true)
-                .senderHit(false)
-                .recipientHit(false)
-                .listsChecked(List.of("OFAC", "EU", "UN"))
-                .provider("chainalysis")
-                .providerRef("ref-sanctions-" + UUID.randomUUID())
-                .screenedAt(Instant.now())
-                .build();
-    }
-
-    private static AmlResult anAmlClearResult(UUID checkId) {
-        return AmlResult.builder()
-                .amlResultId(UUID.randomUUID())
-                .checkId(checkId)
-                .flagged(false)
-                .provider("chainalysis")
-                .providerRef("ref-aml-" + UUID.randomUUID())
-                .screenedAt(Instant.now())
-                .build();
-    }
-
-    private static TravelRulePackage aTravelRulePackage(UUID checkId) {
-        return TravelRulePackage.builder()
-                .packageId(UUID.randomUUID())
-                .checkId(checkId)
-                .originatorVasp(new VaspInfo("vasp-1", "StableBridge US", "US", "did:web:stablebridge.us"))
-                .beneficiaryVasp(new VaspInfo("vasp-2", "StableBridge DE", "DE", "did:web:stablebridge.de"))
-                .originatorData("{\"name\":\"John Doe\"}")
-                .beneficiaryData("{\"name\":\"Hans Mueller\"}")
-                .protocol(TravelRuleProtocol.IVMS101)
-                .transmissionStatus(TransmissionStatus.PENDING)
-                .build();
     }
 }

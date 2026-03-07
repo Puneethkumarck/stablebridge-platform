@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
+import static com.stablecoin.payments.fx.fixtures.FxQuoteFixtures.anActiveQuote;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class FxQuotePersistenceAdapterIT extends AbstractIntegrationTest {
@@ -20,7 +21,7 @@ class FxQuotePersistenceAdapterIT extends AbstractIntegrationTest {
 
     @Test
     void shouldSaveAndFindQuote() {
-        var quote = activeQuote();
+        var quote = anActiveQuote();
         var saved = repository.save(quote);
 
         var found = repository.findById(saved.quoteId());
@@ -39,7 +40,7 @@ class FxQuotePersistenceAdapterIT extends AbstractIntegrationTest {
 
     @Test
     void shouldUpdateQuoteStatusViaUpsert() {
-        var quote = activeQuote();
+        var quote = anActiveQuote();
         repository.save(quote);
 
         var locked = new FxQuote(
@@ -136,15 +137,5 @@ class FxQuotePersistenceAdapterIT extends AbstractIntegrationTest {
                     .ignoringFields("spreadBps")
                     .isEqualTo(quote);
         }
-    }
-
-    private FxQuote activeQuote() {
-        return new FxQuote(
-                UUID.randomUUID(), "USD", "EUR",
-                new BigDecimal("10000.00000000"), new BigDecimal("9200.00000000"),
-                new BigDecimal("0.9200000000"), new BigDecimal("1.0869565217"),
-                0, 30, new BigDecimal("30.00000000"), "REFINITIV", "REF-123",
-                FxQuoteStatus.ACTIVE, Instant.now(), Instant.now().plusSeconds(300)
-        );
     }
 }

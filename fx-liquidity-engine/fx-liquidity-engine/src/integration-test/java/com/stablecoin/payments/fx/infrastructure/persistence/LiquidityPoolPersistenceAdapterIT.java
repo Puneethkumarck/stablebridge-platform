@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
+import static com.stablecoin.payments.fx.fixtures.LiquidityPoolFixtures.aUsdEurPool;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -21,7 +22,7 @@ class LiquidityPoolPersistenceAdapterIT extends AbstractIntegrationTest {
 
     @Test
     void shouldSaveAndFindPool() {
-        var pool = usdEurPool();
+        var pool = aUsdEurPool();
         var saved = repository.save(pool);
 
         assertThat(repository.findById(saved.poolId())).isPresent().get()
@@ -37,7 +38,7 @@ class LiquidityPoolPersistenceAdapterIT extends AbstractIntegrationTest {
 
     @Test
     void shouldFindByCorridor() {
-        var pool = usdEurPool();
+        var pool = aUsdEurPool();
         repository.save(pool);
 
         assertThat(repository.findByCorridor("USD", "EUR")).isPresent().get()
@@ -53,7 +54,7 @@ class LiquidityPoolPersistenceAdapterIT extends AbstractIntegrationTest {
 
     @Test
     void shouldFindAll() {
-        var pool1 = usdEurPool();
+        var pool1 = aUsdEurPool();
         var pool2 = new LiquidityPool(
                 UUID.randomUUID(), "GBP", "USD",
                 new BigDecimal("500000.00000000"), BigDecimal.ZERO,
@@ -68,7 +69,7 @@ class LiquidityPoolPersistenceAdapterIT extends AbstractIntegrationTest {
 
     @Test
     void shouldUpdateBalanceViaUpsert() {
-        var pool = usdEurPool();
+        var pool = aUsdEurPool();
         repository.save(pool);
 
         var reserveAmount = new BigDecimal("10000.00000000");
@@ -97,7 +98,7 @@ class LiquidityPoolPersistenceAdapterIT extends AbstractIntegrationTest {
 
     @Test
     void shouldEnforceCorridorUniqueConstraint() {
-        repository.save(usdEurPool());
+        repository.save(aUsdEurPool());
 
         var duplicate = new LiquidityPool(
                 UUID.randomUUID(), "USD", "EUR",
@@ -125,14 +126,5 @@ class LiquidityPoolPersistenceAdapterIT extends AbstractIntegrationTest {
                 .withComparatorForType(BigDecimal::compareTo, BigDecimal.class)
                 .ignoringFields("updatedAt")
                 .isEqualTo(pool);
-    }
-
-    private LiquidityPool usdEurPool() {
-        return new LiquidityPool(
-                UUID.randomUUID(), "USD", "EUR",
-                new BigDecimal("1000000.00000000"), BigDecimal.ZERO,
-                new BigDecimal("100000.00000000"), new BigDecimal("5000000.00000000"),
-                Instant.now()
-        );
     }
 }

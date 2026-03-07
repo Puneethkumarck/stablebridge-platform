@@ -114,6 +114,7 @@ dependencies {
     // Test fixtures
     testFixturesImplementation("org.assertj:assertj-core")
     testFixturesImplementation("org.mockito:mockito-core")
+    testFixturesImplementation("org.springframework.boot:spring-boot-starter-data-jpa")
 
     // Test
     testImplementation("org.springframework.boot:spring-boot-starter-test")
