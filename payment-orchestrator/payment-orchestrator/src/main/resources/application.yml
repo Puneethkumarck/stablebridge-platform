@@ -123,6 +123,12 @@ app:
       url: ${COMPLIANCE_SERVICE_URL:http://localhost:8083/compliance}
     fx:
       url: ${FX_SERVICE_URL:http://localhost:8084/fx}
+    fiat-on-ramp:
+      url: ${ONRAMP_SERVICE_URL:http://localhost:8085/on-ramp}
+    blockchain-custody:
+      url: ${CUSTODY_SERVICE_URL:http://localhost:8086/custody}
+    fiat-off-ramp:
+      url: ${OFFRAMP_SERVICE_URL:http://localhost:8087/off-ramp}
 
 logging:
   level:

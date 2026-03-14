@@ -8,7 +8,7 @@ plugins {
 
 jib {
     from {
-        image = "eclipse-temurin:25-jre-alpine"
+        image = "eclipse-temurin:25-jre"
     }
     to {
         image = "stablebridge/payment-orchestrator"
@@ -75,6 +75,9 @@ dependencies {
     implementation(project(":payment-orchestrator:payment-orchestrator-api"))
     implementation(project(":compliance-travel-rule:compliance-travel-rule-client"))
     implementation(project(":fx-liquidity-engine:fx-liquidity-engine-client"))
+    implementation(project(":fiat-on-ramp:fiat-on-ramp-client"))
+    implementation(project(":blockchain-custody:blockchain-custody-client"))
+    implementation(project(":fiat-off-ramp:fiat-off-ramp-client"))
 
     // Spring Boot
     implementation("org.springframework.boot:spring-boot-starter-web")
