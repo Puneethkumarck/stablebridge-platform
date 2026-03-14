@@ -32,6 +32,8 @@ include("payment-orchestrator:payment-orchestrator")
 
 include("phase2-integration-tests")
 
+include("phase3-integration-tests")
+
 include("fiat-on-ramp:fiat-on-ramp-api")
 include("fiat-on-ramp:fiat-on-ramp-client")
 include("fiat-on-ramp:fiat-on-ramp")
