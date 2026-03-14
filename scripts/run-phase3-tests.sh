@@ -56,7 +56,7 @@ services=(
   "p3t-ledger"
 )
 
-max_wait=180
+max_wait=420
 elapsed=0
 all_healthy=false
 

@@ -12,6 +12,7 @@ import com.stablecoin.payments.custody.domain.port.SignResult;
 import com.stablecoin.payments.custody.domain.port.TransactionReceipt;
 import com.stablecoin.payments.custody.domain.port.TransactionStatus;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -78,6 +79,7 @@ public class FallbackAdaptersConfig {
      * Returns deterministic dev results.
      */
     @Bean
+    @ConditionalOnMissingBean
     public CustodyEngine fallbackCustodyEngine() {
         log.info("Using fallback CustodyEngine (dev mode)");
         return new CustodyEngine() {

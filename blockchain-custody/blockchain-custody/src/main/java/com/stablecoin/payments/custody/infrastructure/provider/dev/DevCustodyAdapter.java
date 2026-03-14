@@ -39,6 +39,7 @@ public class DevCustodyAdapter implements CustodyEngine {
     private final Map<String, RestClient> restClients;
     private final Map<String, TxMapping> txMappings;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public DevCustodyAdapter(DevCustodyProperties properties) {
         this.properties = properties;
         this.restClients = new ConcurrentHashMap<>();

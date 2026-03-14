@@ -6,6 +6,7 @@ import com.stablecoin.payments.offramp.domain.port.RedemptionGateway;
 import com.stablecoin.payments.offramp.domain.port.RedemptionResult;
 import com.stablecoin.payments.offramp.domain.port.WebhookSignatureValidator;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -63,6 +64,7 @@ public class FallbackAdaptersConfig {
     }
 
     @Bean
+    @ConditionalOnMissingBean
     public Clock clock() {
         return Clock.systemUTC();
     }
