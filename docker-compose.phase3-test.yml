@@ -268,9 +268,9 @@ services:
       temporal:
         condition: service_healthy
       compliance-travel-rule:
-        condition: service_healthy
+        condition: service_started
       fx-liquidity-engine:
-        condition: service_healthy
+        condition: service_started
     environment:
       JAVA_TOOL_OPTIONS: "-XX:+UseZGC -XX:MaxRAMPercentage=75.0 -Xss256k"
       DB_URL: "jdbc:postgresql://postgres:5432/s1_payment_orchestrator"

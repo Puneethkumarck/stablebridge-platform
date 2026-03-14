@@ -24,13 +24,13 @@ public final class ServiceHealthChecker {
     private static final Map<String, String> SERVICE_HEALTH_URLS = new LinkedHashMap<>();
 
     static {
-        SERVICE_HEALTH_URLS.put("S1 Payment Orchestrator", "http://localhost:8082/orchestrator/actuator/health");
-        SERVICE_HEALTH_URLS.put("S2 Compliance", "http://localhost:8083/compliance/actuator/health");
-        SERVICE_HEALTH_URLS.put("S6 FX Engine", "http://localhost:8084/fx/actuator/health");
-        SERVICE_HEALTH_URLS.put("S3 Fiat On-Ramp", "http://localhost:8085/on-ramp/actuator/health");
-        SERVICE_HEALTH_URLS.put("S4 Blockchain Custody", "http://localhost:8086/custody/actuator/health");
-        SERVICE_HEALTH_URLS.put("S5 Fiat Off-Ramp", "http://localhost:8087/off-ramp/actuator/health");
-        SERVICE_HEALTH_URLS.put("S7 Ledger Accounting", "http://localhost:8088/ledger/actuator/health");
+        SERVICE_HEALTH_URLS.put("S1 Payment Orchestrator", "http://localhost:8082/orchestrator/actuator/health/readiness");
+        SERVICE_HEALTH_URLS.put("S2 Compliance", "http://localhost:8083/compliance/actuator/health/readiness");
+        SERVICE_HEALTH_URLS.put("S6 FX Engine", "http://localhost:8084/fx/actuator/health/readiness");
+        SERVICE_HEALTH_URLS.put("S3 Fiat On-Ramp", "http://localhost:8085/on-ramp/actuator/health/readiness");
+        SERVICE_HEALTH_URLS.put("S4 Blockchain Custody", "http://localhost:8086/custody/actuator/health/readiness");
+        SERVICE_HEALTH_URLS.put("S5 Fiat Off-Ramp", "http://localhost:8087/off-ramp/actuator/health/readiness");
+        SERVICE_HEALTH_URLS.put("S7 Ledger Accounting", "http://localhost:8088/ledger/actuator/health/readiness");
     }
 
     private final HttpClient httpClient;
