@@ -38,7 +38,7 @@ public class ChainTransferActivityImpl implements ChainTransferActivity {
         var transferRequest = new TransferRequest(
                 request.paymentId(),
                 request.correlationId(),
-                "PAYMENT",
+                "FORWARD",
                 null,
                 request.stablecoin(),
                 request.amount().toPlainString(),
