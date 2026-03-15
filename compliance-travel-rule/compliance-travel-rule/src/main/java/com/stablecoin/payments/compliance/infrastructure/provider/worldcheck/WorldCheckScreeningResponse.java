@@ -5,7 +5,7 @@ import java.util.List;
 record WorldCheckScreeningResponse(
         String caseId,
         String caseSystemId,
-        String status,
+        String screeningState,
         List<MatchResult> results
 ) {
     record MatchResult(
@@ -14,7 +14,7 @@ record WorldCheckScreeningResponse(
             String matchedTerm,
             String matchedNameType,
             String submittedTerm,
-            List<String> matchedLists,
+            List<String> sources,
             List<String> categories
     ) {}
 }

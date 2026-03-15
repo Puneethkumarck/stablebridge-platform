@@ -92,7 +92,7 @@ public class PayoutCommandHandler {
         // 4. FIAT path: redeem stablecoin
         order = order.startRedemption();
         var redemptionResult = redemptionGateway.redeem(new RedemptionRequest(
-                order.payoutId(), stablecoin.ticker(), redeemedAmount));
+                order.payoutId(), stablecoin.ticker(), redeemedAmount, order.appliedFxRate()));
 
         // 5. Complete redemption with fiat amount
         order = order.completeRedemption(redemptionResult.fiatReceived());

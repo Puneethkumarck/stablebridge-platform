@@ -64,7 +64,7 @@ class WorldCheckSanctionsAdapterTest {
                                 {
                                   "caseId": "test-id",
                                   "caseSystemId": "WC-001",
-                                  "status": "COMPLETED",
+                                  "screeningState": "SCREENED",
                                   "results": []
                                 }
                                 """)));
@@ -106,7 +106,7 @@ class WorldCheckSanctionsAdapterTest {
                                 {
                                   "caseId": "test-id",
                                   "caseSystemId": "WC-002",
-                                  "status": "COMPLETED",
+                                  "screeningState": "SCREENED",
                                   "results": [
                                     {
                                       "referenceId": "REF-001",
@@ -114,7 +114,7 @@ class WorldCheckSanctionsAdapterTest {
                                       "matchedTerm": "John Doe",
                                       "matchedNameType": "PRIMARY",
                                       "submittedTerm": "John D.",
-                                      "matchedLists": ["OFAC_SDN"],
+                                      "sources": ["OFAC_SDN"],
                                       "categories": ["SANCTIONS"]
                                     }
                                   ]
@@ -155,7 +155,7 @@ class WorldCheckSanctionsAdapterTest {
                                 {
                                   "caseId": "test-id",
                                   "caseSystemId": "WC-003",
-                                  "status": "COMPLETED",
+                                  "screeningState": "SCREENED",
                                   "results": [
                                     {
                                       "referenceId": "REF-002",
@@ -163,7 +163,7 @@ class WorldCheckSanctionsAdapterTest {
                                       "matchedTerm": "Similar Name",
                                       "matchedNameType": "ALIAS",
                                       "submittedTerm": "Some Name",
-                                      "matchedLists": ["UN"],
+                                      "sources": ["UN"],
                                       "categories": ["PEP"]
                                     }
                                   ]

@@ -3,7 +3,8 @@
        infra-up infra-down infra-destroy infra-status infra-logs infra-logs-% \
        run-% db-reset db-psql topics \
        deps outdated \
-       assemble sonar fresh ci
+       assemble sonar fresh ci \
+       e2e-up e2e-down e2e-destroy e2e-status e2e-build e2e-test e2e
 
 # ─────────────────────────────────────────────
 # Variables
@@ -78,8 +79,8 @@ format: ## Apply Spotless formatting
 lint: ## Check Spotless formatting (CI)
 	$(GRADLE) spotlessCheck
 
-check: ## Full CI check — build + format check + all tests
-	$(GRADLE) spotlessCheck build
+check: ## Full CI check — build + format check + all tests (excludes E2E)
+	$(GRADLE) check -x :phase2-integration-tests:test -x :phase3-integration-tests:test --build-cache --parallel
 
 sonar: ## Run SonarCloud analysis
 	$(GRADLE) sonar
@@ -144,3 +145,28 @@ outdated: ## Check for outdated dependencies
 fresh: clean build ## Clean + build
 
 ci: lint test ## Full CI pipeline (format check + all tests)
+
+# ─────────────────────────────────────────────
+# E2E Tests (require Docker Compose stack)
+# ─────────────────────────────────────────────
+E2E_COMPOSE  := docker compose -f docker-compose.phase3-test.yml
+
+e2e-up: ## Start Phase 3 E2E Docker Compose stack
+	$(E2E_COMPOSE) up -d
+
+e2e-down: ## Stop Phase 3 E2E stack
+	$(E2E_COMPOSE) down
+
+e2e-destroy: ## Stop E2E stack and remove volumes
+	$(E2E_COMPOSE) down -v
+
+e2e-status: ## Show E2E stack container status
+	$(E2E_COMPOSE) ps
+
+e2e-build: ## Build all service Docker images for E2E
+	$(GRADLE) $(foreach s,$(SERVICES),:$(s):$(s):jibDockerBuild) --parallel
+
+e2e-test: ## Run Phase 3 E2E tests (stack must be running)
+	PHASE3_TESTS_ENABLED=true $(GRADLE) :phase3-integration-tests:cleanTest :phase3-integration-tests:test
+
+e2e: e2e-build e2e-up e2e-test ## Build images, start stack, run E2E tests

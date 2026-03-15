@@ -51,7 +51,7 @@ class CircleRedemptionAdapterTest {
     }
 
     private RedemptionRequest aRedemptionRequest() {
-        return new RedemptionRequest(PAYOUT_ID, "USDC", new BigDecimal("10000.000000"));
+        return new RedemptionRequest(PAYOUT_ID, "USDC", new BigDecimal("10000.000000"), BigDecimal.ONE);
     }
 
     @Nested

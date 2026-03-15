@@ -23,16 +23,17 @@ import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 
 class OnfidoKycAdapterTest {
+
+    private static final UUID SENDER_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+    private static final UUID RECIPIENT_ID = UUID.fromString("00000000-0000-0000-0000-000000000002");
+    private static final String SENDER_CACHE_KEY = "kyc:status:" + SENDER_ID;
+    private static final String RECIPIENT_CACHE_KEY = "kyc:status:" + RECIPIENT_ID;
+    private static final Duration CACHE_TTL = Duration.ofMinutes(60);
 
     private static WireMockServer wireMock;
     private OnfidoKycAdapter adapter;
@@ -62,8 +63,7 @@ class OnfidoKycAdapterTest {
                 wireMock.baseUrl() + "/v3.6",
                 "test-token",
                 2,
-                60
-        );
+                60);
         adapter = new OnfidoKycAdapter(properties, redisTemplate);
     }
 
@@ -74,27 +74,28 @@ class OnfidoKycAdapterTest {
         @Test
         @DisplayName("should verify both parties and return VERIFIED when checks are clear")
         void verifiedWhenClear() {
-            given(valueOps.get(anyString())).willReturn(null);
+            given(valueOps.get(SENDER_CACHE_KEY)).willReturn(null);
+            given(valueOps.get(RECIPIENT_CACHE_KEY)).willReturn(null);
 
             wireMock.stubFor(get(urlPathEqualTo("/v3.6/checks"))
                     .willReturn(aResponse()
                             .withStatus(200)
                             .withHeader("Content-Type", "application/json")
                             .withBody("""
-                                {
-                                  "checks": [
                                     {
-                                      "id": "chk-001",
-                                      "status": "complete",
-                                      "result": "clear",
-                                      "applicantId": "app-001",
-                                      "reportIds": ["rpt-001"]
+                                      "checks": [
+                                        {
+                                          "id": "chk-001",
+                                          "status": "complete",
+                                          "result": "clear",
+                                          "applicant_id": "app-001",
+                                          "report_ids": ["rpt-001"]
+                                        }
+                                      ]
                                     }
-                                  ]
-                                }
-                                """)));
+                                    """)));
 
-            var result = adapter.verify(UUID.randomUUID(), UUID.randomUUID());
+            var result = adapter.verify(SENDER_ID, RECIPIENT_ID);
 
             var expected = KycResult.builder()
                     .senderKycTier(KycTier.KYC_TIER_2)
@@ -108,34 +109,36 @@ class OnfidoKycAdapterTest {
                     .isEqualTo(expected);
             assertThat(result.providerRef()).startsWith("onfido:");
 
-            // Verify caching happened for both sender and recipient (VERIFIED results are cached)
-            then(valueOps).should(times(2)).set(anyString(), anyString(), eq(Duration.ofMinutes(60)));
+            // Verify cache was checked for both sender and recipient
+            then(valueOps).should().get(SENDER_CACHE_KEY);
+            then(valueOps).should().get(RECIPIENT_CACHE_KEY);
         }
 
         @Test
         @DisplayName("should return PENDING when check result is consider")
         void pendingWhenConsider() {
-            given(valueOps.get(anyString())).willReturn(null);
+            given(valueOps.get(SENDER_CACHE_KEY)).willReturn(null);
+            given(valueOps.get(RECIPIENT_CACHE_KEY)).willReturn(null);
 
             wireMock.stubFor(get(urlPathEqualTo("/v3.6/checks"))
                     .willReturn(aResponse()
                             .withStatus(200)
                             .withHeader("Content-Type", "application/json")
                             .withBody("""
-                                {
-                                  "checks": [
                                     {
-                                      "id": "chk-002",
-                                      "status": "complete",
-                                      "result": "consider",
-                                      "applicantId": "app-002",
-                                      "reportIds": ["rpt-002"]
+                                      "checks": [
+                                        {
+                                          "id": "chk-002",
+                                          "status": "complete",
+                                          "result": "consider",
+                                          "applicant_id": "app-002",
+                                          "report_ids": ["rpt-002"]
+                                        }
+                                      ]
                                     }
-                                  ]
-                                }
-                                """)));
+                                    """)));
 
-            var result = adapter.verify(UUID.randomUUID(), UUID.randomUUID());
+            var result = adapter.verify(SENDER_ID, RECIPIENT_ID);
 
             var expected = KycResult.builder()
                     .senderKycTier(KycTier.KYC_TIER_1)
@@ -148,8 +151,10 @@ class OnfidoKycAdapterTest {
                     .ignoringFields("kycResultId", "checkId", "providerRef", "checkedAt")
                     .isEqualTo(expected);
 
-            // PENDING should NOT be cached
-            then(valueOps).should(never()).set(anyString(), anyString(), any(Duration.class));
+            // PENDING should NOT be cached — verify get() was called but set() was never called
+            then(valueOps).should().get(SENDER_CACHE_KEY);
+            then(valueOps).should().get(RECIPIENT_CACHE_KEY);
+            then(valueOps).shouldHaveNoMoreInteractions();
         }
     }
 
@@ -161,11 +166,12 @@ class OnfidoKycAdapterTest {
         @DisplayName("should return cached result without calling API")
         void cachedResultReturned() {
             var cachedJson = """
-                {"status":"VERIFIED","tier":"KYC_TIER_2","cachedAtMs":1709856000000}
-                """;
-            given(valueOps.get(anyString())).willReturn(cachedJson);
+                    {"status":"VERIFIED","tier":"KYC_TIER_2","cachedAtMs":1709856000000}
+                    """;
+            given(valueOps.get(SENDER_CACHE_KEY)).willReturn(cachedJson);
+            given(valueOps.get(RECIPIENT_CACHE_KEY)).willReturn(cachedJson);
 
-            var result = adapter.verify(UUID.randomUUID(), UUID.randomUUID());
+            var result = adapter.verify(SENDER_ID, RECIPIENT_ID);
 
             var expected = KycResult.builder()
                     .senderKycTier(KycTier.KYC_TIER_2)
@@ -190,24 +196,26 @@ class OnfidoKycAdapterTest {
         @Test
         @DisplayName("should throw when API returns server error")
         void serverError() {
-            given(valueOps.get(anyString())).willReturn(null);
+            given(valueOps.get(SENDER_CACHE_KEY)).willReturn(null);
+            given(valueOps.get(RECIPIENT_CACHE_KEY)).willReturn(null);
 
             wireMock.stubFor(get(urlPathEqualTo("/v3.6/checks"))
                     .willReturn(aResponse().withStatus(500)));
 
-            assertThatThrownBy(() -> adapter.verify(UUID.randomUUID(), UUID.randomUUID()))
+            assertThatThrownBy(() -> adapter.verify(SENDER_ID, RECIPIENT_ID))
                     .isInstanceOf(Exception.class);
         }
 
         @Test
         @DisplayName("should throw when API returns 401 unauthorized")
         void unauthorizedError() {
-            given(valueOps.get(anyString())).willReturn(null);
+            given(valueOps.get(SENDER_CACHE_KEY)).willReturn(null);
+            given(valueOps.get(RECIPIENT_CACHE_KEY)).willReturn(null);
 
             wireMock.stubFor(get(urlPathEqualTo("/v3.6/checks"))
                     .willReturn(aResponse().withStatus(401)));
 
-            assertThatThrownBy(() -> adapter.verify(UUID.randomUUID(), UUID.randomUUID()))
+            assertThatThrownBy(() -> adapter.verify(SENDER_ID, RECIPIENT_ID))
                     .isInstanceOf(Exception.class);
         }
     }

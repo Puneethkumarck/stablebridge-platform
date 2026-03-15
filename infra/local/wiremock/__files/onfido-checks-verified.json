@@ -4,8 +4,8 @@
       "id": "check-sandbox-kyc-001",
       "status": "complete",
       "result": "clear",
-      "applicantId": "applicant-sandbox-001",
-      "reportIds": [
+      "applicant_id": "applicant-sandbox-001",
+      "report_ids": [
         "report-sandbox-001"
       ]
     }

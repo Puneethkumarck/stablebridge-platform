@@ -66,8 +66,7 @@ class ChainalysisAmlAdapterTest {
                             {
                               "updatedAt": "2026-03-08T00:00:00Z",
                               "asset": "USDC",
-                              "cluster": "known-exchange",
-                              "rating": "lowRisk",
+                              "rating": "LOW",
                               "alerts": []
                             }
                             """)));
@@ -82,8 +81,7 @@ class ChainalysisAmlAdapterTest {
                             {
                               "updatedAt": "2026-03-08T00:00:00Z",
                               "asset": "USDC",
-                              "cluster": "darknet-market",
-                              "rating": "highRisk",
+                              "rating": "HIGH",
                               "alerts": [
                                 {
                                   "alertLevel": "SEVERE",
@@ -127,7 +125,7 @@ class ChainalysisAmlAdapterTest {
                     .usingRecursiveComparison()
                     .ignoringFields("amlResultId", "checkId", "screenedAt", "chainAnalysis")
                     .isEqualTo(expected);
-            assertThat(result.chainAnalysis()).contains("lowRisk").contains("known-exchange");
+            assertThat(result.chainAnalysis()).contains("LOW");
             assertThat(result.screenedAt()).isNotNull();
 
             wireMock.verify(2, postRequestedFor(urlPathMatching("/v2/users/.+/transfers")));
@@ -149,13 +147,21 @@ class ChainalysisAmlAdapterTest {
             var recipientId = UUID.randomUUID();
             var result = adapter.analyze(senderId, recipientId);
 
-            assertThat(result.flagged()).isTrue();
-            assertThat(result.flagReasons()).hasSize(4);
+            var expected = AmlResult.builder()
+                    .flagged(true)
+                    .provider("chainalysis")
+                    .providerRef("chainalysis:%s/%s".formatted(senderId, recipientId))
+                    .build();
+            assertThat(result)
+                    .usingRecursiveComparison()
+                    .ignoringFields("amlResultId", "checkId", "screenedAt", "chainAnalysis", "flagReasons")
+                    .isEqualTo(expected);
+            assertThat(result.flagReasons()).hasSize(6);
             assertThat(result.flagReasons())
+                    .anyMatch(r -> r.contains("rating/HIGH"))
                     .anyMatch(r -> r.contains("SEVERE") && r.contains("darknet market"))
                     .anyMatch(r -> r.contains("HIGH") && r.contains("sanctions"));
-            assertThat(result.provider()).isEqualTo("chainalysis");
-            assertThat(result.chainAnalysis()).contains("highRisk").contains("darknet-market");
+            assertThat(result.chainAnalysis()).contains("HIGH");
         }
 
         @Test
@@ -170,8 +176,7 @@ class ChainalysisAmlAdapterTest {
                                 {
                                   "updatedAt": "2026-03-08T00:00:00Z",
                                   "asset": "USDC",
-                                  "cluster": "known-exchange",
-                                  "rating": "lowRisk",
+                                  "rating": "LOW",
                                   "alerts": [
                                     {
                                       "alertLevel": "LOW",

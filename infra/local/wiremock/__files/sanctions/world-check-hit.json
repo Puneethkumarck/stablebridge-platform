@@ -1,7 +1,7 @@
 {
   "caseId": "test-sanctioned-entity",
   "caseSystemId": "WC-2024-002",
-  "status": "COMPLETED",
+  "screeningState": "SCREENED",
   "results": [
     {
       "referenceId": "REF-001",
@@ -9,7 +9,7 @@
       "matchedTerm": "[REDACTED]",
       "matchedNameType": "PRIMARY",
       "submittedTerm": "[REDACTED]",
-      "matchedLists": ["OFAC_SDN"],
+      "sources": ["b_trwc_OFAC_SDN"],
       "categories": ["SANCTIONS"]
     }
   ]

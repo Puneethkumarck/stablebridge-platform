@@ -31,11 +31,12 @@ public class FallbackAdaptersConfig {
     @Bean
     public RedemptionGateway fallbackRedemptionGateway(Clock clock) {
         return request -> {
-            log.warn("[FALLBACK-REDEMPTION] Using dev redemption gateway payoutId={} amount={}",
-                    request.payoutId(), request.amount());
+            var fiatReceived = request.amount().multiply(request.appliedFxRate());
+            log.warn("[FALLBACK-REDEMPTION] Using dev redemption gateway payoutId={} amount={} fxRate={} fiat={}",
+                    request.payoutId(), request.amount(), request.appliedFxRate(), fiatReceived);
             return new RedemptionResult(
                     "dev-redeem-" + UUID.randomUUID(),
-                    request.amount().multiply(DEV_FEE_MULTIPLIER),
+                    fiatReceived,
                     "EUR",
                     clock.instant()
             );

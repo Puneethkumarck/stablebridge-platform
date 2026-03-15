@@ -6,5 +6,6 @@ import java.util.UUID;
 public record RedemptionRequest(
         UUID payoutId,
         String stablecoin,
-        BigDecimal amount
+        BigDecimal amount,
+        BigDecimal appliedFxRate
 ) {}
