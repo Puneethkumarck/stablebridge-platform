@@ -21,7 +21,7 @@ public final class ModulrWebhookSender {
 
     private static final Logger log = LoggerFactory.getLogger(ModulrWebhookSender.class);
 
-    private static final String DEFAULT_WEBHOOK_URL = "http://localhost:8087/off-ramp/v1/webhooks/modulr";
+    private static final String DEFAULT_WEBHOOK_URL = "http://localhost:8087/off-ramp/internal/webhooks/partner";
     private static final String DEFAULT_WEBHOOK_SECRET = "modulr-webhook-secret-test";
 
     private final HttpClient httpClient;

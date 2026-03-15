@@ -20,7 +20,7 @@ public final class StripeWebhookSender {
 
     private static final Logger log = LoggerFactory.getLogger(StripeWebhookSender.class);
 
-    private static final String DEFAULT_WEBHOOK_URL = "http://localhost:8085/on-ramp/v1/webhooks/stripe";
+    private static final String DEFAULT_WEBHOOK_URL = "http://localhost:8085/on-ramp/internal/webhooks/psp/stripe";
     private static final String DEFAULT_WEBHOOK_SECRET = "whsec_test_default";
 
     private final HttpClient httpClient;
