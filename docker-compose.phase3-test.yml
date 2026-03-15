@@ -354,7 +354,6 @@ services:
       DB_PASS: dev
       KAFKA_BROKERS: "redpanda:29092"
       APP_SECURITY_ENABLED: "false"
-      APP_CUSTODY_PROVIDER: dev
       APP_FALLBACK_ADAPTERS_ENABLED: "true"
     ports:
       - "8086:8086"
