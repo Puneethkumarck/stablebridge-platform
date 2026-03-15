@@ -98,7 +98,7 @@ class PayoutCommandHandlerTest {
             given(orderRepository.findByPaymentId(PAYMENT_ID))
                     .willReturn(Optional.empty());
             given(redemptionGateway.redeem(eqIgnoring(
-                    new RedemptionRequest(pending.payoutId(), "USDC", REDEEMED_AMOUNT),
+                    new RedemptionRequest(pending.payoutId(), "USDC", REDEEMED_AMOUNT, APPLIED_FX_RATE),
                     "payoutId")))
                     .willReturn(new RedemptionResult(
                             REDEMPTION_PARTNER_REF, EXPECTED_FIAT_AMOUNT, FIAT_CURRENCY, REDEEMED_AT));
@@ -199,7 +199,7 @@ class PayoutCommandHandlerTest {
             given(orderRepository.findByPaymentId(PAYMENT_ID))
                     .willReturn(Optional.empty());
             given(redemptionGateway.redeem(eqIgnoring(
-                    new RedemptionRequest(UUID.randomUUID(), "USDC", REDEEMED_AMOUNT),
+                    new RedemptionRequest(UUID.randomUUID(), "USDC", REDEEMED_AMOUNT, APPLIED_FX_RATE),
                     "payoutId")))
                     .willReturn(new RedemptionResult(
                             REDEMPTION_PARTNER_REF, EXPECTED_FIAT_AMOUNT, FIAT_CURRENCY, REDEEMED_AT));
