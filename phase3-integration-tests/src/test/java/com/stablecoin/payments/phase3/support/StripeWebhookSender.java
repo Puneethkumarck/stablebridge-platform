@@ -77,7 +77,7 @@ public final class StripeWebhookSender {
                     "type": "charge.succeeded",
                     "data": {
                         "object": {
-                            "id": "ch_%s",
+                            "id": "%s",
                             "object": "charge",
                             "amount": %d,
                             "currency": "%s",
