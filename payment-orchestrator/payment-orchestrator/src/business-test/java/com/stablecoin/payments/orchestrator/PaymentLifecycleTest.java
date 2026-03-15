@@ -2,9 +2,19 @@ package com.stablecoin.payments.orchestrator;
 
 import com.stablecoin.payments.compliance.api.response.ComplianceCheckResponse;
 import com.stablecoin.payments.compliance.client.ComplianceCheckClient;
+import com.stablecoin.payments.custody.api.TransferRequest;
+import com.stablecoin.payments.custody.api.TransferResponse;
+import com.stablecoin.payments.custody.client.BlockchainCustodyClient;
+import com.stablecoin.payments.fx.api.request.FxRateLockRequest;
 import com.stablecoin.payments.fx.api.response.FxQuoteResponse;
 import com.stablecoin.payments.fx.api.response.FxRateLockResponse;
 import com.stablecoin.payments.fx.client.FxEngineClient;
+import com.stablecoin.payments.offramp.api.PayoutResponse;
+import com.stablecoin.payments.offramp.client.FiatOffRampClient;
+import com.stablecoin.payments.onramp.api.CollectionRequest;
+import com.stablecoin.payments.onramp.api.CollectionResponse;
+import com.stablecoin.payments.onramp.api.RefundResponse;
+import com.stablecoin.payments.onramp.client.FiatOnRampClient;
 import com.stablecoin.payments.orchestrator.domain.workflow.PaymentWorkflow;
 import com.stablecoin.payments.orchestrator.domain.workflow.PaymentWorkflowImpl;
 import com.stablecoin.payments.orchestrator.domain.workflow.activity.ChainTransferActivity;
@@ -15,6 +25,8 @@ import com.stablecoin.payments.orchestrator.domain.workflow.activity.FxLockActiv
 import com.stablecoin.payments.orchestrator.domain.workflow.activity.OffRampActivity;
 import com.stablecoin.payments.orchestrator.domain.workflow.activity.UpdatePaymentStateActivity;
 import com.stablecoin.payments.orchestrator.domain.workflow.dto.CancelRequest;
+import com.stablecoin.payments.orchestrator.domain.workflow.dto.ChainConfirmedSignal;
+import com.stablecoin.payments.orchestrator.domain.workflow.dto.FiatCollectedSignal;
 import com.stablecoin.payments.orchestrator.domain.workflow.dto.PaymentResult;
 import feign.FeignException;
 import feign.Request;
@@ -98,13 +110,13 @@ class PaymentLifecycleTest extends AbstractBusinessTest {
     private FxEngineClient fxEngineClient;
 
     @MockitoBean
-    private com.stablecoin.payments.onramp.client.FiatOnRampClient fiatOnRampClient;
+    private FiatOnRampClient fiatOnRampClient;
 
     @MockitoBean
-    private com.stablecoin.payments.custody.client.BlockchainCustodyClient blockchainCustodyClient;
+    private BlockchainCustodyClient blockchainCustodyClient;
 
     @MockitoBean
-    private com.stablecoin.payments.offramp.client.FiatOffRampClient fiatOffRampClient;
+    private FiatOffRampClient fiatOffRampClient;
 
     @Autowired
     private ComplianceCheckActivity complianceCheckActivity;
@@ -152,43 +164,43 @@ class PaymentLifecycleTest extends AbstractBusinessTest {
         // FiatOnRamp — sends fiatCollected signal from within mock answer
         given(fiatOnRampClient.initiateCollection(any()))
                 .willAnswer(invocation -> {
-                    var req = (com.stablecoin.payments.onramp.api.CollectionRequest) invocation.getArgument(0);
+                    var req = (CollectionRequest) invocation.getArgument(0);
                     // Send fiatCollected signal to the workflow
                     var workflowStub = TEST_ENV.getWorkflowClient().newWorkflowStub(
                             PaymentWorkflow.class, "payment-" + req.paymentId());
                     workflowStub.onFiatCollected(
-                            new com.stablecoin.payments.orchestrator.domain.workflow.dto.FiatCollectedSignal(
+                            new FiatCollectedSignal(
                                     req.paymentId(), "pi_test_bt", req.amount(), req.currency()));
-                    return new com.stablecoin.payments.onramp.api.CollectionResponse(
+                    return new CollectionResponse(
                             UUID.randomUUID(), req.paymentId(), "AWAITING_CONFIRMATION",
                             "ACH", "Stripe", "pi_test_bt", null, Instant.now(),
                             Instant.now().plusSeconds(3600));
                 });
         given(fiatOnRampClient.initiateRefund(any(), any()))
-                .willReturn(new com.stablecoin.payments.onramp.api.RefundResponse(
+                .willReturn(new RefundResponse(
                         UUID.randomUUID(), UUID.randomUUID(), "REFUND_INITIATED",
                         BigDecimal.ZERO, "USD", Instant.now(), null));
         // BlockchainCustody — sends chainConfirmed signal from within mock answer
         given(blockchainCustodyClient.submitTransfer(any()))
                 .willAnswer(invocation -> {
-                    var req = (com.stablecoin.payments.custody.api.TransferRequest) invocation.getArgument(0);
+                    var req = (TransferRequest) invocation.getArgument(0);
                     var workflowStub = TEST_ENV.getWorkflowClient().newWorkflowStub(
                             PaymentWorkflow.class, "payment-" + req.paymentId());
                     workflowStub.onChainConfirmed(
-                            new com.stablecoin.payments.orchestrator.domain.workflow.dto.ChainConfirmedSignal(
+                            new ChainConfirmedSignal(
                                     req.paymentId(), "0xtxhash123", "base", 12345L));
-                    return new com.stablecoin.payments.custody.api.TransferResponse(
+                    return new TransferResponse(
                             UUID.randomUUID(), req.paymentId(), "SUBMITTED",
                             "base", "USDC", "917.24", "0xfrom", "0xto",
                             "0xtxhash123", null, null, null, null, null, null, Instant.now());
                 });
         given(fiatOffRampClient.initiatePayout(any()))
-                .willReturn(new com.stablecoin.payments.offramp.api.PayoutResponse(
+                .willReturn(new PayoutResponse(
                         UUID.randomUUID(), UUID.randomUUID(), "PAYOUT_INITIATED",
                         "FIAT", BigDecimal.valueOf(917.24), "EUR", "SEPA",
                         "Modulr", null, null, Instant.now(), null));
         given(fiatOffRampClient.getPayoutByPaymentId(any()))
-                .willReturn(new com.stablecoin.payments.offramp.api.PayoutResponse(
+                .willReturn(new PayoutResponse(
                         UUID.randomUUID(), UUID.randomUUID(), "PAYOUT_INITIATED",
                         "FIAT", BigDecimal.valueOf(917.24), "EUR", "SEPA",
                         "Modulr", null, null, Instant.now(), null));
@@ -387,7 +399,7 @@ class PaymentLifecycleTest extends AbstractBusinessTest {
                     .willAnswer(invocation -> {
                         // Extract paymentId from the lock request to send cancel signal
                         var lockRequest = invocation.getArgument(1,
-                                com.stablecoin.payments.fx.api.request.FxRateLockRequest.class);
+                                FxRateLockRequest.class);
                         var paymentUuid = lockRequest.paymentId();
 
                         // Send cancel signal to workflow

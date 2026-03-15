@@ -32,6 +32,7 @@ import io.temporal.common.RetryOptions;
 import io.temporal.workflow.Workflow;
 import org.slf4j.Logger;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -391,7 +392,7 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
                     "USDC",
                     fxResult.targetAmount(),
                     fxResult.targetCurrency(),
-                    java.math.BigDecimal.ONE,
+                    BigDecimal.ONE,
                     request.recipientId()
             ));
         } catch (Exception e) {
@@ -514,7 +515,7 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
             } else if (step.startsWith(REFUND_FIAT_PREFIX)) {
                 var parts = step.substring(REFUND_FIAT_PREFIX.length()).split(":");
                 var collectionId = UUID.fromString(parts[0]);
-                var refundAmount = new java.math.BigDecimal(parts[1]);
+                var refundAmount = new BigDecimal(parts[1]);
                 var currency = parts[2];
                 fiatCollectionActivity.refundCollection(
                         new FiatRefundRequest(collectionId, paymentId, refundAmount, currency, reason));
@@ -523,7 +524,7 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
             } else if (step.startsWith(RETURN_CHAIN_PREFIX)) {
                 var parts = step.substring(RETURN_CHAIN_PREFIX.length()).split(":");
                 var transferId = UUID.fromString(parts[0]);
-                var amount = new java.math.BigDecimal(parts[1]);
+                var amount = new BigDecimal(parts[1]);
                 var stablecoin = parts[2];
                 chainTransferActivity.returnTransfer(
                         new ChainReturnRequest(transferId, paymentId, stablecoin, amount, null, reason));

@@ -14,6 +14,7 @@ import tools.jackson.databind.json.JsonMapper;
 
 import java.math.BigDecimal;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 /**
  * Kafka consumer that receives async events from S3 and S4,
@@ -88,7 +89,7 @@ public class PaymentSignalConsumer {
         }
     }
 
-    private void sendSignalToWorkflow(UUID paymentId, java.util.function.Consumer<PaymentWorkflow> signalSender) {
+    private void sendSignalToWorkflow(UUID paymentId, Consumer<PaymentWorkflow> signalSender) {
         var workflowStub = workflowClient.newWorkflowStub(
                 PaymentWorkflow.class, "payment-" + paymentId);
         signalSender.accept(workflowStub);
