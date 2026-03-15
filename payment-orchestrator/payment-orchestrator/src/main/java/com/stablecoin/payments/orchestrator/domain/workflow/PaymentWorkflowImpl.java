@@ -389,7 +389,7 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
                     request.correlationId(),
                     chainResult.transferId(),
                     "USDC",
-                    fxResult.targetAmount(),
+                    request.sourceAmount(),
                     fxResult.targetCurrency(),
                     fxResult.lockedRate(),
                     request.recipientId()
