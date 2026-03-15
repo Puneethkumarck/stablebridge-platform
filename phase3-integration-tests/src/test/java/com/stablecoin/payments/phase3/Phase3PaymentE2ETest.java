@@ -140,44 +140,46 @@ class Phase3PaymentE2ETest {
 
     @Nested
     @Order(2)
-    @DisplayName("Workflow failure — payment fails and compensates correctly")
-    class WorkflowFailure {
+    @DisplayName("Second Payment — concurrent workflow execution")
+    class SecondPayment {
 
         @Test
-        @DisplayName("should reach terminal FAILED state when workflow encounters an error")
-        void shouldReachFailedStateOnWorkflowError() throws Exception {
+        @DisplayName("should complete a second payment while first has already finished")
+        void shouldCompleteSecondPayment() throws Exception {
             var senderId = UUID.randomUUID();
             var recipientId = UUID.randomUUID();
             var idempotencyKey = UUID.randomUUID().toString();
 
-            // Initiate payment — workflow runs async via Temporal
-            log.info("Initiating payment to verify failure handling");
+            // Initiate a second payment
+            log.info("Initiating second payment");
             var response = paymentApiClient.initiatePayment(
                     null, senderId, recipientId,
-                    "1000.00", "USD", "EUR",
+                    "500.00", "USD", "EUR",
                     "US", "DE", idempotencyKey);
             assertThat(response.statusCode()).isEqualTo(201);
 
             var body = JSON.readTree(response.body());
             var paymentId = body.get("paymentId").asText();
-            log.info("Payment initiated: paymentId={}", paymentId);
+            log.info("Second payment initiated: paymentId={}", paymentId);
 
-            // Wait for terminal state — workflow may complete or fail depending on
-            // downstream service availability and webhook delivery
-            log.info("Waiting for terminal state (COMPLETED or FAILED)");
-            var finalState = waitForPaymentStateOneOf(paymentId,
+            // Wait for collection order, then send webhook
+            var collectionInfo = waitForCollectionOrderInfo(paymentId, Duration.ofSeconds(30));
+            log.info("Collection order: id={}, pspRef={}", collectionInfo[0], collectionInfo[1]);
+            stripeWebhookSender.sendCollectionSuccess(collectionInfo[1], 50000L, "usd");
+
+            // Wait for terminal state
+            log.info("Waiting for terminal state");
+            waitForPaymentStateOneOf(paymentId,
                     new String[]{"COMPLETED", "FAILED"},
                     Duration.ofSeconds(120));
 
             var finalResponse = paymentApiClient.getPayment(paymentId);
             var finalBody = JSON.readTree(finalResponse.body());
             var state = finalBody.get("state").asText();
-            log.info("Terminal state reached: {}", state);
+            log.info("Second payment state: {}", state);
 
-            // Verify payment reached a terminal state (not stuck in INITIATED)
-            assertThat(state).isIn("COMPLETED", "FAILED");
-
-            log.info("Workflow terminal state test PASSED");
+            assertThat(state).isEqualTo("COMPLETED");
+            log.info("Second payment test PASSED");
         }
     }
 
