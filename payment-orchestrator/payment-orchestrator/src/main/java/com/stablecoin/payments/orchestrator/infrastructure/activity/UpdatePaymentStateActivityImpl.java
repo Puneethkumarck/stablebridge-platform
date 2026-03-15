@@ -48,9 +48,10 @@ public class UpdatePaymentStateActivityImpl implements UpdatePaymentStateActivit
 
         var updated = switch (update.terminalState()) {
             case "COMPLETED" -> {
+                var now = Instant.now();
                 var fxRate = update.lockedRate() != null
-                        ? new FxRate(update.quoteId(), null, null,
-                                update.lockedRate(), Instant.now(), null, null)
+                        ? new FxRate(update.quoteId(), "USD", update.targetCurrency(),
+                                update.lockedRate(), now, now.plusSeconds(600), "workflow")
                         : null;
                 var targetAmount = update.targetAmount() != null
                         ? new Money(update.targetAmount(), update.targetCurrency())
