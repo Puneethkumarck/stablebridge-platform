@@ -105,12 +105,15 @@ class Phase3PaymentE2ETest {
             //    The S1 REST API state stays INITIATED while Temporal runs the workflow.
             //    Poll S3 directly for the collection order created by the workflow.
             log.info("Step 2: Waiting for S3 collection order to be created");
-            var collectionId = waitForCollectionOrder(paymentId, Duration.ofSeconds(30));
-            log.info("Collection order created: collectionId={}", collectionId);
+            var collectionInfo = waitForCollectionOrderInfo(paymentId, Duration.ofSeconds(30));
+            var collectionId = collectionInfo[0];
+            var pspReference = collectionInfo[1];
+            log.info("Collection order created: collectionId={}, pspReference={}", collectionId, pspReference);
 
             // 3. Send Stripe webhook to S3 simulating fiat collection success
+            //    Use the pspReference (pi_xxx) as the charge ID — S3 looks up by pspReference
             log.info("Step 3: Sending Stripe collection success webhook");
-            stripeWebhookSender.sendCollectionSuccess(collectionId, 100000L, "usd");
+            stripeWebhookSender.sendCollectionSuccess(pspReference, 100000L, "usd");
             log.info("Stripe webhook sent for collectionId={}", collectionId);
 
             // 4. Wait for payment to reach terminal state (COMPLETED or FAILED)
@@ -229,10 +232,10 @@ class Phase3PaymentE2ETest {
 
     /**
      * Polls S3 directly until a collection order exists for the given paymentId.
-     * Returns the collectionId. The workflow creates the collection order async via Temporal.
+     * Returns [collectionId, pspReference]. The workflow creates the collection order async via Temporal.
      */
-    private String waitForCollectionOrder(String paymentId, Duration timeout) {
-        var result = new String[1];
+    private String[] waitForCollectionOrderInfo(String paymentId, Duration timeout) {
+        var result = new String[2];
         await().atMost(timeout)
                 .pollInterval(Duration.ofSeconds(2))
                 .ignoreExceptions()
@@ -247,13 +250,15 @@ class Phase3PaymentE2ETest {
                         var body = JSON.readTree(response.body());
                         if (body.has("collectionId")) {
                             result[0] = body.get("collectionId").asText();
-                            log.info("Found collection order for payment {}: {}", paymentId, result[0]);
+                            result[1] = body.has("pspReference") ? body.get("pspReference").asText() : result[0];
+                            log.info("Found collection order for payment {}: id={}, pspRef={}",
+                                    paymentId, result[0], result[1]);
                             return true;
                         }
                     }
                     return false;
                 });
-        return result[0];
+        return result;
     }
 
     private String waitForPaymentState(String paymentId, String expectedState,
