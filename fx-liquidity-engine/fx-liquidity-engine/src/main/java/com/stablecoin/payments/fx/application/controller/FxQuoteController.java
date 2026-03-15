@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -49,5 +50,12 @@ public class FxQuoteController {
         var result = rateLockApplicationService.lockRate(quoteId, request);
         var status = result.created() ? HttpStatus.CREATED : HttpStatus.OK;
         return ResponseEntity.status(status).body(result.response());
+    }
+
+    @DeleteMapping("/lock/{lockId}")
+    public ResponseEntity<Void> releaseLock(@PathVariable UUID lockId) {
+        log.info("DELETE /v1/fx/lock/{}", lockId);
+        rateLockApplicationService.releaseLock(lockId);
+        return ResponseEntity.noContent().build();
     }
 }

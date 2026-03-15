@@ -43,7 +43,12 @@ public class FiatCollectionActivityImpl implements FiatCollectionActivity {
                 "ACH",
                 request.sourceCountry(),
                 request.currency(),
-                null, null, null, null, null, null
+                "stripe",
+                "Stripe",
+                "sha256:" + request.paymentId(),
+                "STRIPE_DEFAULT",
+                "ACH_ROUTING",
+                request.sourceCountry()
         );
 
         try {

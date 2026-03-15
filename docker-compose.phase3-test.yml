@@ -322,7 +322,7 @@ services:
       KAFKA_BROKERS: "redpanda:29092"
       APP_SECURITY_ENABLED: "false"
       APP_PSP_PROVIDER: stripe
-      APP_PSP_STRIPE_BASEURL: "http://wiremock:8080/v1"
+      APP_PSP_STRIPE_BASEURL: "http://wiremock:8080"
       STRIPE_API_KEY: "sk_test_default"
       STRIPE_WEBHOOK_SECRET: "whsec_test_default"
     ports:
