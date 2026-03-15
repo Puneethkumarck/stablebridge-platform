@@ -26,7 +26,7 @@ import java.util.UUID;
 @ConditionalOnProperty(name = "app.fallback-adapters.enabled", havingValue = "true")
 public class FallbackAdaptersConfig {
 
-    private static final BigDecimal DEV_FEE_MULTIPLIER = new BigDecimal("0.92");
+    private static final BigDecimal DEV_FEE_MULTIPLIER = BigDecimal.ONE;
 
     @Bean
     public RedemptionGateway fallbackRedemptionGateway(Clock clock) {
