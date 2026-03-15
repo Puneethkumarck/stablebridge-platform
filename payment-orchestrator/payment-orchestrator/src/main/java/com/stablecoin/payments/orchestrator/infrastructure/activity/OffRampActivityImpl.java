@@ -48,7 +48,10 @@ public class OffRampActivityImpl implements OffRampActivity {
                 "SEPA",
                 "modulr-default",
                 "Modulr",
-                null, null, null, null,
+                "DE89370400440532013000",
+                "COBADEFFXXX",
+                "IBAN",
+                "DE",
                 null, null, null
         );
 
