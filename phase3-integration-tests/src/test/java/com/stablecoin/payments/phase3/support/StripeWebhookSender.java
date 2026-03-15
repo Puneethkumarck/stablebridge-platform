@@ -69,26 +69,23 @@ public final class StripeWebhookSender {
         return response;
     }
 
-    private String buildChargeSucceededPayload(String collectionId, long amount, String currency) {
+    private String buildChargeSucceededPayload(String pspReference, long amount, String currency) {
         return """
                 {
                     "id": "evt_%s",
                     "object": "event",
-                    "type": "charge.succeeded",
+                    "type": "payment_intent.succeeded",
                     "data": {
                         "object": {
                             "id": "%s",
-                            "object": "charge",
+                            "object": "payment_intent",
                             "amount": %d,
                             "currency": "%s",
-                            "status": "succeeded",
-                            "metadata": {
-                                "collectionId": "%s"
-                            }
+                            "status": "succeeded"
                         }
                     }
                 }
-                """.formatted(collectionId, collectionId, amount, currency, collectionId);
+                """.formatted(pspReference, pspReference, amount, currency);
     }
 
     private String computeStripeSignature(String payload, long timestamp) throws Exception {
