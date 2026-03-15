@@ -1,0 +1,11 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPathPattern": "/api-sandbox-token/payments"
+  },
+  "response": {
+    "status": 200,
+    "headers": { "Content-Type": "application/json" },
+    "bodyFileName": "modulr-payment-created.json"
+  }
+}

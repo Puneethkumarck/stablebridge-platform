@@ -5,7 +5,6 @@ import java.util.List;
 record ChainalysisTransferResponse(
         String updatedAt,
         String asset,
-        String cluster,
         String rating,
         List<Alert> alerts
 ) {

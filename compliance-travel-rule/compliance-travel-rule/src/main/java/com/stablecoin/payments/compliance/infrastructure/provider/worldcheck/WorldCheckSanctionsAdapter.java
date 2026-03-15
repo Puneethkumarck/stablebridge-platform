@@ -119,7 +119,7 @@ public class WorldCheckSanctionsAdapter implements SanctionsProvider {
             var matches = senderResp.results().stream()
                     .filter(r -> "STRONG".equals(r.matchStrength()) || "EXACT".equals(r.matchStrength()))
                     .map(r -> "{\"matchStrength\":\"%s\",\"lists\":%s,\"categories\":%s}"
-                            .formatted(r.matchStrength(), toJsonArray(r.matchedLists()), toJsonArray(r.categories())))
+                            .formatted(r.matchStrength(), toJsonArray(r.sources()), toJsonArray(r.categories())))
                     .toList();
             details.append(String.join(",", matches));
             details.append("]");
@@ -132,7 +132,7 @@ public class WorldCheckSanctionsAdapter implements SanctionsProvider {
             var matches = recipientResp.results().stream()
                     .filter(r -> "STRONG".equals(r.matchStrength()) || "EXACT".equals(r.matchStrength()))
                     .map(r -> "{\"matchStrength\":\"%s\",\"lists\":%s,\"categories\":%s}"
-                            .formatted(r.matchStrength(), toJsonArray(r.matchedLists()), toJsonArray(r.categories())))
+                            .formatted(r.matchStrength(), toJsonArray(r.sources()), toJsonArray(r.categories())))
                     .toList();
             details.append(String.join(",", matches));
             details.append("]");

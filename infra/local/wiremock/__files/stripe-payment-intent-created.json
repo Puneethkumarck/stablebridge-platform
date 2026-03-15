@@ -3,8 +3,13 @@
   "object": "payment_intent",
   "status": "requires_confirmation",
   "amount": 1000000,
+  "amount_received": 0,
   "currency": "usd",
   "client_secret": "pi_{{randomValue type='UUID'}}_secret_abc",
+  "capture_method": "automatic",
+  "confirmation_method": "automatic",
   "created": 1700000000,
-  "livemode": false
+  "livemode": false,
+  "metadata": {},
+  "payment_method_types": ["us_bank_account"]
 }

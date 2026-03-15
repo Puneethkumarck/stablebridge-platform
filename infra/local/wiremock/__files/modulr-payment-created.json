@@ -1,0 +1,19 @@
+{
+  "id": "P120003AQM",
+  "status": "VALIDATED",
+  "createdDate": "2026-03-15T10:30:00.000+0000",
+  "externalReference": "887adb57-1d2e-4f3a-b5c6-d7e8f9a0b1c2",
+  "approvalStatus": "NOTNEEDED",
+  "message": "",
+  "details": {
+    "sourceAccountId": "A1100ABCD1",
+    "destinationType": "IBAN",
+    "destination": {
+      "type": "IBAN",
+      "iban": "DE89370400440532013000",
+      "name": "Acme GmbH"
+    },
+    "amount": 9500.00,
+    "reference": "Payment for invoice INV-2026-0042"
+  }
+}

@@ -27,6 +27,8 @@ import java.util.UUID;
 @EnableConfigurationProperties(ChainalysisProperties.class)
 public class ChainalysisAmlAdapter implements AmlProvider {
 
+    private static final String HIGH_RATING = "HIGH";
+    private static final String SEVERE_RATING = "SEVERE";
     private static final String HIGH_ALERT = "HIGH";
     private static final String SEVERE_ALERT = "SEVERE";
 
@@ -110,9 +112,21 @@ public class ChainalysisAmlAdapter implements AmlProvider {
                                             ChainalysisTransferResponse recipientResp,
                                             UUID senderId, UUID recipientId) {
         List<String> reasons = new ArrayList<>();
+        addRatingReasons(reasons, senderResp, "sender", senderId);
+        addRatingReasons(reasons, recipientResp, "recipient", recipientId);
         addAlertReasons(reasons, senderResp, "sender", senderId);
         addAlertReasons(reasons, recipientResp, "recipient", recipientId);
         return List.copyOf(reasons);
+    }
+
+    private void addRatingReasons(List<String> reasons, ChainalysisTransferResponse response,
+                                   String party, UUID partyId) {
+        if (response == null || response.rating() == null) {
+            return;
+        }
+        if (HIGH_RATING.equals(response.rating()) || SEVERE_RATING.equals(response.rating())) {
+            reasons.add("%s(%s):rating/%s".formatted(party, partyId, response.rating()));
+        }
     }
 
     private void addAlertReasons(List<String> reasons, ChainalysisTransferResponse response,
@@ -131,18 +145,12 @@ public class ChainalysisAmlAdapter implements AmlProvider {
         var sb = new StringBuilder("{");
         sb.append("\"senderRating\":\"%s\"".formatted(ratingOf(senderResp)));
         sb.append(",\"recipientRating\":\"%s\"".formatted(ratingOf(recipientResp)));
-        sb.append(",\"senderCluster\":\"%s\"".formatted(clusterOf(senderResp)));
-        sb.append(",\"recipientCluster\":\"%s\"".formatted(clusterOf(recipientResp)));
         sb.append("}");
         return sb.toString();
     }
 
     private String ratingOf(ChainalysisTransferResponse response) {
         return response != null && response.rating() != null ? response.rating() : "unknown";
-    }
-
-    private String clusterOf(ChainalysisTransferResponse response) {
-        return response != null && response.cluster() != null ? response.cluster() : "unknown";
     }
 
     private String buildProviderRef(UUID senderId, UUID recipientId) {
