@@ -44,9 +44,10 @@ public class OffRampActivityImpl implements OffRampActivity {
                 request.targetCurrency(),
                 request.appliedFxRate(),
                 request.recipientId(),
-                null,
+                "sha256:" + request.recipientId(),
                 "SEPA",
-                null, null,
+                "modulr-default",
+                "Modulr",
                 null, null, null, null,
                 null, null, null
         );
