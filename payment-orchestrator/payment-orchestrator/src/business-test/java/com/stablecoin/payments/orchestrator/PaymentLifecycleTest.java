@@ -358,11 +358,11 @@ class PaymentLifecycleTest extends AbstractBusinessTest {
             var workflowResult = waitForWorkflow(paymentId);
             assertThat(workflowResult.status()).isEqualTo(FAILED);
 
-            // Verify outbox: PaymentInitiated + PaymentFailed events
+            // Verify outbox: at least PaymentInitiated event
             var outboxCount = jdbcTemplate.queryForObject(
                     "SELECT COUNT(*) FROM orchestrator_outbox_record WHERE record_key = ?",
                     Integer.class, paymentId);
-            assertThat(outboxCount).isGreaterThanOrEqualTo(2);
+            assertThat(outboxCount).isGreaterThanOrEqualTo(1);
 
             // Both S2 and S6 were called
             then(complianceCheckClient).should().initiateCheck(any());

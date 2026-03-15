@@ -111,12 +111,14 @@ public class FxRateLockApplicationService {
 
         // Release reserved liquidity back to the pool
         poolRepository.findByCorridor(lock.fromCurrency(), lock.toCurrency())
-                .ifPresent(pool -> {
-                    var releasedPool = liquidityService.release(pool, lock.targetAmount());
-                    poolRepository.save(releasedPool);
-                });
-
-        log.info("Lock {} released, liquidity returned to pool", lockId);
+                .ifPresentOrElse(
+                        pool -> {
+                            var releasedPool = liquidityService.release(pool, lock.targetAmount());
+                            poolRepository.save(releasedPool);
+                            log.info("Lock {} released, liquidity returned to pool", lockId);
+                        },
+                        () -> log.warn("Lock {} released but pool not found for {}/{}",
+                                lockId, lock.fromCurrency(), lock.toCurrency()));
     }
 
     private void validateQuote(FxQuote quote) {

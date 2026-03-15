@@ -42,7 +42,7 @@ public class TemporalWorkerConfig {
                 complianceCheckActivity, fxLockActivity, fiatCollectionActivity,
                 chainTransferActivity, offRampActivity, updatePaymentStateActivity,
                 eventPublishingActivity);
-        log.info("Temporal worker registered on queue={} with PaymentWorkflow and 6 activities", TASK_QUEUE);
+        log.info("Temporal worker registered on queue={} with PaymentWorkflow and 7 activities", TASK_QUEUE);
         workerFactory.start();
         return worker;
     }
