@@ -61,7 +61,7 @@ class ModulrPayoutAdapterTest {
                 PAYOUT_ID,
                 new BigDecimal("9500.00"),
                 "EUR",
-                new BankAccount("DE89370400440532013000", "Acme GmbH", AccountType.IBAN, "DE"),
+                new BankAccount("DE89370400440532013000", "DEUTDEFF", AccountType.IBAN, "DE"),
                 null,
                 PaymentRail.SEPA,
                 new PartnerIdentifier("modulr-001", "modulr")
@@ -93,7 +93,7 @@ class ModulrPayoutAdapterTest {
                                         "destination": {
                                           "type": "IBAN",
                                           "iban": "DE89370400440532013000",
-                                          "name": "Acme GmbH"
+                                          "name": "modulr"
                                         },
                                         "amount": 9500.00,
                                         "reference": "Payout 887adb57-1d2e-4f3a-b5c6-d7e8f9a0b1c2"
@@ -129,7 +129,7 @@ class ModulrPayoutAdapterTest {
                                         "destination": {
                                           "type": "IBAN",
                                           "iban": "DE89370400440532013000",
-                                          "name": "Acme GmbH"
+                                          "name": "modulr"
                                         },
                                         "amount": 9500.00,
                                         "reference": "Payout 887adb57-1d2e-4f3a-b5c6-d7e8f9a0b1c2"
@@ -152,7 +152,7 @@ class ModulrPayoutAdapterTest {
                               "destination": {
                                 "type": "IBAN",
                                 "iban": "DE89370400440532013000",
-                                "name": "Acme GmbH"
+                                "name": "modulr"
                               },
                               "permittedScheme": "SEPA_CREDIT"
                             }
@@ -243,13 +243,13 @@ class ModulrPayoutAdapterTest {
         }
 
         @Test
-        @DisplayName("should handle SEPA payout with GBP currency for Faster Payments")
-        void initiatePayout_gbpCurrency() {
+        @DisplayName("should handle GBP Faster Payments without permittedScheme")
+        void initiatePayout_gbpFasterPayments() {
             var gbpRequest = new PayoutRequest(
                     PAYOUT_ID,
                     new BigDecimal("8500.50"),
                     "GBP",
-                    new BankAccount("GB29NWBK60161331926819", "Beta Ltd", AccountType.IBAN, "GB"),
+                    new BankAccount("GB29NWBK60161331926819", "NWBKGB2L", AccountType.IBAN, "GB"),
                     null,
                     PaymentRail.FASTER_PAYMENTS,
                     new PartnerIdentifier("modulr-001", "modulr")
@@ -273,7 +273,7 @@ class ModulrPayoutAdapterTest {
                                         "destination": {
                                           "type": "IBAN",
                                           "iban": "GB29NWBK60161331926819",
-                                          "name": "Beta Ltd"
+                                          "name": "modulr"
                                         },
                                         "amount": 8500.50,
                                         "reference": "Payout 887adb57-1d2e-4f3a-b5c6-d7e8f9a0b1c2"

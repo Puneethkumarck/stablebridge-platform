@@ -25,13 +25,13 @@ public record ModulrProperties(
             baseUrl = "https://api-sandbox.modulrfinance.com";
         }
         if (apiKey == null || apiKey.isBlank()) {
-            apiKey = "SANDBOX_API_KEY_DEFAULT";
+            apiKey = "";
         }
         if (apiSecret == null || apiSecret.isBlank()) {
-            apiSecret = "SANDBOX_API_SECRET_DEFAULT";
+            apiSecret = "";
         }
         if (sourceAccountId == null || sourceAccountId.isBlank()) {
-            sourceAccountId = "A1100ABCD1";
+            sourceAccountId = "";
         }
         if (timeoutSeconds <= 0) {
             timeoutSeconds = 10;

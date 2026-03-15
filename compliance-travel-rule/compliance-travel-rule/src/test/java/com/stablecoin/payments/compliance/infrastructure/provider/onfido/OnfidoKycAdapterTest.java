@@ -152,8 +152,10 @@ class OnfidoKycAdapterTest {
                     .ignoringFields("kycResultId", "checkId", "providerRef", "checkedAt")
                     .isEqualTo(expected);
 
-            // PENDING should NOT be cached — verify no set() calls for either party
-            then(valueOps).should(never()).set(SENDER_CACHE_KEY, SENDER_CACHE_KEY, CACHE_TTL);
+            // PENDING should NOT be cached — verify get() was called but set() was never called
+            then(valueOps).should().get(SENDER_CACHE_KEY);
+            then(valueOps).should().get(RECIPIENT_CACHE_KEY);
+            then(valueOps).shouldHaveNoMoreInteractions();
         }
     }
 

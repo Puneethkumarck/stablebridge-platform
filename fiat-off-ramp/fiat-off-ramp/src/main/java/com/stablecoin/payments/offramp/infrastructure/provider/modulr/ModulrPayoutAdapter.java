@@ -1,6 +1,7 @@
 package com.stablecoin.payments.offramp.infrastructure.provider.modulr;
 
 import com.stablecoin.payments.offramp.domain.exception.PayoutPartnerException;
+import com.stablecoin.payments.offramp.domain.model.PaymentRail;
 import com.stablecoin.payments.offramp.domain.port.PayoutPartnerGateway;
 import com.stablecoin.payments.offramp.domain.port.PayoutRequest;
 import com.stablecoin.payments.offramp.domain.port.PayoutResult;
@@ -61,18 +62,21 @@ public class ModulrPayoutAdapter implements PayoutPartnerGateway {
         log.info("[MODULR] Initiating SEPA payout payoutId={} amount={} currency={}",
                 request.payoutId(), request.fiatAmount(), request.currency());
 
+        var destination = new ModulrPaymentRequest.ModulrDestination(
+                "IBAN",
+                request.bankAccount().accountNumber(),
+                request.partnerIdentifier().partnerName()
+        );
+        var permittedScheme = resolvePermittedScheme(request.paymentRail());
+
         var modulrRequest = new ModulrPaymentRequest(
                 properties.sourceAccountId(),
                 request.fiatAmount(),
                 request.currency(),
                 "Payout " + request.payoutId(),
                 request.payoutId().toString(),
-                new ModulrPaymentRequest.ModulrDestination(
-                        "IBAN",
-                        request.bankAccount().accountNumber(),
-                        request.bankAccount().bankCode()
-                ),
-                "SEPA_CREDIT"
+                destination,
+                permittedScheme
         );
 
         var response = restClient.post()
@@ -94,6 +98,13 @@ public class ModulrPayoutAdapter implements PayoutPartnerGateway {
                 response.status(),
                 null
         );
+    }
+
+    private static String resolvePermittedScheme(PaymentRail rail) {
+        return switch (rail) {
+            case SEPA -> "SEPA_CREDIT";
+            default -> null;
+        };
     }
 
     @SuppressWarnings("unused")
