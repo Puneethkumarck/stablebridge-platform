@@ -3,6 +3,7 @@ package com.stablecoin.payments.fx.application.controller;
 import com.stablecoin.payments.fx.api.response.ApiError;
 import com.stablecoin.payments.fx.domain.exception.CorridorNotSupportedException;
 import com.stablecoin.payments.fx.domain.exception.InsufficientLiquidityException;
+import com.stablecoin.payments.fx.domain.exception.LockNotFoundException;
 import com.stablecoin.payments.fx.domain.exception.PoolNotFoundException;
 import com.stablecoin.payments.fx.domain.exception.QuoteAlreadyLockedException;
 import com.stablecoin.payments.fx.domain.exception.QuoteExpiredException;
@@ -84,6 +85,13 @@ public class GlobalExceptionHandler {
     public ApiError handleQuoteAlreadyLocked(QuoteAlreadyLockedException ex) {
         log.info("Quote already locked: {}", ex.getMessage());
         return ApiError.of(QUOTE_ALREADY_LOCKED, CONFLICT.getReasonPhrase(), ex.getMessage());
+    }
+
+    @ResponseStatus(NOT_FOUND)
+    @ExceptionHandler(LockNotFoundException.class)
+    public ApiError handleLockNotFound(LockNotFoundException ex) {
+        log.info("Lock not found: {}", ex.getMessage());
+        return ApiError.of(LOCK_NOT_FOUND, NOT_FOUND.getReasonPhrase(), ex.getMessage());
     }
 
     @ResponseStatus(NOT_FOUND)

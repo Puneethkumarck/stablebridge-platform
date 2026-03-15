@@ -13,11 +13,13 @@ import io.temporal.workflow.WorkflowMethod;
 /**
  * Temporal workflow that orchestrates the cross-border payment saga.
  * <p>
- * Saga flow (Phase 2 scope):
+ * Full sandwich flow (5 steps):
  * <ol>
- *   <li>Execute compliance check (S2) — no compensation needed on failure</li>
- *   <li>Lock FX rate (S6) — no compensation needed on failure</li>
- *   <li>Phase 3 stubs: fiat collection, on-chain transfer, off-ramp</li>
+ *   <li>Compliance check (S2) — read-only, no compensation</li>
+ *   <li>FX rate lock (S6) — compensation: release lock</li>
+ *   <li>Fiat collection (S3) — async (webhook signal), compensation: refund</li>
+ *   <li>Chain transfer (S4) — async (monitor signal), compensation: return transfer</li>
+ *   <li>Off-ramp payout (S5) — fire-and-forget, no compensation</li>
  * </ol>
  * <p>
  * Workflow ID convention: {@code payment_id} (natural deduplication).

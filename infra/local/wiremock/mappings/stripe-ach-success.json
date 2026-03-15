@@ -6,6 +6,7 @@
   "response": {
     "status": 200,
     "headers": { "Content-Type": "application/json" },
-    "bodyFileName": "stripe-payment-intent-created.json"
+    "bodyFileName": "stripe-payment-intent-created.json",
+    "transformers": ["response-template"]
   }
 }

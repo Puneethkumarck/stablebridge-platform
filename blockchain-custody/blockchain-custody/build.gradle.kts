@@ -8,7 +8,7 @@ plugins {
 
 jib {
     from {
-        image = "eclipse-temurin:25-jre-alpine"
+        image = "docker://eclipse-temurin:25-jre"
     }
     to {
         image = "stablebridge/blockchain-custody"
@@ -91,6 +91,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
 
     // Kafka via Spring Kafka
+    implementation("org.springframework.cloud:spring-cloud-stream-binder-kafka")
     implementation("org.springframework.kafka:spring-kafka")
 
     // Feign

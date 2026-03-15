@@ -64,6 +64,10 @@ subprojects {
         "testAnnotationProcessor"("org.projectlombok:lombok:$lombokVersion")
     }
 
+    tasks.withType<JavaCompile> {
+        options.compilerArgs.add("-parameters")
+    }
+
     tasks.withType<Test> {
         useJUnitPlatform()
         maxParallelForks = (Runtime.getRuntime().availableProcessors() / 2).coerceAtLeast(1)

@@ -12,6 +12,7 @@ public enum PaymentTrigger {
     INITIATE_OFF_RAMP,
     SETTLE,
     COMPLETE,
+    WORKFLOW_COMPLETED,
     FAIL,
     START_COMPENSATION
 }

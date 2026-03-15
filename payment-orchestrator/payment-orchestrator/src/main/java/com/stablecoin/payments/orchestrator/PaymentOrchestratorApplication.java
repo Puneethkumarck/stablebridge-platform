@@ -11,7 +11,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableFeignClients(basePackages = {
         "com.stablecoin.payments.orchestrator",
         "com.stablecoin.payments.compliance.client",
-        "com.stablecoin.payments.fx.client"
+        "com.stablecoin.payments.fx.client",
+        "com.stablecoin.payments.onramp.client",
+        "com.stablecoin.payments.custody.client",
+        "com.stablecoin.payments.offramp.client"
 })
 @EnableScheduling
 public class PaymentOrchestratorApplication {

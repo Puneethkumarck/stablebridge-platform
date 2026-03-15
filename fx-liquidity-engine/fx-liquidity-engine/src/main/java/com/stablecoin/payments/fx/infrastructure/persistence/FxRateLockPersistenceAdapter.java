@@ -46,7 +46,7 @@ public class FxRateLockPersistenceAdapter implements FxRateLockRepository {
 
     @Override
     public List<FxRateLock> findActiveLocksExpiredBefore(Instant cutoff) {
-        return jpa.findByStatusAndExpiresAtBefore(FxRateLockStatus.ACTIVE.name(), cutoff)
+        return jpa.findByStatusAndExpiresAtBefore(FxRateLockStatus.ACTIVE, cutoff)
                 .stream()
                 .map(mapper::toDomain)
                 .toList();

@@ -1,10 +1,10 @@
 {
-  "id": "pi_test_12345",
+  "id": "pi_{{randomValue type='UUID'}}",
   "object": "payment_intent",
   "status": "requires_confirmation",
   "amount": 1000000,
   "currency": "usd",
-  "client_secret": "pi_test_12345_secret_abc",
+  "client_secret": "pi_{{randomValue type='UUID'}}_secret_abc",
   "created": 1700000000,
   "livemode": false
 }

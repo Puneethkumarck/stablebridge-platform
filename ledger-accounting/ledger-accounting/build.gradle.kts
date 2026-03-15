@@ -8,7 +8,7 @@ plugins {
 
 jib {
     from {
-        image = "eclipse-temurin:25-jre-alpine"
+        image = "docker://eclipse-temurin:25-jre"
     }
     to {
         image = "stablebridge/ledger-accounting"

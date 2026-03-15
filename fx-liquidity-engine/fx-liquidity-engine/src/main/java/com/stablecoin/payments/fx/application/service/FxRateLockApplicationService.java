@@ -5,16 +5,19 @@ import com.stablecoin.payments.fx.api.response.FxRateLockResponse;
 import com.stablecoin.payments.fx.application.mapper.FxResponseMapper;
 import com.stablecoin.payments.fx.domain.event.FxRateLocked;
 import com.stablecoin.payments.fx.domain.exception.InsufficientLiquidityException;
+import com.stablecoin.payments.fx.domain.exception.LockNotFoundException;
 import com.stablecoin.payments.fx.domain.exception.PoolNotFoundException;
 import com.stablecoin.payments.fx.domain.exception.QuoteAlreadyLockedException;
 import com.stablecoin.payments.fx.domain.exception.QuoteExpiredException;
 import com.stablecoin.payments.fx.domain.exception.QuoteNotFoundException;
 import com.stablecoin.payments.fx.domain.model.FxQuote;
 import com.stablecoin.payments.fx.domain.model.FxQuoteStatus;
+import com.stablecoin.payments.fx.domain.model.FxRateLockStatus;
 import com.stablecoin.payments.fx.domain.port.EventPublisher;
 import com.stablecoin.payments.fx.domain.port.FxQuoteRepository;
 import com.stablecoin.payments.fx.domain.port.FxRateLockRepository;
 import com.stablecoin.payments.fx.domain.port.LiquidityPoolRepository;
+import com.stablecoin.payments.fx.domain.service.LiquidityService;
 import com.stablecoin.payments.fx.domain.service.LockService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +35,7 @@ public class FxRateLockApplicationService {
     private final FxRateLockRepository lockRepository;
     private final LiquidityPoolRepository poolRepository;
     private final LockService lockService;
+    private final LiquidityService liquidityService;
     private final EventPublisher<Object> eventPublisher;
     private final FxResponseMapper responseMapper;
 
@@ -88,6 +92,33 @@ public class FxRateLockApplicationService {
                 savedLock.lockId(), savedLock.lockedRate(), savedLock.expiresAt());
 
         return new LockRateResult(responseMapper.toResponse(savedLock), true);
+    }
+
+    @Transactional
+    public void releaseLock(UUID lockId) {
+        log.info("Releasing lock lockId={}", lockId);
+
+        var lock = lockRepository.findById(lockId)
+                .orElseThrow(() -> LockNotFoundException.withId(lockId));
+
+        if (lock.status() != FxRateLockStatus.ACTIVE) {
+            log.info("Lock {} already in status {}, skipping release", lockId, lock.status());
+            return;
+        }
+
+        var expiredLock = lock.expire();
+        lockRepository.save(expiredLock);
+
+        // Release reserved liquidity back to the pool
+        poolRepository.findByCorridor(lock.fromCurrency(), lock.toCurrency())
+                .ifPresentOrElse(
+                        pool -> {
+                            var releasedPool = liquidityService.release(pool, lock.targetAmount());
+                            poolRepository.save(releasedPool);
+                            log.info("Lock {} released, liquidity returned to pool", lockId);
+                        },
+                        () -> log.warn("Lock {} released but pool not found for {}/{}",
+                                lockId, lock.fromCurrency(), lock.toCurrency()));
     }
 
     private void validateQuote(FxQuote quote) {
