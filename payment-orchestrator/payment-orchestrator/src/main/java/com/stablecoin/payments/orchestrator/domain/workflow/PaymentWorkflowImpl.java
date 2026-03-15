@@ -330,8 +330,8 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
                     request.correlationId(),
                     "USDC",
                     fxResult.targetAmount(),
-                    null, // S4 selects optimal wallet address
-                    null  // S4 selects optimal chain
+                    "0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18", // Default recipient wallet
+                    "base" // Preferred chain
             ));
         } catch (Exception e) {
             currentState = "FAILED";
