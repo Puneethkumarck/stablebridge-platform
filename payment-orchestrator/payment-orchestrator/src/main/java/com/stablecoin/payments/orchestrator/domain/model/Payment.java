@@ -28,6 +28,7 @@ import static com.stablecoin.payments.orchestrator.domain.model.PaymentTrigger.S
 import static com.stablecoin.payments.orchestrator.domain.model.PaymentTrigger.START_COMPLIANCE;
 import static com.stablecoin.payments.orchestrator.domain.model.PaymentTrigger.START_FIAT_COLLECTION;
 import static com.stablecoin.payments.orchestrator.domain.model.PaymentTrigger.SUBMIT_ON_CHAIN;
+import static com.stablecoin.payments.orchestrator.domain.model.PaymentTrigger.WORKFLOW_COMPLETED;
 
 /**
  * Aggregate root for a cross-border payment.
@@ -80,6 +81,12 @@ public record Payment(
                     new StateTransition<>(PaymentState.ON_CHAIN_CONFIRMED, INITIATE_OFF_RAMP, PaymentState.OFF_RAMP_INITIATED),
                     new StateTransition<>(PaymentState.OFF_RAMP_INITIATED, SETTLE, PaymentState.SETTLED),
                     new StateTransition<>(PaymentState.SETTLED, COMPLETE, COMPLETED),
+
+                    // ── Workflow terminal sync (Temporal → DB) ──────────────────
+                    // The Temporal workflow is the saga authority. When it completes,
+                    // the WORKFLOW_COMPLETED trigger allows direct INITIATED → COMPLETED
+                    // since all intermediate steps were validated by the workflow.
+                    new StateTransition<>(INITIATED, WORKFLOW_COMPLETED, COMPLETED),
 
                     // ── Failure from any active state ───────────────────────────
                     new StateTransition<>(INITIATED, FAIL, FAILED),
@@ -272,6 +279,26 @@ public record Payment(
         var nextState = STATE_MACHINE.transition(state, COMPLETE);
         return toBuilder()
                 .state(nextState)
+                .updatedAt(Instant.now())
+                .build();
+    }
+
+    /**
+     * Completes the payment from a Temporal workflow result.
+     * <p>
+     * Transitions directly INITIATED → COMPLETED using the WORKFLOW_COMPLETED trigger.
+     * The Temporal workflow has already validated all intermediate saga steps —
+     * the DB aggregate only needs the terminal state and result metadata.
+     */
+    public Payment completeFromWorkflow(FxRate fxRate, Money targetAmount,
+                                         ChainId chain, String transactionHash) {
+        var nextState = STATE_MACHINE.transition(state, WORKFLOW_COMPLETED);
+        return toBuilder()
+                .state(nextState)
+                .lockedFxRate(fxRate)
+                .targetAmount(targetAmount)
+                .chainSelected(chain)
+                .txHash(transactionHash)
                 .updatedAt(Instant.now())
                 .build();
     }

@@ -20,6 +20,8 @@ import com.stablecoin.payments.orchestrator.domain.workflow.activity.OffRampActi
 import com.stablecoin.payments.orchestrator.domain.workflow.activity.OffRampRequest;
 import com.stablecoin.payments.orchestrator.domain.workflow.activity.OffRampResult;
 import com.stablecoin.payments.orchestrator.domain.workflow.activity.PaymentEventRequest;
+import com.stablecoin.payments.orchestrator.domain.workflow.activity.PaymentStateUpdate;
+import com.stablecoin.payments.orchestrator.domain.workflow.activity.UpdatePaymentStateActivity;
 import com.stablecoin.payments.orchestrator.domain.workflow.dto.CancelRequest;
 import com.stablecoin.payments.orchestrator.domain.workflow.dto.ChainConfirmedSignal;
 import com.stablecoin.payments.orchestrator.domain.workflow.dto.FiatCollectedSignal;
@@ -142,6 +144,18 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
                             .build())
                     .build());
 
+    private final UpdatePaymentStateActivity updateStateActivity = Workflow.newActivityStub(
+            UpdatePaymentStateActivity.class,
+            ActivityOptions.newBuilder()
+                    .setStartToCloseTimeout(Duration.ofSeconds(10))
+                    .setRetryOptions(RetryOptions.newBuilder()
+                            .setMaximumAttempts(5)
+                            .setInitialInterval(Duration.ofSeconds(1))
+                            .setMaximumInterval(Duration.ofSeconds(10))
+                            .setBackoffCoefficient(2.0)
+                            .build())
+                    .build());
+
     // Workflow state — deterministic, no external I/O
     private String currentState = "INITIATED";
     private boolean cancelRequested;
@@ -180,6 +194,7 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
                     request.paymentId(), e);
             publishEvent(PaymentEventRequest.failed(request.paymentId(),
                     request.correlationId(), "COMPLIANCE_CHECK", reason, "COMPLIANCE_ERROR"));
+            syncStateToDb(PaymentStateUpdate.failed(request.paymentId(), reason));
             return PaymentResult.failed(request.paymentId(), reason);
         }
 
@@ -190,6 +205,7 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
                     request.paymentId(), complianceResult.failureReason());
             publishEvent(PaymentEventRequest.failed(request.paymentId(),
                     request.correlationId(), "COMPLIANCE_CHECK", reason, "COMPLIANCE_REJECTED"));
+            syncStateToDb(PaymentStateUpdate.failed(request.paymentId(), reason));
             return PaymentResult.failed(request.paymentId(), reason);
         }
 
@@ -221,6 +237,7 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
                     request.paymentId(), e);
             publishEvent(PaymentEventRequest.failed(request.paymentId(),
                     request.correlationId(), "COMPLIANCE_CHECK", reason, "FX_LOCK_ERROR"));
+            syncStateToDb(PaymentStateUpdate.failed(request.paymentId(), reason));
             return PaymentResult.failed(request.paymentId(), reason);
         }
 
@@ -231,6 +248,7 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
                     request.paymentId(), fxResult.failureReason());
             publishEvent(PaymentEventRequest.failed(request.paymentId(),
                     request.correlationId(), "COMPLIANCE_CHECK", reason, "FX_LOCK_REJECTED"));
+            syncStateToDb(PaymentStateUpdate.failed(request.paymentId(), reason));
             return PaymentResult.failed(request.paymentId(), reason);
         }
 
@@ -403,6 +421,12 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
         currentState = "COMPLETED";
         log.info("Payment workflow completed for paymentId={}", request.paymentId());
 
+        // Sync terminal state to DB
+        syncStateToDb(PaymentStateUpdate.completed(
+                request.paymentId(), fxResult.quoteId(), fxResult.lockedRate(),
+                fxResult.targetAmount(), fxResult.targetCurrency(),
+                chainResult.chainId(), chainResult.txHash()));
+
         return PaymentResult.completed(
                 request.paymentId(),
                 fxResult.quoteId(),
@@ -453,7 +477,9 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
         runCompensationStack(request.paymentId(), reason);
 
         currentState = "FAILED";
-        return PaymentResult.failed(request.paymentId(), "Cancelled: " + reason);
+        var failureReason = "Cancelled: " + reason;
+        syncStateToDb(PaymentStateUpdate.failed(request.paymentId(), failureReason));
+        return PaymentResult.failed(request.paymentId(), failureReason);
     }
 
     /**
@@ -467,6 +493,7 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
         runCompensationStack(request.paymentId(), reason);
 
         currentState = "FAILED";
+        syncStateToDb(PaymentStateUpdate.failed(request.paymentId(), reason));
         return PaymentResult.failed(request.paymentId(), reason);
     }
 
@@ -520,6 +547,19 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
         } catch (Exception e) {
             log.warn("Event publishing failed for paymentId={}, eventType={}: {}",
                     request.paymentId(), request.eventType(), e.getMessage());
+        }
+    }
+
+    /**
+     * Syncs the workflow terminal state to the Payment aggregate in PostgreSQL.
+     * Best-effort — failures are logged but do not block the workflow result.
+     */
+    private void syncStateToDb(PaymentStateUpdate update) {
+        try {
+            updateStateActivity.updateState(update);
+        } catch (Exception e) {
+            log.error("Failed to sync state to DB for paymentId={}: {}",
+                    update.paymentId(), e.getMessage(), e);
         }
     }
 }

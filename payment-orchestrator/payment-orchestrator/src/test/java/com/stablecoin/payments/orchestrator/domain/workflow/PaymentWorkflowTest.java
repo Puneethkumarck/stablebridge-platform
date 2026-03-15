@@ -14,6 +14,7 @@ import com.stablecoin.payments.orchestrator.domain.workflow.activity.FxReleaseRe
 import com.stablecoin.payments.orchestrator.domain.workflow.activity.OffRampActivity;
 import com.stablecoin.payments.orchestrator.domain.workflow.activity.OffRampResult;
 import com.stablecoin.payments.orchestrator.domain.workflow.activity.PaymentEventRequest;
+import com.stablecoin.payments.orchestrator.domain.workflow.activity.UpdatePaymentStateActivity;
 import com.stablecoin.payments.orchestrator.domain.workflow.dto.CancelRequest;
 import com.stablecoin.payments.orchestrator.domain.workflow.dto.PaymentResult;
 import io.temporal.client.WorkflowClient;
@@ -63,6 +64,7 @@ class PaymentWorkflowTest {
     private final FiatCollectionActivity fiatCollectionActivity = mock(FiatCollectionActivity.class);
     private final ChainTransferActivity chainTransferActivity = mock(ChainTransferActivity.class);
     private final OffRampActivity offRampActivity = mock(OffRampActivity.class);
+    private final UpdatePaymentStateActivity updateStateActivity = mock(UpdatePaymentStateActivity.class);
     private final EventPublishingActivity eventPublishingActivity = mock(EventPublishingActivity.class);
 
     @RegisterExtension
@@ -70,7 +72,8 @@ class PaymentWorkflowTest {
             .setWorkflowTypes(PaymentWorkflowImpl.class)
             .setActivityImplementations(
                     complianceActivity, fxLockActivity, fiatCollectionActivity,
-                    chainTransferActivity, offRampActivity, eventPublishingActivity)
+                    chainTransferActivity, offRampActivity, updateStateActivity,
+                    eventPublishingActivity)
             .build();
 
     @Nested
