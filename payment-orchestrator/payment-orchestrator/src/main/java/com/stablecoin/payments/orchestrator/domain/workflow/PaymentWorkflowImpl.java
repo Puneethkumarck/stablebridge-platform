@@ -389,9 +389,9 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
                     request.correlationId(),
                     chainResult.transferId(),
                     "USDC",
-                    request.sourceAmount(),
+                    fxResult.targetAmount(),
                     fxResult.targetCurrency(),
-                    fxResult.lockedRate(),
+                    java.math.BigDecimal.ONE,
                     request.recipientId()
             ));
         } catch (Exception e) {
