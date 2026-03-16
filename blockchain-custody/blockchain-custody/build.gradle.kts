@@ -100,6 +100,7 @@ dependencies {
     // Resilience4j
     implementation("io.github.resilience4j:resilience4j-spring-boot3:$resilience4jVersion")
     implementation("io.github.resilience4j:resilience4j-circuitbreaker:$resilience4jVersion")
+    implementation("io.github.resilience4j:resilience4j-retry:$resilience4jVersion")
 
     // Dev custody adapter — EVM transaction signing
     implementation("org.web3j:core:$web3jVersion") {

@@ -37,6 +37,12 @@ app:
     lock-expiry:
       enabled: false
 
+resilience4j:
+  retry:
+    instances:
+      fxRate:
+        wait-duration: 10ms
+
 logging:
   level:
     com.stablecoin.payments: DEBUG

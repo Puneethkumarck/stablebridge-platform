@@ -6,6 +6,7 @@ import com.stablecoin.payments.onramp.domain.port.PspPaymentResult;
 import com.stablecoin.payments.onramp.domain.port.PspRefundRequest;
 import com.stablecoin.payments.onramp.domain.port.PspRefundResult;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -46,6 +47,7 @@ public class StripePspAdapter implements PspGateway {
     }
 
     @Override
+    @Retry(name = "stripe", fallbackMethod = "initiatePaymentFallback")
     @CircuitBreaker(name = "stripe", fallbackMethod = "initiatePaymentFallback")
     public PspPaymentResult initiatePayment(PspPaymentRequest request) {
         log.info("[STRIPE] Initiating payment collectionId={} amount={} currency={}",
@@ -76,6 +78,7 @@ public class StripePspAdapter implements PspGateway {
     }
 
     @Override
+    @Retry(name = "stripe", fallbackMethod = "initiateRefundFallback")
     @CircuitBreaker(name = "stripe", fallbackMethod = "initiateRefundFallback")
     public PspRefundResult initiateRefund(PspRefundRequest request) {
         log.info("[STRIPE] Initiating refund collectionId={} pspRef={} amount={}",

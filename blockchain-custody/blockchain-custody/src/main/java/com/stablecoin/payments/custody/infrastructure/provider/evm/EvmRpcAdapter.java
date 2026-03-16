@@ -4,6 +4,7 @@ import com.stablecoin.payments.custody.domain.model.ChainId;
 import com.stablecoin.payments.custody.domain.port.ChainRpcProvider;
 import com.stablecoin.payments.custody.domain.port.TransactionReceipt;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -61,6 +62,7 @@ public class EvmRpcAdapter implements ChainRpcProvider {
     }
 
     @Override
+    @Retry(name = "evmRpc", fallbackMethod = "getTransactionReceiptFallback")
     @CircuitBreaker(name = "evmRpc", fallbackMethod = "getTransactionReceiptFallback")
     public TransactionReceipt getTransactionReceipt(ChainId chainId, String txHash) {
         log.info("[EVM-RPC] Getting transaction receipt chain={} txHash={}", chainId.value(), txHash);
@@ -88,6 +90,7 @@ public class EvmRpcAdapter implements ChainRpcProvider {
     }
 
     @Override
+    @Retry(name = "evmRpc", fallbackMethod = "getLatestBlockNumberFallback")
     @CircuitBreaker(name = "evmRpc", fallbackMethod = "getLatestBlockNumberFallback")
     public long getLatestBlockNumber(ChainId chainId) {
         log.info("[EVM-RPC] Getting latest block number chain={}", chainId.value());
@@ -100,6 +103,7 @@ public class EvmRpcAdapter implements ChainRpcProvider {
     }
 
     @Override
+    @Retry(name = "evmRpc", fallbackMethod = "getTokenBalanceFallback")
     @CircuitBreaker(name = "evmRpc", fallbackMethod = "getTokenBalanceFallback")
     public BigDecimal getTokenBalance(ChainId chainId, String address, String tokenContract) {
         log.info("[EVM-RPC] Getting token balance chain={} address={} contract={}",

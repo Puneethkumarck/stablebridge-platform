@@ -32,6 +32,16 @@ app:
   fallback-adapters:
     enabled: true
 
+resilience4j:
+  retry:
+    instances:
+      sanctions:
+        wait-duration: 10ms
+      kyc:
+        wait-duration: 10ms
+      aml:
+        wait-duration: 10ms
+
 logging:
   level:
     com.stablecoin.payments: DEBUG

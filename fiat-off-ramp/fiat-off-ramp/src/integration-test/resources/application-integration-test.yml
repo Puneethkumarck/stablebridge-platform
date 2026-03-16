@@ -35,6 +35,14 @@ app:
     monitor:
       enabled: false
 
+resilience4j:
+  retry:
+    instances:
+      circle:
+        wait-duration: 10ms
+      modulr:
+        wait-duration: 10ms
+
 logging:
   level:
     com.stablecoin.payments: DEBUG

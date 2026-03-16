@@ -3,8 +3,8 @@ package com.stablecoin.payments.offramp.infrastructure.provider.circle;
 import com.stablecoin.payments.offramp.domain.port.RedemptionGateway;
 import com.stablecoin.payments.offramp.domain.port.RedemptionRequest;
 import com.stablecoin.payments.offramp.domain.port.RedemptionResult;
-import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -50,6 +50,7 @@ public class CircleRedemptionAdapter implements RedemptionGateway {
     }
 
     @Override
+    @Retry(name = "circle", fallbackMethod = "redeemFallback")
     @CircuitBreaker(name = "circle", fallbackMethod = "redeemFallback")
     public RedemptionResult redeem(RedemptionRequest request) {
         log.info("[CIRCLE] Redeeming stablecoin payoutId={} stablecoin={} amount={}",
@@ -87,7 +88,7 @@ public class CircleRedemptionAdapter implements RedemptionGateway {
     }
 
     @SuppressWarnings("unused")
-    private RedemptionResult redeemFallback(RedemptionRequest request, CallNotPermittedException ex) {
+    private RedemptionResult redeemFallback(RedemptionRequest request, Exception ex) {
         log.error("[CIRCLE] Circuit breaker open — redemption failed payoutId={}",
                 request.payoutId(), ex);
         throw new IllegalStateException("Circle redemption unavailable", ex);

@@ -125,6 +125,27 @@ app:
         webhook-secret: ${STRIPE_WEBHOOK_SECRET:whsec_test_default}
         tolerance-seconds: 300
 
+resilience4j:
+  circuitbreaker:
+    circuit-breaker-aspect-order: 1
+  retry:
+    retry-aspect-order: 3
+    instances:
+      stripe:
+        max-attempts: 3
+        wait-duration: 1s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - java.io.IOException
+          - java.net.http.HttpTimeoutException
+          - java.net.http.HttpConnectTimeoutException
+          - org.springframework.web.client.ResourceAccessException
+          - org.springframework.web.client.HttpServerErrorException
+        ignore-exceptions:
+          - org.springframework.web.client.HttpClientErrorException
+          - io.github.resilience4j.circuitbreaker.CallNotPermittedException
+
 logging:
   level:
     com.stablecoin.payments: INFO
