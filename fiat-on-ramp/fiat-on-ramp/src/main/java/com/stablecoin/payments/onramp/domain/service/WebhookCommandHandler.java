@@ -30,6 +30,7 @@ import java.time.Instant;
 public class WebhookCommandHandler {
 
     private static final String EVENT_PAYMENT_SUCCEEDED = "payment_intent.succeeded";
+    private static final String EVENT_CHARGE_SUCCEEDED = "charge.succeeded";
     private static final String EVENT_PAYMENT_FAILED = "payment_intent.payment_failed";
 
     private final CollectionOrderRepository orderRepository;
@@ -61,7 +62,7 @@ public class WebhookCommandHandler {
         recordPspTransaction(order, command);
 
         return switch (command.eventType()) {
-            case EVENT_PAYMENT_SUCCEEDED -> handlePaymentSucceeded(order, command);
+            case EVENT_PAYMENT_SUCCEEDED, EVENT_CHARGE_SUCCEEDED -> handlePaymentSucceeded(order, command);
             case EVENT_PAYMENT_FAILED -> handlePaymentFailed(order, command);
             default -> {
                 log.warn("Ignoring unrecognised webhook event type={}", command.eventType());
@@ -138,7 +139,7 @@ public class WebhookCommandHandler {
 
     private boolean isAlreadyProcessed(CollectionOrder order, String eventType) {
         return switch (eventType) {
-            case EVENT_PAYMENT_SUCCEEDED ->
+            case EVENT_PAYMENT_SUCCEEDED, EVENT_CHARGE_SUCCEEDED ->
                     order.status() == CollectionStatus.COLLECTED
                             || order.status() == CollectionStatus.REFUND_INITIATED
                             || order.status() == CollectionStatus.REFUND_PROCESSING

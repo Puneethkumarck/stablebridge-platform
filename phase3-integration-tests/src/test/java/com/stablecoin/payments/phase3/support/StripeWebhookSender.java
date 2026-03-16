@@ -74,7 +74,7 @@ public final class StripeWebhookSender {
                 {
                     "id": "evt_%s",
                     "object": "event",
-                    "type": "payment_intent.succeeded",
+                    "type": "charge.succeeded",
                     "data": {
                         "object": {
                             "id": "%s",
