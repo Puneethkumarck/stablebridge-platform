@@ -25,6 +25,7 @@ import static com.stablecoin.payments.onramp.fixtures.CollectionOrderFixtures.aP
 import static com.stablecoin.payments.onramp.fixtures.CollectionOrderFixtures.anAwaitingConfirmationOrder;
 import static com.stablecoin.payments.onramp.fixtures.TestUtils.eqIgnoring;
 import static com.stablecoin.payments.onramp.fixtures.TestUtils.eqIgnoringTimestamps;
+import static com.stablecoin.payments.onramp.fixtures.WebhookFixtures.aChargeSucceededCommand;
 import static com.stablecoin.payments.onramp.fixtures.WebhookFixtures.aFailedCommand;
 import static com.stablecoin.payments.onramp.fixtures.WebhookFixtures.aMismatchCommand;
 import static com.stablecoin.payments.onramp.fixtures.WebhookFixtures.aSucceededCommand;
@@ -105,6 +106,57 @@ class WebhookCommandHandlerTest {
                             "Amount mismatch: expected 1000.00 USD, received 500.00 USD",
                             "AMOUNT_MISMATCH",
                             null)));
+        }
+    }
+
+    @Nested
+    @DisplayName("charge.succeeded")
+    class ChargeSucceeded {
+
+        @Test
+        @DisplayName("should transition AWAITING_CONFIRMATION to COLLECTED and publish CollectionCompletedEvent")
+        void shouldTransitionToCollectedAndPublishEventForChargeSucceeded() {
+            // given
+            var order = anAwaitingConfirmationOrder();
+            var command = aChargeSucceededCommand();
+            var collected = order.confirmCollection(command.amount());
+
+            given(orderRepository.findByPspReference(PSP_REFERENCE)).willReturn(Optional.of(order));
+            given(orderRepository.save(eqIgnoringTimestamps(collected))).willReturn(collected);
+
+            // when
+            handler.handleWebhook(command);
+
+            // then
+            then(orderRepository).should().save(eqIgnoringTimestamps(collected));
+            then(eventPublisher).should().publish(eqIgnoringTimestamps(
+                    new CollectionCompletedEvent(
+                            collected.collectionId(),
+                            collected.paymentId(),
+                            collected.correlationId(),
+                            collected.collectedAmount().amount(),
+                            collected.collectedAmount().currency(),
+                            collected.paymentRail().rail().name(),
+                            collected.psp().pspName(),
+                            collected.pspReference(),
+                            collected.pspSettledAt())));
+        }
+
+        @Test
+        @DisplayName("should skip duplicate charge.succeeded webhook for already COLLECTED order")
+        void shouldSkipDuplicateChargeSucceededWebhookForAlreadyCollectedOrder() {
+            // given
+            var order = aCollectedOrder();
+            var command = aChargeSucceededCommand();
+
+            given(orderRepository.findByPspReference(PSP_REFERENCE)).willReturn(Optional.of(order));
+
+            // when
+            handler.handleWebhook(command);
+
+            // then — no save or event publish should occur
+            then(orderRepository).should(never()).save(eqIgnoringTimestamps(order));
+            then(eventPublisher).shouldHaveNoInteractions();
         }
     }
 

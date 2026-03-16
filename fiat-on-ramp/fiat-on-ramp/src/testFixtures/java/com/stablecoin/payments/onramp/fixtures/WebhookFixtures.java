@@ -22,6 +22,7 @@ public final class WebhookFixtures {
     public static final String WEBHOOK_SECRET = "whsec_test_secret_12345";
     public static final String EVENT_ID = "evt_test_001";
     public static final String EVENT_TYPE_SUCCEEDED = "payment_intent.succeeded";
+    public static final String EVENT_TYPE_CHARGE_SUCCEEDED = "charge.succeeded";
     public static final String EVENT_TYPE_FAILED = "payment_intent.payment_failed";
     public static final UUID COLLECTION_ID = UUID.fromString("c3d4e5f6-a7b8-9012-cdef-123456789012");
 
@@ -105,6 +106,17 @@ public final class WebhookFixtures {
                 new Money(new BigDecimal("1000.00"), "USD"),
                 "failed",
                 aFailedEventJson());
+    }
+
+    public static WebhookCommand aChargeSucceededCommand() {
+        return new WebhookCommand(
+                EVENT_ID,
+                EVENT_TYPE_CHARGE_SUCCEEDED,
+                PSP_REFERENCE,
+                COLLECTION_ID,
+                new Money(new BigDecimal("1000.00"), "USD"),
+                "succeeded",
+                aSucceededEventJson());
     }
 
     public static WebhookCommand aMismatchCommand() {
