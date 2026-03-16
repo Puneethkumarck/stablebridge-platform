@@ -78,6 +78,120 @@ graph LR
 <tr><td><b>Observability</b></td><td>OpenTelemetry tracing, structured JSON logging, SonarCloud</td></tr>
 </table>
 
+### System Architecture
+
+```mermaid
+graph TB
+    subgraph Clients["Clients"]
+        direction LR
+        MERCH["Merchant Apps<br/>(Portal / API)"]
+        AGENT["AI Agents<br/>(LLM / MCP)"]
+        OPS["Ops Dashboard"]
+    end
+
+    subgraph Platform["StableBridge Platform"]
+
+        subgraph Edge["Edge Layer"]
+            S10["<b>S10</b> API Gateway & IAM<br/><i>OAuth2 &middot; API Keys &middot; mTLS &middot; Rate Limiting</i>"]
+        end
+
+        subgraph Identity["Identity & Merchant (Phase 1)"]
+            direction LR
+            S11["<b>S11</b> Merchant<br/>Onboarding<br/><i>KYB &middot; Lifecycle</i>"]
+            S13["<b>S13</b> Merchant<br/>IAM<br/><i>Roles &middot; Permissions</i>"]
+        end
+
+        subgraph Core["Core Payment Engine (Phase 2)"]
+            S1["<b>S1</b> Payment Orchestrator<br/><i>Temporal Saga &middot; State Machine</i>"]
+            S2["<b>S2</b> Compliance &<br/>Travel Rule<br/><i>AML &middot; Sanctions &middot; FATF</i>"]
+            S6["<b>S6</b> FX & Liquidity<br/>Engine<br/><i>Quotes &middot; Rate Locking</i>"]
+        end
+
+        subgraph Value["Value Movement (Phase 3)"]
+            S3["<b>S3</b> Fiat<br/>On-Ramp<br/><i>ACH Collection</i>"]
+            S4["<b>S4</b> Blockchain<br/>& Custody<br/><i>USDC &middot; Base L2</i>"]
+            S5["<b>S5</b> Fiat<br/>Off-Ramp<br/><i>SEPA Payout</i>"]
+            S7["<b>S7</b> Ledger &<br/>Accounting<br/><i>Double-Entry &middot; Recon</i>"]
+        end
+
+        subgraph Ops["Operational (Phase 4 — Planned)"]
+            direction LR
+            S8["<b>S8</b> Partner<br/>Management"]
+            S9["<b>S9</b> Notification<br/>& Webhook"]
+        end
+    end
+
+    subgraph Infra["Infrastructure Layer"]
+        direction LR
+        PG[("PostgreSQL<br/>(per-service)")]
+        KF["Apache Kafka<br/>(Redpanda)"]
+        TMP["Temporal<br/>(Durable Workflows)"]
+        RD[("Redis<br/>(Cache)")]
+        VLT["HashiCorp Vault<br/>(Secrets)"]
+        ES["Elasticsearch<br/>(Search)"]
+    end
+
+    subgraph External["External Providers"]
+        direction LR
+        STRIPE["Stripe<br/>(ACH)"]
+        MODULR["Modulr<br/>(SEPA)"]
+        FB["Fireblocks<br/>(MPC Custody)"]
+        CA["Chainalysis<br/>(AML/KYT)"]
+        CHAIN["Base L2<br/>(USDC on-chain)"]
+        ONFIDO["Onfido<br/>(KYC/KYB)"]
+    end
+
+    %% Client to Edge
+    MERCH --> S10
+    AGENT --> S10
+    OPS --> S10
+
+    %% Edge to Services
+    S10 --> S11
+    S10 --> S13
+    S10 --> S1
+
+    %% Orchestrator to Core
+    S1 -->|"compliance check"| S2
+    S1 -->|"lock FX rate"| S6
+    S1 -->|"collect fiat"| S3
+    S1 -->|"on-chain transfer"| S4
+    S1 -->|"payout fiat"| S5
+    S1 -->|"journal entries"| S7
+
+    %% External Integrations
+    S3 -. "ACH" .-> STRIPE
+    S5 -. "SEPA" .-> MODULR
+    S4 -. "MPC signing" .-> FB
+    S4 -. "RPC / tx" .-> CHAIN
+    S2 -. "screening" .-> CA
+    S11 -. "KYB verification" .-> ONFIDO
+
+    %% Infrastructure (implicit — all services use these)
+    S1 -.-> TMP
+
+    %% Styling
+    style S10 fill:#607D8B,color:#fff
+    style S1 fill:#FF5722,color:#fff
+    style S2 fill:#9C27B0,color:#fff
+    style S6 fill:#2196F3,color:#fff
+    style S3 fill:#00BCD4,color:#fff
+    style S4 fill:#FF9800,color:#fff
+    style S5 fill:#00BCD4,color:#fff
+    style S7 fill:#4CAF50,color:#fff
+    style S11 fill:#795548,color:#fff
+    style S13 fill:#795548,color:#fff
+    style S8 fill:#9E9E9E,color:#fff,stroke-dasharray: 5 5
+    style S9 fill:#9E9E9E,color:#fff,stroke-dasharray: 5 5
+    style MERCH fill:#E8EAF6,color:#333
+    style AGENT fill:#E8EAF6,color:#333
+    style OPS fill:#E8EAF6,color:#333
+```
+
+> **Solid lines** = synchronous REST calls (Temporal activities). **Dashed lines** = external provider integrations.
+> All inter-service events flow via **Kafka** using the transactional outbox pattern (Namastack).
+> Each service has its own **PostgreSQL** database (database-per-service pattern).
+
 ### Payment Flow
 
 ```mermaid
