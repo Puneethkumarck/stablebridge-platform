@@ -50,6 +50,12 @@ public abstract class AbstractIntegrationTest {
         KAFKA.start();
         MAILPIT.start();
         REDIS.start();
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            REDIS.stop();
+            MAILPIT.stop();
+            KAFKA.stop();
+            POSTGRES.stop();
+        }));
     }
 
     @Autowired

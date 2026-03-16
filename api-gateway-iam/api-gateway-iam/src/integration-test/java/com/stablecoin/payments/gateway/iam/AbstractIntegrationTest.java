@@ -36,6 +36,11 @@ public abstract class AbstractIntegrationTest {
         POSTGRES.start();
         KAFKA.start();
         REDIS.start();
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            REDIS.stop();
+            KAFKA.stop();
+            POSTGRES.stop();
+        }));
     }
 
     @Autowired
