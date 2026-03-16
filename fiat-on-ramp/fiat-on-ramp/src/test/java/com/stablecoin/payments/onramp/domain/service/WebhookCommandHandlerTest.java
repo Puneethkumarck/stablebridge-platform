@@ -154,9 +154,10 @@ class WebhookCommandHandlerTest {
             // when
             handler.handleWebhook(command);
 
-            // then — no save or event publish should occur
+            // then — no save, event publish, or transaction recording should occur
             then(orderRepository).should(never()).save(eqIgnoringTimestamps(order));
             then(eventPublisher).shouldHaveNoInteractions();
+            then(pspTransactionRepository).shouldHaveNoInteractions();
         }
     }
 

@@ -116,7 +116,32 @@ public final class WebhookFixtures {
                 COLLECTION_ID,
                 new Money(new BigDecimal("1000.00"), "USD"),
                 "succeeded",
-                aSucceededEventJson());
+                aChargeSucceededEventJson());
+    }
+
+    public static String aChargeSucceededEventJson() {
+        return aChargeSucceededEventJson(PSP_REFERENCE, 100000L, "usd", COLLECTION_ID);
+    }
+
+    public static String aChargeSucceededEventJson(String pspRef, long amountCents,
+                                                    String currency, UUID collectionId) {
+        return """
+                {
+                  "id": "%s",
+                  "type": "charge.succeeded",
+                  "data": {
+                    "object": {
+                      "id": "%s",
+                      "amount": %d,
+                      "currency": "%s",
+                      "status": "succeeded",
+                      "metadata": {
+                        "collection_id": "%s"
+                      }
+                    }
+                  }
+                }
+                """.formatted(EVENT_ID, pspRef, amountCents, currency, collectionId);
     }
 
     public static WebhookCommand aMismatchCommand() {
