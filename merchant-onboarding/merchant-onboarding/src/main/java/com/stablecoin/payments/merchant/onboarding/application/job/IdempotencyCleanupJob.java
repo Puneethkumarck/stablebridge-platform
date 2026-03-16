@@ -17,10 +17,21 @@ public class IdempotencyCleanupJob {
 
     @Scheduled(cron = "${app.idempotency.cleanup-cron:0 0 * * * *}")
     public void cleanExpiredKeys() {
-        var deleted = jdbcTemplate.update(
-                "DELETE FROM onboarding_idempotency_keys WHERE expires_at < NOW()");
-        if (deleted > 0) {
-            log.info("Cleaned up {} expired idempotency keys", deleted);
+        int totalDeleted = 0;
+        int deleted;
+        do {
+            deleted = jdbcTemplate.update(
+                    "WITH expired AS ("
+                    + "SELECT idempotency_key, request_method, request_path "
+                    + "FROM onboarding_idempotency_keys WHERE expires_at < NOW() LIMIT 1000"
+                    + ") DELETE FROM onboarding_idempotency_keys USING expired "
+                    + "WHERE onboarding_idempotency_keys.idempotency_key = expired.idempotency_key "
+                    + "AND onboarding_idempotency_keys.request_method = expired.request_method "
+                    + "AND onboarding_idempotency_keys.request_path = expired.request_path");
+            totalDeleted += deleted;
+        } while (deleted >= 1000);
+        if (totalDeleted > 0) {
+            log.info("Cleaned up {} expired idempotency keys", totalDeleted);
         }
     }
 }

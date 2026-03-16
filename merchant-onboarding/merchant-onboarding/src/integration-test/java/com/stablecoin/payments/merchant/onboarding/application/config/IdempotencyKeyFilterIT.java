@@ -108,9 +108,10 @@ class IdempotencyKeyFilterIT extends AbstractIntegrationTest {
     @DisplayName("should delete expired keys when cleanup job runs")
     void shouldDeleteExpiredKeys_whenCleanupJobRuns() throws Exception {
         jdbcTemplate.update(
-                "INSERT INTO onboarding_idempotency_keys (idempotency_key, request_hash, response_body, status_code, expires_at) "
-                        + "VALUES (?, ?, ?, ?, ?)",
-                "expired-key", "somehash", "{}", 200,
+                "INSERT INTO onboarding_idempotency_keys"
+                        + " (idempotency_key, request_method, request_path, request_hash, response_body, status_code, expires_at)"
+                        + " VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "expired-key", "POST", "/api/v1/merchants", "somehash", "{}", 200,
                 Timestamp.from(Instant.now().minus(1, ChronoUnit.HOURS)));
 
         var cleanupJob = new com.stablecoin.payments.merchant.onboarding.application.job.IdempotencyCleanupJob(jdbcTemplate);

@@ -33,8 +33,11 @@ import java.util.Set;
 
 /**
  * Enforces presence of {@code Idempotency-Key} header on state-mutating endpoints
- * (POST, PATCH, DELETE) — excluding webhook and actuator endpoints.
- * Persists idempotency key + request hash + response for duplicate detection and replay.
+ * (POST, PATCH, DELETE) -- excluding webhook and actuator endpoints.
+ * Uses INSERT-first reservation pattern to prevent TOCTOU races:
+ * 1. Try INSERT with status_code=0 (reservation)
+ * 2. If INSERT succeeds, proceed with request and UPDATE with real response
+ * 3. If INSERT fails (duplicate), re-read stored record for replay or conflict
  */
 @Slf4j
 @Component
@@ -81,25 +84,36 @@ public class IdempotencyKeyFilter extends OncePerRequestFilter {
             return;
         }
 
+        var method = request.getMethod();
+        var path = request.getRequestURI();
         var bodyBytes = request.getInputStream().readAllBytes();
         var requestHash = computeSha256(bodyBytes);
 
-        var existing = lookupIdempotencyKey(key);
-        if (existing != null) {
-            if (existing.requestHash().equals(requestHash)) {
-                replayResponse(response, existing);
-                return;
-            }
-            writeHashMismatchError(response);
+        var reserved = reserveIdempotencyKey(key, method, path, requestHash);
+        if (reserved) {
+            var replayableRequest = new CachedBodyRequestWrapper(request, bodyBytes);
+            var wrappedResponse = new ContentCachingResponseWrapper(response);
+            chain.doFilter(replayableRequest, wrappedResponse);
+
+            finalizeIdempotencyKey(key, method, path, wrappedResponse);
+            wrappedResponse.copyBodyToResponse();
             return;
         }
 
-        var replayableRequest = new CachedBodyRequestWrapper(request, bodyBytes);
-        var wrappedResponse = new ContentCachingResponseWrapper(response);
-        chain.doFilter(replayableRequest, wrappedResponse);
-
-        persistIdempotencyKey(key, requestHash, wrappedResponse);
-        wrappedResponse.copyBodyToResponse();
+        var existing = lookupIdempotencyKey(key, method, path);
+        if (existing == null) {
+            writeConflictError(response);
+            return;
+        }
+        if (existing.requestHash().equals(requestHash)) {
+            if (existing.statusCode() == 0) {
+                writeConflictError(response);
+                return;
+            }
+            replayResponse(response, existing);
+            return;
+        }
+        writeHashMismatchError(response);
     }
 
     private boolean requiresIdempotencyKey(HttpServletRequest request) {
@@ -112,43 +126,51 @@ public class IdempotencyKeyFilter extends OncePerRequestFilter {
         return EXEMPT_PREFIXES.stream().noneMatch(path::startsWith);
     }
 
-    private IdempotencyRecord lookupIdempotencyKey(String key) {
+    boolean reserveIdempotencyKey(String key, String method, String path, String requestHash) {
+        try {
+            jdbcTemplate.update(
+                    "INSERT INTO " + TABLE_NAME
+                            + " (idempotency_key, request_method, request_path, request_hash,"
+                            + " response_body, status_code, expires_at)"
+                            + " VALUES (?, ?, ?, ?, '', 0, ?)",
+                    key, method, path, requestHash,
+                    Timestamp.from(Instant.now().plus(ttlHours, ChronoUnit.HOURS)));
+            return true;
+        } catch (DataIntegrityViolationException e) {
+            return false;
+        }
+    }
+
+    IdempotencyRecord lookupIdempotencyKey(String key, String method, String path) {
         var results = jdbcTemplate.query(
                 "SELECT idempotency_key, request_hash, response_body, status_code FROM " + TABLE_NAME
-                        + " WHERE idempotency_key = ?",
+                        + " WHERE idempotency_key = ? AND request_method = ? AND request_path = ?"
+                        + " AND expires_at > NOW()",
                 (rs, rowNum) -> new IdempotencyRecord(
                         rs.getString("idempotency_key"),
                         rs.getString("request_hash"),
                         rs.getString("response_body"),
                         rs.getInt("status_code")),
-                key);
+                key, method, path);
         return results.isEmpty() ? null : results.getFirst();
     }
 
-    private void persistIdempotencyKey(String key, String requestHash,
-                                       ContentCachingResponseWrapper wrappedResponse) {
+    void finalizeIdempotencyKey(String key, String method, String path,
+                                ContentCachingResponseWrapper wrappedResponse) {
         var responseBody = new String(wrappedResponse.getContentAsByteArray(), StandardCharsets.UTF_8);
         var statusCode = wrappedResponse.getStatus();
         var expiresAt = Timestamp.from(Instant.now().plus(ttlHours, ChronoUnit.HOURS));
 
-        try {
-            jdbcTemplate.update(
-                    "INSERT INTO " + TABLE_NAME
-                            + " (idempotency_key, request_hash, response_body, status_code, expires_at)"
-                            + " VALUES (?, ?, ?, ?, ?)",
-                    key, requestHash, responseBody, statusCode, expiresAt);
-        } catch (DataIntegrityViolationException e) {
-            log.debug("Concurrent idempotency key insertion for key={}", key);
-            var existing = lookupIdempotencyKey(key);
-            if (existing != null && !existing.requestHash().equals(requestHash)) {
-                log.warn("Concurrent idempotency key conflict: key={}, stored hash differs", key);
-            }
-        }
+        jdbcTemplate.update(
+                "UPDATE " + TABLE_NAME
+                        + " SET response_body = ?, status_code = ?, expires_at = ?"
+                        + " WHERE idempotency_key = ? AND request_method = ? AND request_path = ?",
+                responseBody, statusCode, expiresAt, key, method, path);
     }
 
     private void replayResponse(HttpServletResponse response, IdempotencyRecord record)
             throws IOException {
-        log.info("Replaying idempotent response for key={}", record.idempotencyKey());
+        log.info("Replaying idempotent response");
         response.setStatus(record.statusCode());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setHeader(IDEMPOTENCY_REPLAY_HEADER, "true");
@@ -161,6 +183,15 @@ public class IdempotencyKeyFilter extends OncePerRequestFilter {
         response.getWriter().write(
                 "{\"code\":\"MO-0002\",\"status\":\"Unprocessable Entity\","
                         + "\"message\":\"Idempotency-Key has already been used with a different request payload\","
+                        + "\"errors\":{}}");
+    }
+
+    private void writeConflictError(HttpServletResponse response) throws IOException {
+        response.setStatus(HttpStatus.CONFLICT.value());
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.getWriter().write(
+                "{\"code\":\"MO-0003\",\"status\":\"Conflict\","
+                        + "\"message\":\"A request with this Idempotency-Key is already in progress\","
                         + "\"errors\":{}}");
     }
 

@@ -125,9 +125,10 @@ class IdempotencyKeyFilterIT extends AbstractIntegrationTest {
     void shouldDeleteExpiredKeys_whenCleanupJobRuns() throws Exception {
         // Insert an expired idempotency key directly
         jdbcTemplate.update(
-                "INSERT INTO gatewayiam_idempotency_keys (idempotency_key, request_hash, response_body, status_code, expires_at) "
-                        + "VALUES (?, ?, ?, ?, ?)",
-                "expired-key", "somehash", "{}", 200,
+                "INSERT INTO gatewayiam_idempotency_keys"
+                        + " (idempotency_key, request_method, request_path, request_hash, response_body, status_code, expires_at)"
+                        + " VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "expired-key", "POST", "/v1/merchants", "somehash", "{}", 200,
                 Timestamp.from(Instant.now().minus(1, ChronoUnit.HOURS)));
 
         var cleanupJob = new com.stablecoin.payments.gateway.iam.application.job.IdempotencyCleanupJob(jdbcTemplate);
