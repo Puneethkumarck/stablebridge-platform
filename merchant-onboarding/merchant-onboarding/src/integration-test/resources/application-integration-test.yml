@@ -37,6 +37,10 @@ outbox:
 app:
   fallback-adapters:
     enabled: true
+  idempotency:
+    ttl-hours: 24
+    cleanup:
+      enabled: false
 
 server:
   port: 0

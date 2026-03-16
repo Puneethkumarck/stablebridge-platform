@@ -66,6 +66,13 @@ spring:
           starttls:
             enable: false
 
+app:
+  idempotency:
+    ttl-hours: 24
+    cleanup-cron: "0 0 * * * *"
+    cleanup:
+      enabled: true
+
 merchant-iam:
   jwt:
     private-key-base64: ${JWT_PRIVATE_KEY_BASE64:}

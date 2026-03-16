@@ -64,6 +64,7 @@ public abstract class AbstractIntegrationTest {
         jdbcTemplate.execute("DELETE FROM role_permissions");
         jdbcTemplate.execute("DELETE FROM roles");
         jdbcTemplate.execute("DELETE FROM permission_audit_log");
+        jdbcTemplate.execute("DELETE FROM merchantiam_idempotency_keys");
     }
 
     /**

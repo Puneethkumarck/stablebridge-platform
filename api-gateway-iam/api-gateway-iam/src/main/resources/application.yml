@@ -54,6 +54,13 @@ spring:
           brokers: ${KAFKA_BROKERS:localhost:9092}
           auto-create-topics: false
 
+app:
+  idempotency:
+    ttl-hours: 24
+    cleanup-cron: "0 0 * * * *"
+    cleanup:
+      enabled: true
+
 api-gateway-iam:
   jwt:
     private-key-base64: ${JWT_PRIVATE_KEY_BASE64:}
