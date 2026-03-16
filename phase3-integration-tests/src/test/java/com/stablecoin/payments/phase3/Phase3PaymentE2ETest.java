@@ -1,11 +1,9 @@
 package com.stablecoin.payments.phase3;
 
 import com.stablecoin.payments.phase3.support.KafkaEventVerifier;
-import com.stablecoin.payments.phase3.support.ModulrWebhookSender;
 import com.stablecoin.payments.phase3.support.PaymentApiClient;
 import com.stablecoin.payments.phase3.support.ServiceHealthChecker;
 import com.stablecoin.payments.phase3.support.StripeWebhookSender;
-import com.stablecoin.payments.phase3.support.WireMockAdminClient;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
@@ -29,23 +27,42 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 /**
- * Phase 3 end-to-end payment tests.
+ * Phase 3 E2E payment tests — full "sandwich" flow across 7 services:
+ * S1 (Orchestrator) -> S2 (Compliance) -> S6 (FX) -> S3 (On-Ramp) ->
+ * S4 (Blockchain Custody) -> S5 (Off-Ramp) -> S7 (Ledger).
  * <p>
- * Tests the full "sandwich" payment flow across 7 services:
- * S1 (Orchestrator) → S2 (Compliance) → S6 (FX) → S3 (On-Ramp) →
- * S4 (Blockchain Custody) → S5 (Off-Ramp) → S7 (Ledger).
- * <p>
- * Requires Docker Compose stack running:
- * {@code docker compose -f docker-compose.phase3-test.yml up -d}
+ * Requires: {@code docker compose -f docker-compose.phase3-test.yml up -d}
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-@DisplayName("Phase 3 — End-to-End Payment Tests (US→DE, USD→EUR)")
+@DisplayName("Phase 3 — End-to-End Payment Tests (US->DE, USD->EUR)")
 class Phase3PaymentE2ETest {
 
     private static final Logger log = LoggerFactory.getLogger(Phase3PaymentE2ETest.class);
 
+    // -- Service URLs --------------------------------------------------------
+    private static final String S3_BASE_URL = "http://localhost:8085/on-ramp";
     private static final String S7_BASE_URL = "http://localhost:8088/ledger";
+
+    // -- Test constants (US->DE corridor, USD->EUR) --------------------------
+    private static final String SOURCE_AMOUNT = "1000.00";
+    private static final String SECOND_AMOUNT = "500.00";
+    private static final String SOURCE_CURRENCY = "USD";
+    private static final String TARGET_CURRENCY = "EUR";
+    private static final String SOURCE_COUNTRY = "US";
+    private static final String TARGET_COUNTRY = "DE";
+    private static final long STRIPE_AMOUNT_CENTS = 100_000L;
+    private static final long STRIPE_SECOND_AMOUNT_CENTS = 50_000L;
+    private static final String STRIPE_CURRENCY = "usd";
+    private static final String STATE_COMPLETED = "COMPLETED";
+    private static final String TOPIC_PAYMENT_COMPLETED = "payment.completed";
+
+    // -- Timeouts ------------------------------------------------------------
+    private static final Duration HEALTH_CHECK_TIMEOUT = Duration.ofMinutes(3);
+    private static final Duration COLLECTION_ORDER_TIMEOUT = Duration.ofSeconds(30);
+    private static final Duration PAYMENT_STATE_TIMEOUT = Duration.ofSeconds(120);
+    private static final Duration LEDGER_CHECK_TIMEOUT = Duration.ofSeconds(15);
+    private static final Duration KAFKA_EVENT_TIMEOUT = Duration.ofSeconds(10);
 
     private static final JsonMapper JSON = JsonMapper.builder()
             .findAndAddModules()
@@ -54,9 +71,7 @@ class Phase3PaymentE2ETest {
     private HttpClient httpClient;
     private PaymentApiClient paymentApiClient;
     private KafkaEventVerifier kafkaEventVerifier;
-    private WireMockAdminClient wireMockAdminClient;
     private StripeWebhookSender stripeWebhookSender;
-    private ModulrWebhookSender modulrWebhookSender;
 
     @BeforeAll
     void setupAll() {
@@ -67,176 +82,160 @@ class Phase3PaymentE2ETest {
 
         paymentApiClient = new PaymentApiClient(httpClient);
         kafkaEventVerifier = new KafkaEventVerifier();
-        wireMockAdminClient = new WireMockAdminClient(httpClient);
         stripeWebhookSender = new StripeWebhookSender(httpClient);
-        modulrWebhookSender = new ModulrWebhookSender(httpClient);
 
-        var healthChecker = new ServiceHealthChecker(httpClient);
-        healthChecker.waitForAllServices(Duration.ofMinutes(3));
+        new ServiceHealthChecker(httpClient).waitForAllServices(HEALTH_CHECK_TIMEOUT);
     }
 
     // ── 1. Happy Path — Full Sandwich Payment ─────────────────────────
 
     @Nested
     @Order(1)
-    @DisplayName("Happy Path — Full Sandwich Payment (USD→USDC→EUR)")
+    @DisplayName("Happy Path — Full Sandwich Payment (USD->USDC->EUR)")
     class HappyPathFullSandwich {
 
         @Test
-        @DisplayName("should complete full payment lifecycle: fiat-in → on-chain → fiat-out")
+        @DisplayName("should complete full payment lifecycle: fiat-in -> on-chain -> fiat-out")
         void shouldCompleteFullPaymentLifecycle() throws Exception {
+            // given
             var senderId = UUID.randomUUID();
             var recipientId = UUID.randomUUID();
             var idempotencyKey = UUID.randomUUID().toString();
 
-            // 1. Initiate payment via S1
-            log.info("Step 1: Initiating payment USD→EUR (US→DE)");
+            // when — initiate payment via S1
             var initiateResponse = paymentApiClient.initiatePayment(
                     null, senderId, recipientId,
-                    "1000.00", "USD", "EUR",
-                    "US", "DE", idempotencyKey);
-            assertThat(initiateResponse.statusCode()).isEqualTo(201);
+                    SOURCE_AMOUNT, SOURCE_CURRENCY, TARGET_CURRENCY,
+                    SOURCE_COUNTRY, TARGET_COUNTRY, idempotencyKey);
 
-            var initiateBody = JSON.readTree(initiateResponse.body());
-            var paymentId = initiateBody.get("paymentId").asText();
+            // then — 201 Created with paymentId
+            assertThat(initiateResponse.statusCode()).isEqualTo(201);
+            var paymentId = JSON.readTree(initiateResponse.body()).get("paymentId").asText();
+            assertThat(paymentId).isNotBlank();
             log.info("Payment initiated: paymentId={}", paymentId);
 
-            // 2. Wait for workflow to reach fiat collection (S3 creates collection order)
-            //    The S1 REST API state stays INITIATED while Temporal runs the workflow.
-            //    Poll S3 directly for the collection order created by the workflow.
-            log.info("Step 2: Waiting for S3 collection order to be created");
-            var collectionInfo = waitForCollectionOrderInfo(paymentId, Duration.ofSeconds(30));
-            var collectionId = collectionInfo[0];
-            var pspReference = collectionInfo[1];
-            log.info("Collection order created: collectionId={}, pspReference={}", collectionId, pspReference);
+            // when — wait for S3 collection order (created async by Temporal)
+            var collection = waitForCollectionOrder(paymentId, COLLECTION_ORDER_TIMEOUT);
+            assertThat(collection.collectionId()).isNotBlank();
+            assertThat(collection.pspReference()).isNotBlank();
+            log.info("Collection: id={}, pspRef={}", collection.collectionId(), collection.pspReference());
 
-            // 3. Send Stripe webhook to S3 simulating fiat collection success
-            //    Use the pspReference (pi_xxx) as the charge ID — S3 looks up by pspReference
-            log.info("Step 3: Sending Stripe collection success webhook");
-            stripeWebhookSender.sendCollectionSuccess(pspReference, 100000L, "usd");
-            log.info("Stripe webhook sent for collectionId={}", collectionId);
+            // when — send Stripe webhook simulating fiat collection success
+            var webhookResponse = stripeWebhookSender.sendCollectionSuccess(
+                    collection.pspReference(), STRIPE_AMOUNT_CENTS, STRIPE_CURRENCY);
+            assertThat(webhookResponse.statusCode()).isEqualTo(200);
 
-            // 4. Wait for payment to reach terminal state (COMPLETED or FAILED)
-            //    The workflow: fiat signal → chain transfer → chain confirm signal → off-ramp → COMPLETED
-            //    DevCustodyAdapter auto-confirms, so chain signal should arrive automatically.
-            //    Off-ramp with fallback adapters completes immediately.
-            log.info("Step 4: Waiting for terminal state (COMPLETED or FAILED)");
-            var finalState = waitForPaymentStateOneOf(paymentId,
-                    new String[]{"COMPLETED", "FAILED"},
-                    Duration.ofSeconds(120));
+            // then — payment reaches COMPLETED state
+            waitForPaymentState(paymentId, STATE_COMPLETED, PAYMENT_STATE_TIMEOUT);
+            var finalBody = JSON.readTree(paymentApiClient.getPayment(paymentId).body());
+            assertThat(finalBody.get("state").asText()).isEqualTo(STATE_COMPLETED);
+            assertThat(finalBody.get("senderId").asText()).isEqualTo(senderId.toString());
+            assertThat(finalBody.get("recipientId").asText()).isEqualTo(recipientId.toString());
+            log.info("Payment COMPLETED: {}", paymentId);
 
-            // 5. Verify final state
-            var finalResponse = paymentApiClient.getPayment(paymentId);
-            var finalBody = JSON.readTree(finalResponse.body());
-            log.info("Final payment state: {}", finalBody.get("state").asText());
+            // then — S7 ledger has journal entries (best-effort, Kafka propagation may lag)
+            var hasLedgerEntries = checkJournalEntriesExist(paymentId, LEDGER_CHECK_TIMEOUT);
+            log.info("Ledger journal entries: found={}", hasLedgerEntries);
 
-            assertThat(finalBody.get("state").asText()).isEqualTo("COMPLETED");
-
-            log.info("Happy path test PASSED — full sandwich payment completed");
+            // then — Kafka payment.completed event published (best-effort)
+            var completedEvent = kafkaEventVerifier.waitForEvent(
+                    TOPIC_PAYMENT_COMPLETED, paymentId, KAFKA_EVENT_TIMEOUT);
+            completedEvent.ifPresentOrElse(
+                    event -> {
+                        assertThat(event).contains(paymentId);
+                        log.info("Kafka payment.completed event confirmed");
+                    },
+                    () -> log.warn("Kafka event not found within timeout — outbox relay may be delayed"));
         }
     }
 
-    // ── 2. Compliance Rejection ───────────────────────────────────────
+    // ── 2. Idempotency ────────────────────────────────────────────────
 
     @Nested
     @Order(2)
-    @DisplayName("Second Payment — concurrent workflow execution")
-    class SecondPayment {
-
-        @Test
-        @DisplayName("should complete a second payment while first has already finished")
-        void shouldCompleteSecondPayment() throws Exception {
-            var senderId = UUID.randomUUID();
-            var recipientId = UUID.randomUUID();
-            var idempotencyKey = UUID.randomUUID().toString();
-
-            // Initiate a second payment
-            log.info("Initiating second payment");
-            var response = paymentApiClient.initiatePayment(
-                    null, senderId, recipientId,
-                    "500.00", "USD", "EUR",
-                    "US", "DE", idempotencyKey);
-            assertThat(response.statusCode()).isEqualTo(201);
-
-            var body = JSON.readTree(response.body());
-            var paymentId = body.get("paymentId").asText();
-            log.info("Second payment initiated: paymentId={}", paymentId);
-
-            // Wait for collection order, then send webhook
-            var collectionInfo = waitForCollectionOrderInfo(paymentId, Duration.ofSeconds(30));
-            log.info("Collection order: id={}, pspRef={}", collectionInfo[0], collectionInfo[1]);
-            stripeWebhookSender.sendCollectionSuccess(collectionInfo[1], 50000L, "usd");
-
-            // Wait for terminal state
-            log.info("Waiting for terminal state");
-            waitForPaymentStateOneOf(paymentId,
-                    new String[]{"COMPLETED", "FAILED"},
-                    Duration.ofSeconds(120));
-
-            var finalResponse = paymentApiClient.getPayment(paymentId);
-            var finalBody = JSON.readTree(finalResponse.body());
-            var state = finalBody.get("state").asText();
-            log.info("Second payment state: {}", state);
-
-            assertThat(state).isEqualTo("COMPLETED");
-            log.info("Second payment test PASSED");
-        }
-    }
-
-    // ── 3. Idempotency ────────────────────────────────────────────────
-
-    @Nested
-    @Order(3)
     @DisplayName("Idempotency — duplicate key returns existing payment")
     class Idempotency {
 
         @Test
         @DisplayName("should return 200 OK with same paymentId on duplicate idempotency key")
         void shouldReturnExistingPaymentOnDuplicateKey() throws Exception {
+            // given
             var senderId = UUID.randomUUID();
             var recipientId = UUID.randomUUID();
             var idempotencyKey = UUID.randomUUID().toString();
 
-            // 1. First request → 201 Created
-            log.info("First payment request with idempotency key: {}", idempotencyKey);
+            // when — first request
             var first = paymentApiClient.initiatePayment(
                     null, senderId, recipientId,
-                    "1000.00", "USD", "EUR",
-                    "US", "DE", idempotencyKey);
+                    SOURCE_AMOUNT, SOURCE_CURRENCY, TARGET_CURRENCY,
+                    SOURCE_COUNTRY, TARGET_COUNTRY, idempotencyKey);
+
+            // then — 201 Created
             assertThat(first.statusCode()).isEqualTo(201);
+            var paymentId = JSON.readTree(first.body()).get("paymentId").asText();
 
-            var firstBody = JSON.readTree(first.body());
-            var paymentId = firstBody.get("paymentId").asText();
-            log.info("First request: paymentId={}, status={}", paymentId, first.statusCode());
-
-            // 2. Second request with same idempotency key → 200 OK
-            log.info("Second payment request with same idempotency key");
+            // when — second request with same idempotency key
             var second = paymentApiClient.initiatePayment(
                     null, senderId, recipientId,
-                    "1000.00", "USD", "EUR",
-                    "US", "DE", idempotencyKey);
+                    SOURCE_AMOUNT, SOURCE_CURRENCY, TARGET_CURRENCY,
+                    SOURCE_COUNTRY, TARGET_COUNTRY, idempotencyKey);
+
+            // then — 200 OK with same paymentId
             assertThat(second.statusCode()).isEqualTo(200);
-
-            var secondBody = JSON.readTree(second.body());
-            var secondPaymentId = secondBody.get("paymentId").asText();
-            log.info("Second request: paymentId={}, status={}", secondPaymentId, second.statusCode());
-
-            // 3. Both return same paymentId
-            assertThat(secondPaymentId).isEqualTo(paymentId);
-
-            log.info("Idempotency test PASSED — same paymentId returned for duplicate key");
+            assertThat(JSON.readTree(second.body()).get("paymentId").asText()).isEqualTo(paymentId);
+            log.info("Idempotency PASSED: paymentId={}", paymentId);
         }
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────
+    // ── 3. Second Payment — independent workflow execution ────────────
 
-    private static final String S3_BASE_URL = "http://localhost:8085/on-ramp";
+    @Nested
+    @Order(3)
+    @DisplayName("Second Payment — independent workflow execution")
+    class SecondPayment {
 
-    /**
-     * Polls S3 directly until a collection order exists for the given paymentId.
-     * Returns [collectionId, pspReference]. The workflow creates the collection order async via Temporal.
-     */
-    private String[] waitForCollectionOrderInfo(String paymentId, Duration timeout) {
+        @Test
+        @DisplayName("should complete a second independent payment through full sandwich")
+        void shouldCompleteSecondPayment() throws Exception {
+            // given
+            var senderId = UUID.randomUUID();
+            var recipientId = UUID.randomUUID();
+            var idempotencyKey = UUID.randomUUID().toString();
+
+            // when — initiate with different amount
+            var response = paymentApiClient.initiatePayment(
+                    null, senderId, recipientId,
+                    SECOND_AMOUNT, SOURCE_CURRENCY, TARGET_CURRENCY,
+                    SOURCE_COUNTRY, TARGET_COUNTRY, idempotencyKey);
+
+            // then — 201 Created
+            assertThat(response.statusCode()).isEqualTo(201);
+            var paymentId = JSON.readTree(response.body()).get("paymentId").asText();
+            log.info("Second payment initiated: paymentId={}", paymentId);
+
+            // when — trigger fiat collection via webhook
+            var collection = waitForCollectionOrder(paymentId, COLLECTION_ORDER_TIMEOUT);
+            stripeWebhookSender.sendCollectionSuccess(
+                    collection.pspReference(), STRIPE_SECOND_AMOUNT_CENTS, STRIPE_CURRENCY);
+
+            // then — payment reaches COMPLETED
+            waitForPaymentState(paymentId, STATE_COMPLETED, PAYMENT_STATE_TIMEOUT);
+            var finalBody = JSON.readTree(paymentApiClient.getPayment(paymentId).body());
+            assertThat(finalBody.get("state").asText()).isEqualTo(STATE_COMPLETED);
+
+            // then — ledger entries exist (best-effort)
+            var hasEntries = checkJournalEntriesExist(paymentId, LEDGER_CHECK_TIMEOUT);
+            log.info("Second payment PASSED: paymentId={}, ledger={}", paymentId, hasEntries);
+        }
+    }
+
+    // ── Support records ──────────────────────────────────────────────
+
+    private record CollectionOrderInfo(String collectionId, String pspReference) {}
+
+    // ── Helpers ──────────────────────────────────────────────────────
+
+    private CollectionOrderInfo waitForCollectionOrder(String paymentId, Duration timeout) {
         var result = new String[2];
         await().atMost(timeout)
                 .pollInterval(Duration.ofSeconds(2))
@@ -253,24 +252,15 @@ class Phase3PaymentE2ETest {
                         if (body.has("collectionId")) {
                             result[0] = body.get("collectionId").asText();
                             result[1] = body.has("pspReference") ? body.get("pspReference").asText() : result[0];
-                            log.info("Found collection order for payment {}: id={}, pspRef={}",
-                                    paymentId, result[0], result[1]);
                             return true;
                         }
                     }
                     return false;
                 });
-        return result;
+        return new CollectionOrderInfo(result[0], result[1]);
     }
 
-    private String waitForPaymentState(String paymentId, String expectedState,
-                                        Duration timeout) {
-        return waitForPaymentStateOneOf(paymentId, new String[]{expectedState}, timeout);
-    }
-
-    private String waitForPaymentStateOneOf(String paymentId, String[] expectedStates,
-                                             Duration timeout) {
-        var result = new String[1];
+    private void waitForPaymentState(String paymentId, String expectedState, Duration timeout) {
         await().atMost(timeout)
                 .pollInterval(Duration.ofSeconds(2))
                 .ignoreExceptions()
@@ -283,75 +273,40 @@ class Phase3PaymentE2ETest {
                     var currentState = body.get("state").asText();
                     log.debug("Payment {} state: {}", paymentId, currentState);
 
-                    // Check if current state matches any expected state
-                    for (String expected : expectedStates) {
-                        if (expected.equals(currentState)) {
-                            result[0] = currentState;
-                            return true;
-                        }
-                    }
-
-                    // Fail fast if payment has reached a terminal failure state
-                    if ("FAILED".equals(currentState) || "CANCELLED".equals(currentState)) {
-                        var isExpected = false;
-                        for (String expected : expectedStates) {
-                            if ("FAILED".equals(expected) || "CANCELLED".equals(expected)
-                                    || "COMPLIANCE_REJECTED".equals(expected)) {
-                                isExpected = true;
-                                break;
-                            }
-                        }
-                        if (!isExpected) {
-                            throw new AssertionError("Payment " + paymentId
-                                    + " reached terminal state " + currentState
-                                    + " instead of expected " + String.join("/", expectedStates));
-                        }
-                        result[0] = currentState;
+                    if (expectedState.equals(currentState)) {
                         return true;
                     }
-
+                    if ("FAILED".equals(currentState) || "CANCELLED".equals(currentState)) {
+                        throw new AssertionError("Payment " + paymentId
+                                + " reached terminal state " + currentState
+                                + " instead of expected " + expectedState);
+                    }
                     return false;
                 });
-        return result[0];
     }
 
-    private String extractFieldFromPayment(String paymentId, String fieldName) {
+    private boolean checkJournalEntriesExist(String paymentId, Duration timeout) {
         try {
-            var response = paymentApiClient.getPayment(paymentId);
-            if (response.statusCode() == 200) {
-                var body = JSON.readTree(response.body());
-                if (body.has(fieldName) && !body.get(fieldName).isNull()) {
-                    return body.get(fieldName).asText();
-                }
-            }
+            await().atMost(timeout)
+                    .pollInterval(Duration.ofSeconds(3))
+                    .ignoreExceptions()
+                    .until(() -> {
+                        var response = httpClient.send(
+                                HttpRequest.newBuilder()
+                                        .uri(URI.create(S7_BASE_URL + "/v1/journals?paymentId=" + paymentId))
+                                        .GET()
+                                        .build(),
+                                HttpResponse.BodyHandlers.ofString());
+                        if (response.statusCode() != 200) {
+                            return false;
+                        }
+                        var body = JSON.readTree(response.body());
+                        return body.isArray() ? body.size() > 0
+                                : (body.has("content") && body.get("content").size() > 0);
+                    });
+            return true;
         } catch (Exception e) {
-            log.warn("Could not extract field {} from payment {}: {}", fieldName, paymentId, e.getMessage());
+            return false;
         }
-        return null;
     }
-
-    private void verifyJournalEntriesExist(String paymentId) {
-        await().atMost(Duration.ofSeconds(30))
-                .pollInterval(Duration.ofSeconds(3))
-                .ignoreExceptions()
-                .until(() -> {
-                    var response = httpClient.send(
-                            HttpRequest.newBuilder()
-                                    .uri(URI.create(S7_BASE_URL + "/v1/journals?paymentId=" + paymentId))
-                                    .GET()
-                                    .build(),
-                            HttpResponse.BodyHandlers.ofString());
-
-                    if (response.statusCode() != 200) {
-                        return false;
-                    }
-
-                    var body = JSON.readTree(response.body());
-                    var hasEntries = body.isArray() ? body.size() > 0
-                            : (body.has("content") && body.get("content").size() > 0);
-                    log.info("S7 journal entries for payment {}: found={}", paymentId, hasEntries);
-                    return hasEntries;
-                });
-    }
-
 }

@@ -167,6 +167,6 @@ e2e-build: ## Build all service Docker images for E2E
 	$(GRADLE) $(foreach s,$(SERVICES),:$(s):$(s):jibDockerBuild) --parallel
 
 e2e-test: ## Run Phase 3 E2E tests (stack must be running)
-	PHASE3_TESTS_ENABLED=true $(GRADLE) :phase3-integration-tests:cleanTest :phase3-integration-tests:test
+	PHASE3_TESTS_ENABLED=true $(GRADLE) :phase3-integration-tests:test --rerun
 
 e2e: e2e-build e2e-up e2e-test ## Build images, start stack, run E2E tests
