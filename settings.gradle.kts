@@ -8,6 +8,7 @@ buildCache {
 
 // Shared platform modules
 include("platform-api")
+include("platform-infra")
 include("platform-test")
 
 include("merchant-onboarding:merchant-onboarding-api")

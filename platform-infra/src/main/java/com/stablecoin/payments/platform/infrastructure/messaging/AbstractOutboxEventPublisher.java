@@ -1,0 +1,40 @@
+package com.stablecoin.payments.platform.infrastructure.messaging;
+
+import io.namastack.outbox.Outbox;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+@Slf4j
+@RequiredArgsConstructor
+public abstract class AbstractOutboxEventPublisher {
+
+    private final Outbox outbox;
+    private final List<String> keyFieldNames;
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    public void publish(Object event) {
+        var key = resolveKey(event);
+        outbox.schedule(event, key);
+        log.debug("Scheduled outbox event type={} key={}", event.getClass().getSimpleName(), key);
+    }
+
+    private String resolveKey(Object event) {
+        for (String fieldName : keyFieldNames) {
+            try {
+                var method = event.getClass().getMethod(fieldName);
+                return String.valueOf(method.invoke(event));
+            } catch (NoSuchMethodException ignored) {
+                // try next field name
+            } catch (Exception e) {
+                throw new IllegalArgumentException(
+                        "Error invoking accessor '" + fieldName + "' on " + event.getClass().getName(), e);
+            }
+        }
+        throw new IllegalArgumentException(
+                "Event class missing accessor for any of " + keyFieldNames + ": " + event.getClass().getName());
+    }
+}

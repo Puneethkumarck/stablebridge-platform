@@ -103,6 +103,9 @@ val springdocVersion: String by project
 // Common dependencies — every service gets these
 // ---------------------------------------------------------------------------
 dependencies {
+    // Shared runtime infrastructure (AbstractOutboxHandler, AbstractOutboxEventPublisher, BaseGlobalExceptionHandler)
+    implementation(project(":platform-infra"))
+
     // Spring Boot
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-validation")
