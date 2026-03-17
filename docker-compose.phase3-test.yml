@@ -74,7 +74,7 @@ services:
       retries: 10
 
   redpanda:
-    image: docker.redpanda.com/redpandadata/redpanda:v24.3.7
+    image: docker.redpanda.com/redpandadata/redpanda:v24.3.18
     container_name: p3t-redpanda
     command:
       - redpanda
@@ -99,7 +99,7 @@ services:
       start_period: 15s
 
   kafka-init:
-    image: docker.redpanda.com/redpandadata/redpanda:v24.3.7
+    image: docker.redpanda.com/redpandadata/redpanda:v24.3.18
     container_name: p3t-kafka-init
     depends_on:
       redpanda:
