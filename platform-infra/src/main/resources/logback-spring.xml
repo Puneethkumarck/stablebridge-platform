@@ -26,7 +26,6 @@
 
                 <!-- MDC fields to include -->
                 <includeMdcKeyName>correlationId</includeMdcKeyName>
-                <includeMdcKeyName>userId</includeMdcKeyName>
                 <includeMdcKeyName>traceId</includeMdcKeyName>
                 <includeMdcKeyName>spanId</includeMdcKeyName>
 
