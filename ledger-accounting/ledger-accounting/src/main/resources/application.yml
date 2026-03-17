@@ -10,9 +10,9 @@ spring:
       enabled: ${app.vault.enabled:false}
       host: ${VAULT_HOST:localhost}
       port: ${VAULT_PORT:8200}
-      scheme: http
+      scheme: ${VAULT_SCHEME:https}
       authentication: TOKEN
-      token: ${VAULT_TOKEN:dev-root-token}
+      token: ${VAULT_TOKEN:}
       kv:
         enabled: true
         backend: secret
