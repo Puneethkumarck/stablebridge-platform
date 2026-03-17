@@ -17,6 +17,11 @@ spring:
         enabled: true
         backend: secret
         default-context: application
+    stream:
+      kafka:
+        binder:
+          brokers: ${KAFKA_BROKERS:localhost:9092}
+          auto-create-topics: false
 
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/s10_api_gateway_iam}
@@ -62,13 +67,6 @@ spring:
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-
-  cloud:
-    stream:
-      kafka:
-        binder:
-          brokers: ${KAFKA_BROKERS:localhost:9092}
-          auto-create-topics: false
 
 app:
   idempotency:

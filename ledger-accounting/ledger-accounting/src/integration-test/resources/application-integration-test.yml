@@ -1,4 +1,7 @@
 spring:
+  cloud:
+    vault:
+      enabled: false
   main:
     allow-bean-definition-overriding: true
   jpa:
