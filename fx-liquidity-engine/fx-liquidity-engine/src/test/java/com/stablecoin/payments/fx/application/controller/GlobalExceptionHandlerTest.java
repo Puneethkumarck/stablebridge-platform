@@ -1,6 +1,5 @@
 package com.stablecoin.payments.fx.application.controller;
 
-import com.stablecoin.payments.fx.api.response.ApiError;
 import com.stablecoin.payments.fx.domain.exception.CorridorNotSupportedException;
 import com.stablecoin.payments.fx.domain.exception.InsufficientLiquidityException;
 import com.stablecoin.payments.fx.domain.exception.PoolNotFoundException;
@@ -8,6 +7,7 @@ import com.stablecoin.payments.fx.domain.exception.QuoteAlreadyLockedException;
 import com.stablecoin.payments.fx.domain.exception.QuoteExpiredException;
 import com.stablecoin.payments.fx.domain.exception.QuoteNotFoundException;
 import com.stablecoin.payments.fx.domain.exception.RateUnavailableException;
+import com.stablecoin.payments.platform.api.ApiError;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

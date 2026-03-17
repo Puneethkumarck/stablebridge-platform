@@ -1,4 +1,4 @@
-package com.stablecoin.payments.onramp.api;
+package com.stablecoin.payments.platform.api;
 
 import java.util.List;
 import java.util.Map;

@@ -1,16 +1,7 @@
 plugins {
-    `java-library`
+    id("stablebridge.client-library")
 }
 
 dependencies {
     api(project(":merchant-iam:merchant-iam-api"))
-    api("org.springframework.cloud:spring-cloud-starter-openfeign")
-
-    testImplementation("org.junit.jupiter:junit-jupiter")
-    testImplementation("org.assertj:assertj-core")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-}
-
-tasks.withType<Test> {
-    useJUnitPlatform()
 }

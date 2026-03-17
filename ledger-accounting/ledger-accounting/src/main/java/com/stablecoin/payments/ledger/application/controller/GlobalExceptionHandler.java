@@ -1,10 +1,10 @@
 package com.stablecoin.payments.ledger.application.controller;
 
-import com.stablecoin.payments.ledger.api.ApiError;
 import com.stablecoin.payments.ledger.domain.exception.AccountNotFoundException;
 import com.stablecoin.payments.ledger.domain.exception.DuplicateTransactionException;
 import com.stablecoin.payments.ledger.domain.exception.JournalNotFoundException;
 import com.stablecoin.payments.ledger.domain.exception.ReconciliationNotFoundException;
+import com.stablecoin.payments.platform.api.ApiError;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;

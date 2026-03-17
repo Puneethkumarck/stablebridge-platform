@@ -2,10 +2,10 @@
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 
 plugins {
-    id("org.springframework.boot") version "4.0.3" apply false
-    id("io.spring.dependency-management") version "1.1.7" apply false
-    id("com.diffplug.spotless") version "8.3.0" apply false
-    id("com.google.cloud.tools.jib") version "3.5.3" apply false
+    id("org.springframework.boot") apply false
+    id("io.spring.dependency-management") apply false
+    id("com.diffplug.spotless") apply false
+    id("com.google.cloud.tools.jib") apply false
     id("org.sonarqube") version "7.2.3.7755"
     java
 }

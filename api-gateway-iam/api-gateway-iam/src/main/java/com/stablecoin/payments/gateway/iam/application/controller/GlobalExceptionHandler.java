@@ -1,6 +1,5 @@
 package com.stablecoin.payments.gateway.iam.application.controller;
 
-import com.stablecoin.payments.gateway.iam.api.response.ApiError;
 import com.stablecoin.payments.gateway.iam.domain.exception.ApiKeyExpiredException;
 import com.stablecoin.payments.gateway.iam.domain.exception.ApiKeyNotFoundException;
 import com.stablecoin.payments.gateway.iam.domain.exception.ApiKeyRevokedException;
@@ -13,6 +12,7 @@ import com.stablecoin.payments.gateway.iam.domain.exception.OAuthClientNotFoundE
 import com.stablecoin.payments.gateway.iam.domain.exception.RateLimitExceededException;
 import com.stablecoin.payments.gateway.iam.domain.exception.ScopeExceededException;
 import com.stablecoin.payments.gateway.iam.domain.exception.TokenRevokedException;
+import com.stablecoin.payments.platform.api.ApiError;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;

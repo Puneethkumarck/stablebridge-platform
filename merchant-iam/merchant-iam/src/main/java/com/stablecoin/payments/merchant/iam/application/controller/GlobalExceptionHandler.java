@@ -12,6 +12,7 @@ import com.stablecoin.payments.merchant.iam.domain.exceptions.RoleNotFoundExcept
 import com.stablecoin.payments.merchant.iam.domain.exceptions.UserAlreadyExistsException;
 import com.stablecoin.payments.merchant.iam.domain.exceptions.UserNotFoundException;
 import com.stablecoin.payments.merchant.iam.domain.statemachine.StateMachineException;
+import com.stablecoin.payments.platform.api.ApiError;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;

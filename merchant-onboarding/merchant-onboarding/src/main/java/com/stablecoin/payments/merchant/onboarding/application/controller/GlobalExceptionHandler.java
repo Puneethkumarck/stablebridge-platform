@@ -4,6 +4,7 @@ import com.stablecoin.payments.merchant.onboarding.domain.exceptions.InvalidMerc
 import com.stablecoin.payments.merchant.onboarding.domain.exceptions.MerchantAlreadyExistsException;
 import com.stablecoin.payments.merchant.onboarding.domain.exceptions.MerchantNotFoundException;
 import com.stablecoin.payments.merchant.onboarding.domain.statemachine.StateMachineException;
+import com.stablecoin.payments.platform.api.ApiError;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;

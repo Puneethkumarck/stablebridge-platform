@@ -1,9 +1,9 @@
 package com.stablecoin.payments.compliance.application.controller;
 
-import com.stablecoin.payments.compliance.api.response.ApiError;
 import com.stablecoin.payments.compliance.domain.exception.CheckNotFoundException;
 import com.stablecoin.payments.compliance.domain.exception.CustomerNotFoundException;
 import com.stablecoin.payments.compliance.domain.exception.DuplicatePaymentException;
+import com.stablecoin.payments.platform.api.ApiError;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;

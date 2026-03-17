@@ -1,8 +1,8 @@
 package com.stablecoin.payments.orchestrator.application.controller;
 
-import com.stablecoin.payments.orchestrator.api.ApiError;
 import com.stablecoin.payments.orchestrator.domain.model.PaymentNotCancellableException;
 import com.stablecoin.payments.orchestrator.domain.model.PaymentNotFoundException;
+import com.stablecoin.payments.platform.api.ApiError;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;

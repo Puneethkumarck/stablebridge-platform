@@ -1,6 +1,5 @@
 package com.stablecoin.payments.fx.application.controller;
 
-import com.stablecoin.payments.fx.api.response.ApiError;
 import com.stablecoin.payments.fx.domain.exception.CorridorNotSupportedException;
 import com.stablecoin.payments.fx.domain.exception.InsufficientLiquidityException;
 import com.stablecoin.payments.fx.domain.exception.LockNotFoundException;
@@ -9,6 +8,7 @@ import com.stablecoin.payments.fx.domain.exception.QuoteAlreadyLockedException;
 import com.stablecoin.payments.fx.domain.exception.QuoteExpiredException;
 import com.stablecoin.payments.fx.domain.exception.QuoteNotFoundException;
 import com.stablecoin.payments.fx.domain.exception.RateUnavailableException;
+import com.stablecoin.payments.platform.api.ApiError;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;

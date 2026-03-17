@@ -1,10 +1,10 @@
 package com.stablecoin.payments.onramp.application.controller;
 
-import com.stablecoin.payments.onramp.api.ApiError;
 import com.stablecoin.payments.onramp.domain.exception.CollectionOrderNotFoundException;
 import com.stablecoin.payments.onramp.domain.exception.RefundAmountExceededException;
 import com.stablecoin.payments.onramp.domain.exception.RefundNotAllowedException;
 import com.stablecoin.payments.onramp.domain.exception.RefundNotFoundException;
+import com.stablecoin.payments.platform.api.ApiError;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;

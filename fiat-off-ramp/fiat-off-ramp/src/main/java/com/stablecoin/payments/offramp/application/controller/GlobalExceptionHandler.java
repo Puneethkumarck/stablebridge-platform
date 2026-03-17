@@ -1,10 +1,10 @@
 package com.stablecoin.payments.offramp.application.controller;
 
-import com.stablecoin.payments.offramp.api.ApiError;
 import com.stablecoin.payments.offramp.domain.exception.PayoutNotFoundException;
 import com.stablecoin.payments.offramp.domain.exception.PayoutNotRefundableException;
 import com.stablecoin.payments.offramp.domain.exception.PayoutPartnerException;
 import com.stablecoin.payments.offramp.domain.exception.RedemptionFailedException;
+import com.stablecoin.payments.platform.api.ApiError;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;

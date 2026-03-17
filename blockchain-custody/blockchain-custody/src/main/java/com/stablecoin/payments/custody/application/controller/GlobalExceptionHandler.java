@@ -1,11 +1,11 @@
 package com.stablecoin.payments.custody.application.controller;
 
-import com.stablecoin.payments.custody.api.ApiError;
 import com.stablecoin.payments.custody.domain.exception.ChainUnavailableException;
 import com.stablecoin.payments.custody.domain.exception.CustodySigningException;
 import com.stablecoin.payments.custody.domain.exception.InsufficientBalanceException;
 import com.stablecoin.payments.custody.domain.exception.TransferNotFoundException;
 import com.stablecoin.payments.custody.domain.exception.WalletNotFoundException;
+import com.stablecoin.payments.platform.api.ApiError;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.FieldError;
 import org.springframework.validation.ObjectError;
