@@ -2,6 +2,22 @@ spring:
   application:
     name: merchant-onboarding
 
+  config:
+    import: optional:vault://
+
+  cloud:
+    vault:
+      enabled: ${app.vault.enabled:false}
+      host: ${VAULT_HOST:localhost}
+      port: ${VAULT_PORT:8200}
+      scheme: http
+      authentication: TOKEN
+      token: ${VAULT_TOKEN:dev-root-token}
+      kv:
+        enabled: true
+        backend: secret
+        default-context: application
+
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/s11_merchant_onboarding}
     username: ${DB_USER:sp_user}

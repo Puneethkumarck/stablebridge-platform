@@ -194,6 +194,23 @@ services:
       retries: 10
 
   # ─────────────────────────────────────────────
+  # Vault init — seeds KV v2 secrets for local dev
+  # ─────────────────────────────────────────────
+  vault-init:
+    image: hashicorp/vault:latest
+    container_name: sp-vault-init
+    depends_on:
+      vault:
+        condition: service_healthy
+    environment:
+      VAULT_ADDR: http://vault:8200
+      VAULT_TOKEN: dev-root-token
+    volumes:
+      - ./infra/local/vault/init-vault.sh:/vault/init-vault.sh
+    entrypoint: ["/bin/sh", "/vault/init-vault.sh"]
+    restart: "no"
+
+  # ─────────────────────────────────────────────
   # Mailhog — captures outbound email (replaces SendGrid in dev)
   # ─────────────────────────────────────────────
   mailpit:
