@@ -5,6 +5,7 @@ import com.stablecoin.payments.compliance.domain.model.KycStatus;
 import com.stablecoin.payments.compliance.domain.model.KycTier;
 import com.stablecoin.payments.compliance.domain.port.KycProvider;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -54,6 +55,7 @@ public class OnfidoKycAdapter implements KycProvider {
     }
 
     @Override
+    @Retry(name = "kyc", fallbackMethod = "verifyFallback")
     @CircuitBreaker(name = "kyc", fallbackMethod = "verifyFallback")
     public KycResult verify(UUID senderId, UUID recipientId) {
         log.info("[ONFIDO] KYC verification sender={} recipient={}", senderId, recipientId);
@@ -149,8 +151,8 @@ public class OnfidoKycAdapter implements KycProvider {
 
     @SuppressWarnings("unused")
     private KycResult verifyFallback(UUID senderId, UUID recipientId, Exception ex) {
-        log.error("[ONFIDO] Circuit breaker open — KYC verification failed sender={} recipient={}",
-                senderId, recipientId, ex);
+        log.error("[ONFIDO] Resilience fallback — KYC verification failed sender={} recipient={} due to {}",
+                senderId, recipientId, ex.getClass().getSimpleName(), ex);
         throw new IllegalStateException("KYC verification unavailable", ex);
     }
 

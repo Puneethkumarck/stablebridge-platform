@@ -3,6 +3,7 @@ package com.stablecoin.payments.compliance.infrastructure.provider.worldcheck;
 import com.stablecoin.payments.compliance.domain.model.SanctionsResult;
 import com.stablecoin.payments.compliance.domain.port.SanctionsProvider;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -45,6 +46,7 @@ public class WorldCheckSanctionsAdapter implements SanctionsProvider {
     }
 
     @Override
+    @Retry(name = "sanctions", fallbackMethod = "screenFallback")
     @CircuitBreaker(name = "sanctions", fallbackMethod = "screenFallback")
     public SanctionsResult screen(UUID senderId, UUID recipientId) {
         log.info("[WORLD-CHECK] Screening sender={} recipient={}", senderId, recipientId);
@@ -160,8 +162,8 @@ public class WorldCheckSanctionsAdapter implements SanctionsProvider {
 
     @SuppressWarnings("unused")
     private SanctionsResult screenFallback(UUID senderId, UUID recipientId, Exception ex) {
-        log.error("[WORLD-CHECK] Circuit breaker open — screening failed sender={} recipient={}",
-                senderId, recipientId, ex);
+        log.error("[WORLD-CHECK] Resilience fallback — screening failed sender={} recipient={} due to {}",
+                senderId, recipientId, ex.getClass().getSimpleName(), ex);
         throw new IllegalStateException("Sanctions screening unavailable", ex);
     }
 }

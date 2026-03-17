@@ -5,8 +5,8 @@ import com.stablecoin.payments.offramp.domain.model.PaymentRail;
 import com.stablecoin.payments.offramp.domain.port.PayoutPartnerGateway;
 import com.stablecoin.payments.offramp.domain.port.PayoutRequest;
 import com.stablecoin.payments.offramp.domain.port.PayoutResult;
-import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -57,6 +57,7 @@ public class ModulrPayoutAdapter implements PayoutPartnerGateway {
     }
 
     @Override
+    @Retry(name = "modulr", fallbackMethod = "initiatePayoutFallback")
     @CircuitBreaker(name = "modulr", fallbackMethod = "initiatePayoutFallback")
     public PayoutResult initiatePayout(PayoutRequest request) {
         log.info("[MODULR] Initiating SEPA payout payoutId={} amount={} currency={}",
@@ -108,9 +109,9 @@ public class ModulrPayoutAdapter implements PayoutPartnerGateway {
     }
 
     @SuppressWarnings("unused")
-    private PayoutResult initiatePayoutFallback(PayoutRequest request, CallNotPermittedException ex) {
-        log.error("[MODULR] Circuit breaker open — payout failed payoutId={}",
-                request.payoutId(), ex);
+    private PayoutResult initiatePayoutFallback(PayoutRequest request, Exception ex) {
+        log.error("[MODULR] Resilience fallback — payout failed payoutId={} due to {}",
+                request.payoutId(), ex.getClass().getSimpleName(), ex);
         throw new PayoutPartnerException(
                 request.payoutId(), "modulr", "Modulr payout unavailable", ex);
     }

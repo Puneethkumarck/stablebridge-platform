@@ -4,6 +4,7 @@ import com.stablecoin.payments.custody.domain.model.ChainId;
 import com.stablecoin.payments.custody.domain.port.ChainRpcProvider;
 import com.stablecoin.payments.custody.domain.port.TransactionReceipt;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -55,6 +56,7 @@ public class SolanaRpcAdapter implements ChainRpcProvider {
     }
 
     @Override
+    @Retry(name = "solanaRpc", fallbackMethod = "getTransactionReceiptFallback")
     @CircuitBreaker(name = "solanaRpc", fallbackMethod = "getTransactionReceiptFallback")
     public TransactionReceipt getTransactionReceipt(ChainId chainId, String txHash) {
         log.info("[SOLANA-RPC] Getting transaction chain={} signature={}", chainId.value(), txHash);
@@ -86,6 +88,7 @@ public class SolanaRpcAdapter implements ChainRpcProvider {
     }
 
     @Override
+    @Retry(name = "solanaRpc", fallbackMethod = "getLatestBlockNumberFallback")
     @CircuitBreaker(name = "solanaRpc", fallbackMethod = "getLatestBlockNumberFallback")
     public long getLatestBlockNumber(ChainId chainId) {
         log.info("[SOLANA-RPC] Getting current slot chain={}", chainId.value());
@@ -99,6 +102,7 @@ public class SolanaRpcAdapter implements ChainRpcProvider {
     }
 
     @Override
+    @Retry(name = "solanaRpc", fallbackMethod = "getTokenBalanceFallback")
     @CircuitBreaker(name = "solanaRpc", fallbackMethod = "getTokenBalanceFallback")
     public BigDecimal getTokenBalance(ChainId chainId, String address, String tokenContract) {
         log.info("[SOLANA-RPC] Getting SPL token balance chain={} owner={} mint={}",
@@ -167,23 +171,23 @@ public class SolanaRpcAdapter implements ChainRpcProvider {
 
     @SuppressWarnings("unused")
     private TransactionReceipt getTransactionReceiptFallback(ChainId chainId, String txHash, Exception ex) {
-        log.error("[SOLANA-RPC] Circuit breaker open - getTransactionReceipt failed chain={} signature={}",
-                chainId.value(), txHash, ex);
+        log.error("[SOLANA-RPC] Resilience fallback — getTransactionReceipt failed chain={} signature={} due to {}",
+                chainId.value(), txHash, ex.getClass().getSimpleName(), ex);
         throw new IllegalStateException("Solana RPC unavailable for getTransactionReceipt", ex);
     }
 
     @SuppressWarnings("unused")
     private long getLatestBlockNumberFallback(ChainId chainId, Exception ex) {
-        log.error("[SOLANA-RPC] Circuit breaker open - getLatestBlockNumber failed chain={}",
-                chainId.value(), ex);
+        log.error("[SOLANA-RPC] Resilience fallback — getLatestBlockNumber failed chain={} due to {}",
+                chainId.value(), ex.getClass().getSimpleName(), ex);
         throw new IllegalStateException("Solana RPC unavailable for getSlot", ex);
     }
 
     @SuppressWarnings("unused")
     private BigDecimal getTokenBalanceFallback(ChainId chainId, String address, String tokenContract,
                                                Exception ex) {
-        log.error("[SOLANA-RPC] Circuit breaker open - getTokenBalance failed chain={} owner={}",
-                chainId.value(), address, ex);
+        log.error("[SOLANA-RPC] Resilience fallback — getTokenBalance failed chain={} owner={} due to {}",
+                chainId.value(), address, ex.getClass().getSimpleName(), ex);
         throw new IllegalStateException("Solana RPC unavailable for getTokenBalance", ex);
     }
 

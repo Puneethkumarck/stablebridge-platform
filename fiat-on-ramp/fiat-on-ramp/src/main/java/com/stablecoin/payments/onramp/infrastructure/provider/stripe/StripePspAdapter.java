@@ -6,6 +6,7 @@ import com.stablecoin.payments.onramp.domain.port.PspPaymentResult;
 import com.stablecoin.payments.onramp.domain.port.PspRefundRequest;
 import com.stablecoin.payments.onramp.domain.port.PspRefundResult;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -46,6 +47,7 @@ public class StripePspAdapter implements PspGateway {
     }
 
     @Override
+    @Retry(name = "stripe", fallbackMethod = "initiatePaymentFallback")
     @CircuitBreaker(name = "stripe", fallbackMethod = "initiatePaymentFallback")
     public PspPaymentResult initiatePayment(PspPaymentRequest request) {
         log.info("[STRIPE] Initiating payment collectionId={} amount={} currency={}",
@@ -76,6 +78,7 @@ public class StripePspAdapter implements PspGateway {
     }
 
     @Override
+    @Retry(name = "stripe", fallbackMethod = "initiateRefundFallback")
     @CircuitBreaker(name = "stripe", fallbackMethod = "initiateRefundFallback")
     public PspRefundResult initiateRefund(PspRefundRequest request) {
         log.info("[STRIPE] Initiating refund collectionId={} pspRef={} amount={}",
@@ -102,15 +105,15 @@ public class StripePspAdapter implements PspGateway {
 
     @SuppressWarnings("unused")
     private PspPaymentResult initiatePaymentFallback(PspPaymentRequest request, Exception ex) {
-        log.error("[STRIPE] Circuit breaker open — payment initiation failed collectionId={}",
-                request.collectionId(), ex);
+        log.error("[STRIPE] Resilience fallback — payment initiation failed collectionId={} due to {}",
+                request.collectionId(), ex.getClass().getSimpleName(), ex);
         throw new IllegalStateException("Stripe payment initiation unavailable", ex);
     }
 
     @SuppressWarnings("unused")
     private PspRefundResult initiateRefundFallback(PspRefundRequest request, Exception ex) {
-        log.error("[STRIPE] Circuit breaker open — refund initiation failed collectionId={}",
-                request.collectionId(), ex);
+        log.error("[STRIPE] Resilience fallback — refund initiation failed collectionId={} due to {}",
+                request.collectionId(), ex.getClass().getSimpleName(), ex);
         throw new IllegalStateException("Stripe refund initiation unavailable", ex);
     }
 

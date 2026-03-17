@@ -34,6 +34,16 @@ app:
   fallback-adapters:
     enabled: true
 
+resilience4j:
+  retry:
+    instances:
+      fireblocks:
+        wait-duration: 10ms
+      evmRpc:
+        wait-duration: 10ms
+      solanaRpc:
+        wait-duration: 10ms
+
 logging:
   level:
     com.stablecoin.payments: DEBUG

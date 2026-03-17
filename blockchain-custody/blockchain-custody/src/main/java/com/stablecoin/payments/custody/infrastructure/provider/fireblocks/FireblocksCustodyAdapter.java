@@ -7,6 +7,7 @@ import com.stablecoin.payments.custody.domain.port.SignRequest;
 import com.stablecoin.payments.custody.domain.port.SignResult;
 import com.stablecoin.payments.custody.domain.port.TransactionStatus;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -68,6 +69,7 @@ public class FireblocksCustodyAdapter implements CustodyEngine {
     }
 
     @Override
+    @Retry(name = "fireblocks", fallbackMethod = "signAndSubmitFallback")
     @CircuitBreaker(name = "fireblocks", fallbackMethod = "signAndSubmitFallback")
     public SignResult signAndSubmit(SignRequest request) {
         log.info("[FIREBLOCKS] Signing and submitting transfer transferId={} chain={} to={}",
@@ -109,6 +111,7 @@ public class FireblocksCustodyAdapter implements CustodyEngine {
     }
 
     @Override
+    @Retry(name = "fireblocks", fallbackMethod = "getTransactionStatusFallback")
     @CircuitBreaker(name = "fireblocks", fallbackMethod = "getTransactionStatusFallback")
     public TransactionStatus getTransactionStatus(String txId) {
         log.info("[FIREBLOCKS] Getting transaction status txId={}", txId);
@@ -131,14 +134,15 @@ public class FireblocksCustodyAdapter implements CustodyEngine {
 
     @SuppressWarnings("unused")
     private SignResult signAndSubmitFallback(SignRequest request, Exception ex) {
-        log.error("[FIREBLOCKS] Circuit breaker open — signAndSubmit failed transferId={}",
-                request.transferId(), ex);
+        log.error("[FIREBLOCKS] Resilience fallback — signAndSubmit failed transferId={} due to {}",
+                request.transferId(), ex.getClass().getSimpleName(), ex);
         throw new IllegalStateException("Fireblocks custody unavailable", ex);
     }
 
     @SuppressWarnings("unused")
     private TransactionStatus getTransactionStatusFallback(String txId, Exception ex) {
-        log.error("[FIREBLOCKS] Circuit breaker open — getTransactionStatus failed txId={}", txId, ex);
+        log.error("[FIREBLOCKS] Resilience fallback — getTransactionStatus failed txId={} due to {}",
+                txId, ex.getClass().getSimpleName(), ex);
         throw new IllegalStateException("Fireblocks custody unavailable", ex);
     }
 

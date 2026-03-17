@@ -3,6 +3,7 @@ package com.stablecoin.payments.fx.infrastructure.provider.refinitiv;
 import com.stablecoin.payments.fx.domain.model.CorridorRate;
 import com.stablecoin.payments.fx.domain.port.RateProvider;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -42,6 +43,7 @@ public class RefinitivRateAdapter implements RateProvider {
     }
 
     @Override
+    @Retry(name = "fxRate", fallbackMethod = "getRateFallback")
     @CircuitBreaker(name = "fxRate", fallbackMethod = "getRateFallback")
     public Optional<CorridorRate> getRate(String fromCurrency, String toCurrency) {
         log.info("[REFINITIV] Fetching rate for {}:{}", fromCurrency, toCurrency);
@@ -84,7 +86,8 @@ public class RefinitivRateAdapter implements RateProvider {
 
     @SuppressWarnings("unused")
     private Optional<CorridorRate> getRateFallback(String fromCurrency, String toCurrency, Exception ex) {
-        log.error("[REFINITIV] Circuit breaker open for {}:{}", fromCurrency, toCurrency, ex);
+        log.error("[REFINITIV] Resilience fallback for {}:{} due to {}",
+                fromCurrency, toCurrency, ex.getClass().getSimpleName(), ex);
         return Optional.empty();
     }
 }

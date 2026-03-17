@@ -3,6 +3,7 @@ package com.stablecoin.payments.compliance.infrastructure.provider.chainalysis;
 import com.stablecoin.payments.compliance.domain.model.AmlResult;
 import com.stablecoin.payments.compliance.domain.port.AmlProvider;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -49,6 +50,7 @@ public class ChainalysisAmlAdapter implements AmlProvider {
     }
 
     @Override
+    @Retry(name = "aml", fallbackMethod = "analyzeFallback")
     @CircuitBreaker(name = "aml", fallbackMethod = "analyzeFallback")
     public AmlResult analyze(UUID senderId, UUID recipientId) {
         log.info("[CHAINALYSIS] Analyzing sender={} recipient={}", senderId, recipientId);
@@ -159,8 +161,8 @@ public class ChainalysisAmlAdapter implements AmlProvider {
 
     @SuppressWarnings("unused")
     private AmlResult analyzeFallback(UUID senderId, UUID recipientId, Exception ex) {
-        log.error("[CHAINALYSIS] Circuit breaker open — AML analysis failed sender={} recipient={}",
-                senderId, recipientId, ex);
+        log.error("[CHAINALYSIS] Resilience fallback — AML analysis failed sender={} recipient={} due to {}",
+                senderId, recipientId, ex.getClass().getSimpleName(), ex);
         throw new IllegalStateException("AML screening unavailable", ex);
     }
 }
