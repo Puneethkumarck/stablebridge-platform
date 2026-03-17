@@ -27,7 +27,7 @@ public class CorrelationIdFeignInterceptor implements RequestInterceptor {
     @Override
     public void apply(RequestTemplate template) {
         String correlationId = MDC.get(CORRELATION_ID_MDC_KEY);
-        if (correlationId != null) {
+        if (correlationId != null && !template.headers().containsKey(CORRELATION_ID_HEADER)) {
             template.header(CORRELATION_ID_HEADER, correlationId);
         }
     }
