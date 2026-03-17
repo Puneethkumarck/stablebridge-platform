@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import static com.stablecoin.payments.gateway.iam.fixtures.TestUtils.eqIgnoring;
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoring;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;

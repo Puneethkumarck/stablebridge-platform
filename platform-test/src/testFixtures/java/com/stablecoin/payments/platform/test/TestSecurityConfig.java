@@ -1,4 +1,4 @@
-package com.stablecoin.payments.merchant.onboarding.config;
+package com.stablecoin.payments.platform.test;
 
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;

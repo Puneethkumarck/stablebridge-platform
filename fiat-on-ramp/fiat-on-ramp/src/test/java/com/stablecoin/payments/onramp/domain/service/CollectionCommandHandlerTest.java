@@ -32,8 +32,8 @@ import static com.stablecoin.payments.onramp.fixtures.CollectionOrderFixtures.aM
 import static com.stablecoin.payments.onramp.fixtures.CollectionOrderFixtures.aPaymentRail;
 import static com.stablecoin.payments.onramp.fixtures.CollectionOrderFixtures.aPendingOrder;
 import static com.stablecoin.payments.onramp.fixtures.CollectionOrderFixtures.aPspIdentifier;
-import static com.stablecoin.payments.onramp.fixtures.TestUtils.eqIgnoring;
-import static com.stablecoin.payments.onramp.fixtures.TestUtils.eqIgnoringTimestamps;
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoring;
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoringTimestamps;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;

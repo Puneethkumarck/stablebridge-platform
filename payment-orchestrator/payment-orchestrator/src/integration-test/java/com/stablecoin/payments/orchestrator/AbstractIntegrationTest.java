@@ -9,10 +9,17 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.lifecycle.Startable;
-import org.testcontainers.utility.DockerImageName;
+
+import static com.stablecoin.payments.platform.test.TestContainerSupport.kafka;
+import static com.stablecoin.payments.platform.test.TestContainerSupport.postgres;
+import static com.stablecoin.payments.platform.test.TestContainerSupport.redis;
+import static com.stablecoin.payments.platform.test.TestContainerSupport.registerKafkaProperties;
+import static com.stablecoin.payments.platform.test.TestContainerSupport.registerPostgresProperties;
+import static com.stablecoin.payments.platform.test.TestContainerSupport.registerRedisProperties;
+import static com.stablecoin.payments.platform.test.TestContainerSupport.startAll;
 
 @SuppressWarnings("resource")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -20,38 +27,12 @@ import org.testcontainers.utility.DockerImageName;
 @AutoConfigureMockMvc
 public abstract class AbstractIntegrationTest {
 
-    static final PostgreSQLContainer<?> POSTGRES =
-            new PostgreSQLContainer<>("postgres:16-alpine")
-                    .withDatabaseName("s1_payment_orchestrator")
-                    .withUsername("test")
-                    .withPassword("test");
-
-    protected static final KafkaContainer KAFKA =
-            new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.6.0"));
+    static final PostgreSQLContainer<?> POSTGRES = postgres("s1_payment_orchestrator");
+    protected static final KafkaContainer KAFKA = kafka();
+    protected static final GenericContainer<?> REDIS = redis();
 
     static {
-        try {
-            POSTGRES.start();
-            KAFKA.start();
-        } catch (RuntimeException ex) {
-            safeStop(KAFKA);
-            safeStop(POSTGRES);
-            throw ex;
-        }
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            safeStop(KAFKA);
-            safeStop(POSTGRES);
-        }, "testcontainers-shutdown"));
-    }
-
-    private static void safeStop(Startable container) {
-        try {
-            if (container != null) {
-                container.stop();
-            }
-        } catch (Exception ignored) {
-            // best-effort cleanup
-        }
+        startAll(POSTGRES, KAFKA, REDIS);
     }
 
     @Autowired
@@ -74,10 +55,9 @@ public abstract class AbstractIntegrationTest {
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-        registry.add("spring.datasource.username", POSTGRES::getUsername);
-        registry.add("spring.datasource.password", POSTGRES::getPassword);
-        registry.add("spring.kafka.bootstrap-servers", KAFKA::getBootstrapServers);
+        registerPostgresProperties(registry, POSTGRES);
+        registerKafkaProperties(registry, KAFKA);
+        registerRedisProperties(registry, REDIS);
         registry.add("app.security.enabled", () -> "false");
     }
 }

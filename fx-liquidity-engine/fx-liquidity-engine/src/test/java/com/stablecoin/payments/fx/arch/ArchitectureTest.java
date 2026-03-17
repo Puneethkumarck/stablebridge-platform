@@ -1,4 +1,4 @@
-package com.stablecoin.payments.merchant.onboarding.arch;
+package com.stablecoin.payments.fx.arch;
 
 import com.stablecoin.payments.platform.test.HexagonalArchitectureRules;
 import org.junit.jupiter.api.DisplayName;
@@ -10,6 +10,6 @@ class ArchitectureTest {
     @Test
     @DisplayName("Verify hexagonal architecture rules")
     void verifyHexagonalArchitecture() {
-        HexagonalArchitectureRules.verifyAll("com.stablecoin.payments.merchant.onboarding");
+        HexagonalArchitectureRules.verifyAll("com.stablecoin.payments.fx");
     }
 }

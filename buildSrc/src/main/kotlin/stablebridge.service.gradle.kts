@@ -145,17 +145,20 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-flyway")
     implementation("org.flywaydb:flyway-database-postgresql:$flywayVersion")
 
-    // Test Fixtures
+    // Shared test infrastructure (TestUtils, HexagonalArchitectureRules, TestContainerSupport, TestSecurityConfig)
+    testFixturesImplementation(testFixtures(project(":platform-test")))
     testFixturesImplementation("org.assertj:assertj-core")
     testFixturesImplementation("org.mockito:mockito-core")
 
     // Test
+    testImplementation(testFixtures(project(":platform-test")))
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.kafka:spring-kafka-test")
     testImplementation("com.tngtech.archunit:archunit-junit5:$archunitVersion")
 
     // Integration Test
     "integrationTestImplementation"(testFixtures(project))
+    "integrationTestImplementation"(testFixtures(project(":platform-test")))
     "integrationTestImplementation"("org.testcontainers:postgresql:$testcontainersVersion")
     "integrationTestImplementation"("org.testcontainers:kafka:$testcontainersVersion")
     "integrationTestImplementation"("org.testcontainers:junit-jupiter:$testcontainersVersion")

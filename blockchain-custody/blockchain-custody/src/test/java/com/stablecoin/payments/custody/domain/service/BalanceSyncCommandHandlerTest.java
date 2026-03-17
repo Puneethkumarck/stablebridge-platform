@@ -21,9 +21,9 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
-import static com.stablecoin.payments.custody.fixtures.TestUtils.eqIgnoringTimestamps;
 import static com.stablecoin.payments.custody.fixtures.TransferMonitorFixtures.USDC_BASE_CONTRACT;
 import static com.stablecoin.payments.custody.fixtures.TransferMonitorFixtures.defaultTokenContractResolver;
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoringTimestamps;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;

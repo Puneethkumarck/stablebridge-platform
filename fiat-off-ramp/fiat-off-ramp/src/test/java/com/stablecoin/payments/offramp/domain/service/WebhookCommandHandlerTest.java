@@ -24,11 +24,11 @@ import static com.stablecoin.payments.offramp.fixtures.PayoutOrderFixtures.aManu
 import static com.stablecoin.payments.offramp.fixtures.PayoutOrderFixtures.aPayoutFailedOrder;
 import static com.stablecoin.payments.offramp.fixtures.PayoutOrderFixtures.aPayoutInitiatedOrder;
 import static com.stablecoin.payments.offramp.fixtures.PayoutOrderFixtures.aPayoutProcessingOrder;
-import static com.stablecoin.payments.offramp.fixtures.TestUtils.eqIgnoringTimestamps;
 import static com.stablecoin.payments.offramp.fixtures.WebhookFixtures.SETTLED_AT;
 import static com.stablecoin.payments.offramp.fixtures.WebhookFixtures.aFailureCommand;
 import static com.stablecoin.payments.offramp.fixtures.WebhookFixtures.aSettlementCommand;
 import static com.stablecoin.payments.offramp.fixtures.WebhookFixtures.anUnknownEventCommand;
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoringTimestamps;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;

@@ -43,8 +43,8 @@ import static com.stablecoin.payments.offramp.fixtures.PayoutOrderFixtures.aBank
 import static com.stablecoin.payments.offramp.fixtures.PayoutOrderFixtures.aPartnerIdentifier;
 import static com.stablecoin.payments.offramp.fixtures.PayoutOrderFixtures.aPendingOrder;
 import static com.stablecoin.payments.offramp.fixtures.PayoutOrderFixtures.aStablecoinTicker;
-import static com.stablecoin.payments.offramp.fixtures.TestUtils.eqIgnoring;
-import static com.stablecoin.payments.offramp.fixtures.TestUtils.eqIgnoringTimestamps;
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoring;
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoringTimestamps;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;

@@ -20,7 +20,7 @@ import java.util.ArrayList;
 import java.util.Optional;
 import java.util.UUID;
 
-import static com.stablecoin.payments.merchant.iam.fixtures.TestUtils.eqIgnoringTimestamps;
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoringTimestamps;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;

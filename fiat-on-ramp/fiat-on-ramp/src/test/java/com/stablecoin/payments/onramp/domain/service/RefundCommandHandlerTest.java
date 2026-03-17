@@ -34,8 +34,8 @@ import static com.stablecoin.payments.onramp.fixtures.CollectionOrderFixtures.aP
 import static com.stablecoin.payments.onramp.fixtures.RefundFixtures.REFUND_REASON;
 import static com.stablecoin.payments.onramp.fixtures.RefundFixtures.aCompletedRefund;
 import static com.stablecoin.payments.onramp.fixtures.RefundFixtures.aRefundAmount;
-import static com.stablecoin.payments.onramp.fixtures.TestUtils.eqIgnoring;
-import static com.stablecoin.payments.onramp.fixtures.TestUtils.eqIgnoringTimestamps;
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoring;
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoringTimestamps;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;

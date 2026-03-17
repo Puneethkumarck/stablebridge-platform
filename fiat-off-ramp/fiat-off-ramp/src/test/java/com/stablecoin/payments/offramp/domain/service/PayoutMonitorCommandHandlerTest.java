@@ -29,7 +29,7 @@ import static com.stablecoin.payments.offramp.domain.model.PayoutStatus.PAYOUT_P
 import static com.stablecoin.payments.offramp.fixtures.PayoutOrderFixtures.aCompletedOrder;
 import static com.stablecoin.payments.offramp.fixtures.PayoutOrderFixtures.aPayoutInitiatedOrder;
 import static com.stablecoin.payments.offramp.fixtures.PayoutOrderFixtures.aPayoutProcessingOrder;
-import static com.stablecoin.payments.offramp.fixtures.TestUtils.eqIgnoringTimestamps;
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoringTimestamps;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 

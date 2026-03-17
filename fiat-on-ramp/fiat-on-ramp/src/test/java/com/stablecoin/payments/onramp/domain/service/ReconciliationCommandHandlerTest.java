@@ -19,8 +19,8 @@ import static com.stablecoin.payments.onramp.fixtures.CollectionOrderFixtures.aC
 import static com.stablecoin.payments.onramp.fixtures.ReconciliationFixtures.aCollectedOrderWithDifferentAmount;
 import static com.stablecoin.payments.onramp.fixtures.ReconciliationFixtures.aCollectedOrderWithinTolerance;
 import static com.stablecoin.payments.onramp.fixtures.ReconciliationFixtures.aMatchedReconciliation;
-import static com.stablecoin.payments.onramp.fixtures.TestUtils.eqIgnoring;
-import static com.stablecoin.payments.onramp.fixtures.TestUtils.eqIgnoringTimestamps;
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoring;
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoringTimestamps;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;

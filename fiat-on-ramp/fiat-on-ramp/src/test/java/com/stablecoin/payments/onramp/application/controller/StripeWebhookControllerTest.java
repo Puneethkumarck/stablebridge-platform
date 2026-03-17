@@ -18,8 +18,8 @@ import java.math.BigDecimal;
 
 import static com.stablecoin.payments.onramp.fixtures.CollectionOrderFixtures.PSP_REFERENCE;
 import static com.stablecoin.payments.onramp.fixtures.CollectionOrderFixtures.anAwaitingConfirmationOrder;
-import static com.stablecoin.payments.onramp.fixtures.TestUtils.eqIgnoringTimestamps;
 import static com.stablecoin.payments.onramp.fixtures.WebhookFixtures.aSucceededEventJson;
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoringTimestamps;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 

@@ -24,7 +24,7 @@ import java.util.UUID;
 
 import static com.stablecoin.payments.fx.fixtures.FxRateLockFixtures.anActiveLock;
 import static com.stablecoin.payments.fx.fixtures.LiquidityPoolFixtures.aUsdEurPool;
-import static com.stablecoin.payments.fx.fixtures.TestUtils.eqIgnoringTimestamps;
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoringTimestamps;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
