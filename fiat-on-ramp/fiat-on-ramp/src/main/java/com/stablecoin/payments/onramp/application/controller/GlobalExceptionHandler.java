@@ -21,7 +21,7 @@ public class GlobalExceptionHandler extends BaseGlobalExceptionHandler {
 
     @Override
     protected String errorCodePrefix() {
-        return "ON";
+        return "OR";
     }
 
     @ResponseStatus(NOT_FOUND)
@@ -61,6 +61,6 @@ public class GlobalExceptionHandler extends BaseGlobalExceptionHandler {
     @ExceptionHandler(IllegalStateException.class)
     public ApiError handleInvalidState(IllegalStateException ex) {
         log.info("Invalid state transition: {}", ex.getMessage());
-        return ApiError.of("ON-0002", CONFLICT.getReasonPhrase(), ex.getMessage());
+        return ApiError.of("OR-0002", CONFLICT.getReasonPhrase(), ex.getMessage());
     }
 }

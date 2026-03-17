@@ -29,7 +29,7 @@ public class GlobalExceptionHandler extends BaseGlobalExceptionHandler {
 
     @Override
     protected String errorCodePrefix() {
-        return "OR";
+        return "PO";
     }
 
     @ResponseStatus(BAD_REQUEST)

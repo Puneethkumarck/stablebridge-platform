@@ -9,16 +9,13 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import static com.stablecoin.payments.platform.test.TestContainerSupport.kafka;
 import static com.stablecoin.payments.platform.test.TestContainerSupport.postgres;
-import static com.stablecoin.payments.platform.test.TestContainerSupport.redis;
 import static com.stablecoin.payments.platform.test.TestContainerSupport.registerKafkaProperties;
 import static com.stablecoin.payments.platform.test.TestContainerSupport.registerPostgresProperties;
-import static com.stablecoin.payments.platform.test.TestContainerSupport.registerRedisProperties;
 import static com.stablecoin.payments.platform.test.TestContainerSupport.startAll;
 
 @SuppressWarnings("resource")
@@ -29,10 +26,9 @@ public abstract class AbstractIntegrationTest {
 
     static final PostgreSQLContainer<?> POSTGRES = postgres("s1_payment_orchestrator");
     protected static final KafkaContainer KAFKA = kafka();
-    protected static final GenericContainer<?> REDIS = redis();
 
     static {
-        startAll(POSTGRES, KAFKA, REDIS);
+        startAll(POSTGRES, KAFKA);
     }
 
     @Autowired
@@ -57,7 +53,6 @@ public abstract class AbstractIntegrationTest {
     static void configureProperties(DynamicPropertyRegistry registry) {
         registerPostgresProperties(registry, POSTGRES);
         registerKafkaProperties(registry, KAFKA);
-        registerRedisProperties(registry, REDIS);
         registry.add("app.security.enabled", () -> "false");
     }
 }

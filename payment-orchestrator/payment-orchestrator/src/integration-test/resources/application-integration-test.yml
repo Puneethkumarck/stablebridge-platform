@@ -19,6 +19,9 @@ spring:
   autoconfigure:
     exclude:
       - io.temporal.spring.boot.autoconfigure.AutoDiscoveryProperties
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
 
 namastack:
   outbox:
