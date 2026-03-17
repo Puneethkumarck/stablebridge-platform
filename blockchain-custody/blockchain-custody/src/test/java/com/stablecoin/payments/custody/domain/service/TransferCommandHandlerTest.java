@@ -45,10 +45,10 @@ import static com.stablecoin.payments.custody.fixtures.ChainTransferFixtures.TO_
 import static com.stablecoin.payments.custody.fixtures.ChainTransferFixtures.TX_HASH;
 import static com.stablecoin.payments.custody.fixtures.ChainTransferFixtures.USDC;
 import static com.stablecoin.payments.custody.fixtures.ChainTransferFixtures.aSubmittedTransfer;
-import static com.stablecoin.payments.custody.fixtures.TestUtils.eqIgnoring;
-import static com.stablecoin.payments.custody.fixtures.TestUtils.eqIgnoringTimestamps;
 import static com.stablecoin.payments.custody.fixtures.WalletBalanceFixtures.aBalanceWith;
 import static com.stablecoin.payments.custody.fixtures.WalletFixtures.anActiveWallet;
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoring;
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoringTimestamps;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;

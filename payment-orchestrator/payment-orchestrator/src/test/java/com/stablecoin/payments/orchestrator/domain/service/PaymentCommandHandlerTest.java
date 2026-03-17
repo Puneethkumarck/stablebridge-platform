@@ -38,7 +38,7 @@ import static com.stablecoin.payments.orchestrator.fixtures.PaymentFixtures.TARG
 import static com.stablecoin.payments.orchestrator.fixtures.PaymentFixtures.aCompletedPayment;
 import static com.stablecoin.payments.orchestrator.fixtures.PaymentFixtures.aFailedPayment;
 import static com.stablecoin.payments.orchestrator.fixtures.PaymentFixtures.anInitiatedPayment;
-import static com.stablecoin.payments.orchestrator.fixtures.TestUtils.eqIgnoring;
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoring;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;

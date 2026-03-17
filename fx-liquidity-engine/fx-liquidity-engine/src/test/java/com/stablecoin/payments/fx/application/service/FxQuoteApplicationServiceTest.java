@@ -23,7 +23,7 @@ import java.util.UUID;
 
 import static com.stablecoin.payments.fx.fixtures.CorridorRateFixtures.aUsdEurRate;
 import static com.stablecoin.payments.fx.fixtures.FxQuoteFixtures.anActiveQuote;
-import static com.stablecoin.payments.fx.fixtures.TestUtils.eqIgnoringTimestamps;
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoringTimestamps;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;

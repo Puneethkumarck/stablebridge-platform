@@ -1,56 +1,64 @@
 package com.stablecoin.payments.merchant.iam.arch;
 
+import com.stablecoin.payments.platform.test.HexagonalArchitectureRules;
+import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.importer.ClassFileImporter;
 import com.tngtech.archunit.core.importer.ImportOption;
-import com.tngtech.archunit.junit.AnalyzeClasses;
-import com.tngtech.archunit.junit.ArchTest;
-import com.tngtech.archunit.lang.ArchRule;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
-import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
-
-@AnalyzeClasses(
-        packages = "com.stablecoin.payments.merchant.iam",
-        importOptions = ImportOption.DoNotIncludeTests.class)
+@DisplayName("Architecture Rules")
 class ArchitectureTest {
 
-    @ArchTest
-    static final ArchRule domain_must_not_depend_on_infrastructure = noClasses()
-            .that().resideInAPackage("..domain..")
-            .should().dependOnClassesThat().resideInAPackage("..infrastructure..")
-            .allowEmptyShould(true);
+    private static JavaClasses importedClasses;
 
-    @ArchTest
-    static final ArchRule domain_must_not_depend_on_application = noClasses()
-            .that().resideInAPackage("..domain..")
-            .should().dependOnClassesThat().resideInAPackage("..application..")
-            .allowEmptyShould(true);
+    @BeforeAll
+    static void setUp() {
+        importedClasses = new ClassFileImporter()
+                .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
+                .importPackages("com.stablecoin.payments.merchant.iam");
+    }
 
-    @ArchTest
-    static final ArchRule domain_must_not_import_spring_web = noClasses()
-            .that().resideInAPackage("..domain..")
-            .should().dependOnClassesThat().resideInAPackage("org.springframework.web..")
-            .allowEmptyShould(true);
+    @Test
+    @DisplayName("Domain should not depend on Spring (except stereotype and transaction)")
+    void domainShouldNotDependOnSpring() {
+        HexagonalArchitectureRules.domainShouldNotDependOnSpring().check(importedClasses);
+    }
 
-    @ArchTest
-    static final ArchRule domain_must_not_import_spring_data = noClasses()
-            .that().resideInAPackage("..domain..")
-            .should().dependOnClassesThat().resideInAPackage("org.springframework.data..")
-            .allowEmptyShould(true);
+    @Test
+    @DisplayName("Domain should not depend on infrastructure")
+    void domainShouldNotDependOnInfrastructure() {
+        HexagonalArchitectureRules.domainShouldNotDependOnInfrastructure().check(importedClasses);
+    }
 
-    @ArchTest
-    static final ArchRule domain_must_not_import_spring_security = noClasses()
-            .that().resideInAPackage("..domain..")
-            .should().dependOnClassesThat().resideInAPackage("org.springframework.security..")
-            .allowEmptyShould(true);
+    @Test
+    @DisplayName("Domain should not depend on application layer")
+    void domainShouldNotDependOnApplication() {
+        HexagonalArchitectureRules.domainShouldNotDependOnApplication().check(importedClasses);
+    }
 
-    @ArchTest
-    static final ArchRule domain_must_not_import_jpa = noClasses()
-            .that().resideInAPackage("..domain..")
-            .should().dependOnClassesThat().resideInAPackage("jakarta.persistence..")
-            .allowEmptyShould(true);
+    @Test
+    @DisplayName("Infrastructure should not depend on application controller")
+    void infrastructureShouldNotDependOnController() {
+        HexagonalArchitectureRules.infrastructureShouldNotDependOnController().check(importedClasses);
+    }
 
-    @ArchTest
-    static final ArchRule infrastructure_must_not_depend_on_application_controller = noClasses()
-            .that().resideInAPackage("..infrastructure..")
-            .should().dependOnClassesThat().resideInAPackage("..application.controller..")
-            .allowEmptyShould(true);
+    @Test
+    @DisplayName("Ports should be interfaces")
+    void portsShouldBeInterfaces() {
+        HexagonalArchitectureRules.portsShouldBeInterfaces().check(importedClasses);
+    }
+
+    @Test
+    @DisplayName("Domain events should be records")
+    void domainEventsShouldBeRecords() {
+        HexagonalArchitectureRules.domainEventsShouldBeRecords().check(importedClasses);
+    }
+
+    @Test
+    @DisplayName("Controllers should reside in application.controller package")
+    void controllersShouldResideInApplicationController() {
+        HexagonalArchitectureRules.controllersShouldResideInApplicationController().check(importedClasses);
+    }
 }

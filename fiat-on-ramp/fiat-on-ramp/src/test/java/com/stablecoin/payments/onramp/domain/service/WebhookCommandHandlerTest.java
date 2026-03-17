@@ -23,12 +23,12 @@ import static com.stablecoin.payments.onramp.fixtures.CollectionOrderFixtures.aC
 import static com.stablecoin.payments.onramp.fixtures.CollectionOrderFixtures.aCollectionFailedOrder;
 import static com.stablecoin.payments.onramp.fixtures.CollectionOrderFixtures.aPaymentInitiatedOrder;
 import static com.stablecoin.payments.onramp.fixtures.CollectionOrderFixtures.anAwaitingConfirmationOrder;
-import static com.stablecoin.payments.onramp.fixtures.TestUtils.eqIgnoring;
-import static com.stablecoin.payments.onramp.fixtures.TestUtils.eqIgnoringTimestamps;
 import static com.stablecoin.payments.onramp.fixtures.WebhookFixtures.aChargeSucceededCommand;
 import static com.stablecoin.payments.onramp.fixtures.WebhookFixtures.aFailedCommand;
 import static com.stablecoin.payments.onramp.fixtures.WebhookFixtures.aMismatchCommand;
 import static com.stablecoin.payments.onramp.fixtures.WebhookFixtures.aSucceededCommand;
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoring;
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoringTimestamps;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;

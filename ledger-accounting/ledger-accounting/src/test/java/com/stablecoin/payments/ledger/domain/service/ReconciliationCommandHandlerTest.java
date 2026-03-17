@@ -25,7 +25,7 @@ import static com.stablecoin.payments.ledger.fixtures.LedgerFixtures.NOW;
 import static com.stablecoin.payments.ledger.fixtures.LedgerFixtures.PAYMENT_ID;
 import static com.stablecoin.payments.ledger.fixtures.LedgerFixtures.SOURCE_EVENT_ID;
 import static com.stablecoin.payments.ledger.fixtures.ReconciliationFixtures.aRecordWithAllRequiredLegs;
-import static com.stablecoin.payments.ledger.fixtures.TestUtils.eqIgnoring;
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoring;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;

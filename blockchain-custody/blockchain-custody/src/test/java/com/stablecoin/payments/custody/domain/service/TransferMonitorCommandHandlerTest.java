@@ -28,8 +28,6 @@ import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 
-import static com.stablecoin.payments.custody.fixtures.TestUtils.eqIgnoring;
-import static com.stablecoin.payments.custody.fixtures.TestUtils.eqIgnoringTimestamps;
 import static com.stablecoin.payments.custody.fixtures.TransferMonitorFixtures.CHAIN_BASE;
 import static com.stablecoin.payments.custody.fixtures.TransferMonitorFixtures.FROM_WALLET_ID;
 import static com.stablecoin.payments.custody.fixtures.TransferMonitorFixtures.GAS_PRICE;
@@ -50,6 +48,8 @@ import static com.stablecoin.payments.custody.fixtures.TransferMonitorFixtures.a
 import static com.stablecoin.payments.custody.fixtures.TransferMonitorFixtures.aSuccessfulReceipt;
 import static com.stablecoin.payments.custody.fixtures.TransferMonitorFixtures.defaultChainConfirmationProperties;
 import static com.stablecoin.payments.custody.fixtures.TransferMonitorFixtures.defaultMonitorProperties;
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoring;
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoringTimestamps;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
