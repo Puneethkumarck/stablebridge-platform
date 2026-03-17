@@ -220,6 +220,24 @@ services:
       - ./infra/local/wiremock/__files:/home/wiremock/__files
     command: --verbose --global-response-templating
 
+  # ─────────────────────────────────────────────
+  # Jaeger — distributed trace visualization (STA-221)
+  # ─────────────────────────────────────────────
+  jaeger:
+    image: jaegertracing/all-in-one:1.67
+    container_name: sp-jaeger
+    ports:
+      - "16686:16686"  # Jaeger UI
+      - "4317:4317"    # OTLP gRPC receiver
+      - "4318:4318"    # OTLP HTTP receiver
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://localhost:16686/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
 volumes:
   pgdata:
   tsdata:
