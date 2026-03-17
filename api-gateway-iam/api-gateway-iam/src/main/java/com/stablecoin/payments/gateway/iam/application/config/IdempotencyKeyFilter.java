@@ -94,10 +94,14 @@ public class IdempotencyKeyFilter extends OncePerRequestFilter {
         if (reserved) {
             var replayableRequest = new CachedBodyRequestWrapper(request, bodyBytes);
             var wrappedResponse = new ContentCachingResponseWrapper(response);
-            chain.doFilter(replayableRequest, wrappedResponse);
-
-            finalizeIdempotencyKey(key, method, path, wrappedResponse);
-            wrappedResponse.copyBodyToResponse();
+            try {
+                chain.doFilter(replayableRequest, wrappedResponse);
+                finalizeIdempotencyKey(key, method, path, wrappedResponse);
+                wrappedResponse.copyBodyToResponse();
+            } catch (Exception e) {
+                deleteReservation(key, method, path);
+                throw e;
+            }
             return;
         }
 
@@ -138,6 +142,25 @@ public class IdempotencyKeyFilter extends OncePerRequestFilter {
                     Timestamp.from(Instant.now().plus(ttlHours, ChronoUnit.HOURS)));
             return true;
         } catch (DataIntegrityViolationException e) {
+            int deleted = jdbcTemplate.update(
+                    "DELETE FROM " + TABLE_NAME
+                            + " WHERE idempotency_key = ? AND request_method = ? AND request_path = ?"
+                            + " AND expires_at <= NOW()",
+                    key, method, path);
+            if (deleted > 0) {
+                try {
+                    jdbcTemplate.update(
+                            "INSERT INTO " + TABLE_NAME
+                                    + " (idempotency_key, request_method, request_path, request_hash,"
+                                    + " response_body, status_code, expires_at)"
+                                    + " VALUES (?, ?, ?, ?, '', 0, ?)",
+                            key, method, path, requestHash,
+                            Timestamp.from(Instant.now().plus(ttlHours, ChronoUnit.HOURS)));
+                    return true;
+                } catch (DataIntegrityViolationException retryEx) {
+                    return false;
+                }
+            }
             return false;
         }
     }
@@ -158,8 +181,12 @@ public class IdempotencyKeyFilter extends OncePerRequestFilter {
 
     void finalizeIdempotencyKey(String key, String method, String path,
                                 ContentCachingResponseWrapper wrappedResponse) {
-        var responseBody = new String(wrappedResponse.getContentAsByteArray(), StandardCharsets.UTF_8);
         var statusCode = wrappedResponse.getStatus();
+        if (statusCode < 200 || statusCode >= 300) {
+            deleteReservation(key, method, path);
+            return;
+        }
+        var responseBody = new String(wrappedResponse.getContentAsByteArray(), StandardCharsets.UTF_8);
         var expiresAt = Timestamp.from(Instant.now().plus(ttlHours, ChronoUnit.HOURS));
 
         jdbcTemplate.update(
@@ -167,6 +194,13 @@ public class IdempotencyKeyFilter extends OncePerRequestFilter {
                         + " SET response_body = ?, status_code = ?, expires_at = ?"
                         + " WHERE idempotency_key = ? AND request_method = ? AND request_path = ?",
                 responseBody, statusCode, expiresAt, key, method, path);
+    }
+
+    private void deleteReservation(String key, String method, String path) {
+        jdbcTemplate.update(
+                "DELETE FROM " + TABLE_NAME
+                        + " WHERE idempotency_key = ? AND request_method = ? AND request_path = ?",
+                key, method, path);
     }
 
     private void replayResponse(HttpServletResponse response, IdempotencyRecord record)

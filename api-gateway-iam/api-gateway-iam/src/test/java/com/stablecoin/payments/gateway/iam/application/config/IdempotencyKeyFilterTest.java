@@ -122,6 +122,23 @@ class IdempotencyKeyFilterTest {
             filter.doFilterInternal(request, response, filterChain);
 
             assertThat(response.getStatus()).isEqualTo(200);
+            assertThat(response.getContentAsString()).doesNotContain("GW-0001", "GW-0002", "GW-0003");
+        }
+    }
+
+    @Nested
+    @DisplayName("PUT requests")
+    class PutRequests {
+
+        @Test
+        @DisplayName("should enforce idempotency check for PUT requests")
+        void shouldEnforceIdempotencyCheckForPutRequests() throws ServletException, IOException {
+            request = new MockHttpServletRequest("PUT", "/v1/merchants");
+
+            filter.doFilterInternal(request, response, filterChain);
+
+            assertThat(response.getStatus()).isEqualTo(400);
+            assertThat(response.getContentAsString()).contains("GW-0001");
         }
     }
 
