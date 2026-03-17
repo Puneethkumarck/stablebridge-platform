@@ -11,19 +11,6 @@ import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.ExponentialBackOffWithMaxRetries;
 
-/**
- * Shared Kafka Dead Letter Queue configuration.
- * <p>
- * Defines a {@link DefaultErrorHandler} with {@link DeadLetterPublishingRecoverer}
- * that routes failed consumer records to a {@code <original-topic>.dlt} topic after
- * exponential back-off retries are exhausted.
- * <p>
- * Spring Boot auto-configuration detects the {@code CommonErrorHandler} bean and
- * wires it into all {@code @KafkaListener} container factories automatically.
- * <p>
- * Retry strategy: 3 attempts with exponential back-off (1s, 2s, 4s) before
- * publishing to the dead letter topic.
- */
 @Slf4j
 @Configuration
 @ConditionalOnClass(KafkaTemplate.class)
