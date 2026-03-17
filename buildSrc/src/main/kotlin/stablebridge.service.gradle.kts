@@ -98,6 +98,7 @@ val testcontainersVersion: String by project
 val wiremockVersion: String by project
 val springdocVersion: String by project
 val namastackVersion: String by project
+val logstashLogbackVersion: String by project
 
 // ---------------------------------------------------------------------------
 // Common dependencies — every service gets these
@@ -117,6 +118,7 @@ dependencies {
 
     // Observability
     runtimeOnly("io.micrometer:micrometer-registry-prometheus")
+    runtimeOnly("net.logstash.logback:logstash-logback-encoder:$logstashLogbackVersion")
     implementation("io.micrometer:micrometer-tracing-bridge-otel")
     implementation("io.opentelemetry:opentelemetry-exporter-otlp")
 

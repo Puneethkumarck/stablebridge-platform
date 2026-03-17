@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 import java.net.http.HttpClient;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
@@ -41,9 +42,16 @@ public class OnfidoKybAdapter implements KybProvider {
 
   public OnfidoKybAdapter(OnfidoProperties properties) {
     this.properties = properties;
-    var httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).build();
+    var httpClient = HttpClient.newBuilder()
+        .version(HttpClient.Version.HTTP_1_1)
+        .connectTimeout(Duration.ofSeconds(properties.timeoutSeconds()))
+        .build();
+
+    var requestFactory = new JdkClientHttpRequestFactory(httpClient);
+    requestFactory.setReadTimeout(Duration.ofSeconds(properties.timeoutSeconds()));
+
     this.restClient = RestClient.builder().baseUrl(properties.baseUrl())
-        .requestFactory(new JdkClientHttpRequestFactory(httpClient))
+        .requestFactory(requestFactory)
         .defaultHeader(HttpHeaders.AUTHORIZATION, "Token token=" + properties.apiToken())
         .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE).build();
   }

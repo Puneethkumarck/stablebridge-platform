@@ -3,11 +3,15 @@ package com.stablecoin.payments.merchant.onboarding.infrastructure.kyb;
 import com.stablecoin.payments.merchant.onboarding.domain.merchant.CompanyRegistryProvider;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.Map;
 import java.util.Optional;
@@ -21,6 +25,7 @@ import java.util.Optional;
 @Slf4j
 @Component
 @ConditionalOnProperty(name = "app.company-registry.provider", havingValue = "companies-house")
+@EnableConfigurationProperties(CompaniesHouseProperties.class)
 public class CompaniesHouseAdapter implements CompanyRegistryProvider {
 
   private final RestClient restClient;
@@ -28,7 +33,16 @@ public class CompaniesHouseAdapter implements CompanyRegistryProvider {
   public CompaniesHouseAdapter(CompaniesHouseProperties properties) {
     var basicAuth = Base64.getEncoder().encodeToString((properties.apiKey() + ":").getBytes(StandardCharsets.UTF_8));
 
+    var httpClient = HttpClient.newBuilder()
+        .version(HttpClient.Version.HTTP_1_1)
+        .connectTimeout(Duration.ofSeconds(properties.timeoutSeconds()))
+        .build();
+
+    var requestFactory = new JdkClientHttpRequestFactory(httpClient);
+    requestFactory.setReadTimeout(Duration.ofSeconds(properties.timeoutSeconds()));
+
     this.restClient = RestClient.builder().baseUrl(properties.baseUrl())
+        .requestFactory(requestFactory)
         .defaultHeader(HttpHeaders.AUTHORIZATION, "Basic " + basicAuth).build();
   }
 

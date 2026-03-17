@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <springProperty scope="context" name="serviceName" source="spring.application.name" defaultValue="unknown"/>
+
+    <!-- ================================================================== -->
+    <!-- Dev / Test / Integration-test profiles: human-readable console     -->
+    <!-- ================================================================== -->
+    <springProfile name="dev,test,integration-test,default">
+        <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+        </root>
+    </springProfile>
+
+    <!-- ================================================================== -->
+    <!-- Non-dev profiles (staging, production): structured JSON output      -->
+    <!-- ================================================================== -->
+    <springProfile name="!dev &amp; !test &amp; !integration-test &amp; !default">
+        <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                <!-- Service identification -->
+                <customFields>{"service":"${serviceName}"}</customFields>
+
+                <!-- MDC fields to include -->
+                <includeMdcKeyName>correlationId</includeMdcKeyName>
+                <includeMdcKeyName>traceId</includeMdcKeyName>
+                <includeMdcKeyName>spanId</includeMdcKeyName>
+
+                <!-- Timestamp format -->
+                <timestampPattern>yyyy-MM-dd'T'HH:mm:ss.SSSZ</timestampPattern>
+
+                <!-- Include caller info only for ERROR level (performance) -->
+                <throwableConverter class="net.logstash.logback.stacktrace.ShortenedThrowableConverter">
+                    <maxDepthPerThrowable>30</maxDepthPerThrowable>
+                    <maxLength>2048</maxLength>
+                    <shortenedClassNameLength>20</shortenedClassNameLength>
+                    <rootCauseFirst>true</rootCauseFirst>
+                </throwableConverter>
+
+                <!-- TODO: Add PII masking via MaskingJsonGeneratorDecorator for email/phone patterns -->
+                <!-- Example:
+                <jsonGeneratorDecorator class="net.logstash.logback.mask.MaskingJsonGeneratorDecorator">
+                    <valueMask>
+                        <value>[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}</value>
+                        <mask>***EMAIL***</mask>
+                    </valueMask>
+                    <valueMask>
+                        <value>\+?\d{10,15}</value>
+                        <mask>***PHONE***</mask>
+                    </valueMask>
+                </jsonGeneratorDecorator>
+                -->
+            </encoder>
+        </appender>
+
+        <root level="INFO">
+            <appender-ref ref="JSON"/>
+        </root>
+    </springProfile>
+</configuration>
