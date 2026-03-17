@@ -2,11 +2,10 @@ package com.stablecoin.payments.platform.infrastructure.feign;
 
 import feign.RequestTemplate;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
 
-import java.util.Collection;
-import java.util.Map;
 import java.util.UUID;
 
 import static com.stablecoin.payments.platform.infrastructure.feign.CorrelationIdFeignInterceptor.CORRELATION_ID_HEADER;
@@ -23,47 +22,37 @@ class CorrelationIdFeignInterceptorTest {
     }
 
     @Test
+    @DisplayName("should add correlation ID header when present in MDC")
     void shouldAddCorrelationIdHeaderWhenPresentInMdc() {
-        // Given
-        String correlationId = UUID.randomUUID().toString();
+        var correlationId = UUID.randomUUID().toString();
         MDC.put(CORRELATION_ID_MDC_KEY, correlationId);
-        RequestTemplate template = new RequestTemplate();
+        var template = new RequestTemplate();
 
-        // When
         interceptor.apply(template);
 
-        // Then
-        Map<String, Collection<String>> headers = template.headers();
-        assertThat(headers.get(CORRELATION_ID_HEADER)).containsExactly(correlationId);
+        assertThat(template.headers().get(CORRELATION_ID_HEADER)).containsExactly(correlationId);
     }
 
     @Test
+    @DisplayName("should not add header when correlation ID absent from MDC")
     void shouldNotAddHeaderWhenCorrelationIdAbsentFromMdc() {
-        // Given
-        RequestTemplate template = new RequestTemplate();
+        var template = new RequestTemplate();
 
-        // When
         interceptor.apply(template);
 
-        // Then
-        Map<String, Collection<String>> headers = template.headers();
-        assertThat(headers).doesNotContainKey(CORRELATION_ID_HEADER);
+        assertThat(template.headers()).doesNotContainKey(CORRELATION_ID_HEADER);
     }
 
     @Test
+    @DisplayName("should not overwrite existing correlation ID header")
     void shouldNotOverwriteExistingCorrelationIdHeader() {
-        // Given
-        String existingId = UUID.randomUUID().toString();
-        String mdcId = UUID.randomUUID().toString();
-        MDC.put(CORRELATION_ID_MDC_KEY, mdcId);
-        RequestTemplate template = new RequestTemplate();
+        var existingId = UUID.randomUUID().toString();
+        MDC.put(CORRELATION_ID_MDC_KEY, UUID.randomUUID().toString());
+        var template = new RequestTemplate();
         template.header(CORRELATION_ID_HEADER, existingId);
 
-        // When
         interceptor.apply(template);
 
-        // Then
-        Map<String, Collection<String>> headers = template.headers();
-        assertThat(headers.get(CORRELATION_ID_HEADER)).containsExactly(existingId);
+        assertThat(template.headers().get(CORRELATION_ID_HEADER)).containsExactly(existingId);
     }
 }
