@@ -42,11 +42,14 @@ public class OnfidoKycAdapter implements KycProvider {
                 .connectTimeout(Duration.ofSeconds(properties.timeoutSeconds()))
                 .build();
 
+        var requestFactory = new JdkClientHttpRequestFactory(httpClient);
+        requestFactory.setReadTimeout(Duration.ofSeconds(properties.timeoutSeconds()));
+
         this.restClient = RestClient.builder()
                 .baseUrl(properties.baseUrl())
                 .defaultHeader("Authorization", "Token token=" + properties.apiToken())
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .requestFactory(new JdkClientHttpRequestFactory(httpClient))
+                .requestFactory(requestFactory)
                 .build();
 
         this.redisTemplate = redisTemplate;

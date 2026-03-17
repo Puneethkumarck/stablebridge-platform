@@ -3,7 +3,8 @@ package com.stablecoin.payments.merchant.onboarding.infrastructure.kyb;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "onfido")
-public record OnfidoProperties(String apiToken, String baseUrl, String webhookSecret, String region) {
+public record OnfidoProperties(String apiToken, String baseUrl, String webhookSecret, String region,
+                                int timeoutSeconds) {
 
   public OnfidoProperties {
     if (baseUrl == null || baseUrl.isBlank()) {
@@ -11,6 +12,9 @@ public record OnfidoProperties(String apiToken, String baseUrl, String webhookSe
     }
     if (region == null || region.isBlank()) {
       region = "EU";
+    }
+    if (timeoutSeconds <= 0) {
+      timeoutSeconds = 30;
     }
   }
 }
