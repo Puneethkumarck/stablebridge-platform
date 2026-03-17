@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.lifecycle.Startable;
 import org.testcontainers.utility.DockerImageName;
 
 import java.util.UUID;
@@ -46,16 +47,34 @@ public abstract class AbstractIntegrationTest {
                     .withExposedPorts(6379);
 
     static {
-        POSTGRES.start();
-        KAFKA.start();
-        MAILPIT.start();
-        REDIS.start();
+        try {
+            POSTGRES.start();
+            KAFKA.start();
+            MAILPIT.start();
+            REDIS.start();
+        } catch (RuntimeException ex) {
+            safeStop(REDIS);
+            safeStop(MAILPIT);
+            safeStop(KAFKA);
+            safeStop(POSTGRES);
+            throw ex;
+        }
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            REDIS.stop();
-            MAILPIT.stop();
-            KAFKA.stop();
-            POSTGRES.stop();
-        }));
+            safeStop(REDIS);
+            safeStop(MAILPIT);
+            safeStop(KAFKA);
+            safeStop(POSTGRES);
+        }, "testcontainers-shutdown"));
+    }
+
+    private static void safeStop(Startable container) {
+        try {
+            if (container != null) {
+                container.stop();
+            }
+        } catch (Exception ignored) {
+            // best-effort cleanup
+        }
     }
 
     @Autowired

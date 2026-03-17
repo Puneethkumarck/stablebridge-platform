@@ -10,6 +10,7 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.KafkaContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.lifecycle.Startable;
 import org.testcontainers.utility.DockerImageName;
 
 @SuppressWarnings("resource")
@@ -30,12 +31,28 @@ public abstract class AbstractIntegrationTest {
             new KafkaContainer(DockerImageName.parse("confluentinc/cp-kafka:7.6.0"));
 
     static {
-        POSTGRES.start();
-        KAFKA.start();
+        try {
+            POSTGRES.start();
+            KAFKA.start();
+        } catch (RuntimeException ex) {
+            safeStop(KAFKA);
+            safeStop(POSTGRES);
+            throw ex;
+        }
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            KAFKA.stop();
-            POSTGRES.stop();
-        }));
+            safeStop(KAFKA);
+            safeStop(POSTGRES);
+        }, "testcontainers-shutdown"));
+    }
+
+    private static void safeStop(Startable container) {
+        try {
+            if (container != null) {
+                container.stop();
+            }
+        } catch (Exception ignored) {
+            // best-effort cleanup
+        }
     }
 
     @Autowired
