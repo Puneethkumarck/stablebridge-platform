@@ -1,0 +1,42 @@
+# OpenTelemetry Collector configuration — optional for production deployments.
+#
+# For LOCAL DEV, services export OTLP directly to Jaeger (which has built-in OTLP support).
+# This config is provided as a reference for production where a dedicated collector
+# sits between services and the tracing backend (Jaeger, Tempo, Datadog, etc.).
+#
+# To use in docker-compose, add an otel-collector service:
+#   otel-collector:
+#     image: otel/opentelemetry-collector-contrib:0.100.0
+#     ports:
+#       - "4317:4317"
+#       - "4318:4318"
+#     volumes:
+#       - ./infra/local/otel/otel-collector-config.yml:/etc/otelcol-contrib/config.yaml
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    timeout: 1s
+    send_batch_size: 512
+
+exporters:
+  otlp/jaeger:
+    endpoint: jaeger:4317
+    tls:
+      insecure: true
+  debug:
+    verbosity: basic
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp/jaeger, debug]
