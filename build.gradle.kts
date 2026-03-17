@@ -7,6 +7,7 @@ plugins {
     id("com.diffplug.spotless") apply false
     id("com.google.cloud.tools.jib") apply false
     id("org.sonarqube") version "7.2.3.7755"
+    id("org.owasp.dependencycheck") version "12.2.0"
     java
 }
 
@@ -19,6 +20,19 @@ sonarqube {
         property("sonar.exclusions", "**/build/**,**/generated/**,**/*MapperImpl.java")
         property("sonar.coverage.jacoco.xmlReportPaths",
             "**/build/reports/jacoco/test/jacocoTestReport.xml")
+    }
+}
+
+dependencyCheck {
+    failBuildOnCVSS = 7.0f
+    formats = listOf("HTML", "JSON")
+    suppressionFile = "${rootDir}/config/owasp-suppressions.xml"
+    nvd {
+        apiKey = System.getenv("NVD_API_KEY") ?: ""
+    }
+    analyzers {
+        nodeEnabled = false
+        nodeAuditEnabled = false
     }
 }
 
