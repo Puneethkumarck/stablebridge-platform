@@ -86,7 +86,8 @@ public class RefinitivRateAdapter implements RateProvider {
 
     @SuppressWarnings("unused")
     private Optional<CorridorRate> getRateFallback(String fromCurrency, String toCurrency, Exception ex) {
-        log.error("[REFINITIV] Circuit breaker open for {}:{}", fromCurrency, toCurrency, ex);
+        log.error("[REFINITIV] Resilience fallback for {}:{} due to {}",
+                fromCurrency, toCurrency, ex.getClass().getSimpleName(), ex);
         return Optional.empty();
     }
 }

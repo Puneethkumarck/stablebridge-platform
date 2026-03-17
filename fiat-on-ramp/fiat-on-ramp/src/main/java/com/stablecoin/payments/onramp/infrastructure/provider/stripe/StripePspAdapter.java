@@ -105,15 +105,15 @@ public class StripePspAdapter implements PspGateway {
 
     @SuppressWarnings("unused")
     private PspPaymentResult initiatePaymentFallback(PspPaymentRequest request, Exception ex) {
-        log.error("[STRIPE] Circuit breaker open — payment initiation failed collectionId={}",
-                request.collectionId(), ex);
+        log.error("[STRIPE] Resilience fallback — payment initiation failed collectionId={} due to {}",
+                request.collectionId(), ex.getClass().getSimpleName(), ex);
         throw new IllegalStateException("Stripe payment initiation unavailable", ex);
     }
 
     @SuppressWarnings("unused")
     private PspRefundResult initiateRefundFallback(PspRefundRequest request, Exception ex) {
-        log.error("[STRIPE] Circuit breaker open — refund initiation failed collectionId={}",
-                request.collectionId(), ex);
+        log.error("[STRIPE] Resilience fallback — refund initiation failed collectionId={} due to {}",
+                request.collectionId(), ex.getClass().getSimpleName(), ex);
         throw new IllegalStateException("Stripe refund initiation unavailable", ex);
     }
 

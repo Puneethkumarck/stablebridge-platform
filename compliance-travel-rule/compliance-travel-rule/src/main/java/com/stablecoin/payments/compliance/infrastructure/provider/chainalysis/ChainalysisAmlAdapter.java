@@ -161,8 +161,8 @@ public class ChainalysisAmlAdapter implements AmlProvider {
 
     @SuppressWarnings("unused")
     private AmlResult analyzeFallback(UUID senderId, UUID recipientId, Exception ex) {
-        log.error("[CHAINALYSIS] Circuit breaker open — AML analysis failed sender={} recipient={}",
-                senderId, recipientId, ex);
+        log.error("[CHAINALYSIS] Resilience fallback — AML analysis failed sender={} recipient={} due to {}",
+                senderId, recipientId, ex.getClass().getSimpleName(), ex);
         throw new IllegalStateException("AML screening unavailable", ex);
     }
 }

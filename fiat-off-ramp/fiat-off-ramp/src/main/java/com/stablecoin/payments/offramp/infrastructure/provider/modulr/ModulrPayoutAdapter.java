@@ -110,8 +110,8 @@ public class ModulrPayoutAdapter implements PayoutPartnerGateway {
 
     @SuppressWarnings("unused")
     private PayoutResult initiatePayoutFallback(PayoutRequest request, Exception ex) {
-        log.error("[MODULR] Circuit breaker open — payout failed payoutId={}",
-                request.payoutId(), ex);
+        log.error("[MODULR] Resilience fallback — payout failed payoutId={} due to {}",
+                request.payoutId(), ex.getClass().getSimpleName(), ex);
         throw new PayoutPartnerException(
                 request.payoutId(), "modulr", "Modulr payout unavailable", ex);
     }

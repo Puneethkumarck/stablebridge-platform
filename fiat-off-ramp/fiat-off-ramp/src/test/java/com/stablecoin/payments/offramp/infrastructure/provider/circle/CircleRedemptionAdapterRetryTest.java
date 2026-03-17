@@ -137,7 +137,8 @@ class CircleRedemptionAdapterRetryTest {
                                 """)));
 
         assertThatThrownBy(() -> redemptionGateway.redeem(aRedemptionRequest()))
-                .isInstanceOf(Exception.class);
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Circle redemption unavailable");
 
         wireMock.verify(1, postRequestedFor(urlEqualTo("/v1/businessAccount/payouts")));
     }
@@ -149,7 +150,8 @@ class CircleRedemptionAdapterRetryTest {
                 .willReturn(aResponse().withStatus(503)));
 
         assertThatThrownBy(() -> redemptionGateway.redeem(aRedemptionRequest()))
-                .isInstanceOf(Exception.class);
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Circle redemption unavailable");
 
         wireMock.verify(3, postRequestedFor(urlEqualTo("/v1/businessAccount/payouts")));
     }

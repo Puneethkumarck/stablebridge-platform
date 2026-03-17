@@ -151,8 +151,8 @@ public class OnfidoKycAdapter implements KycProvider {
 
     @SuppressWarnings("unused")
     private KycResult verifyFallback(UUID senderId, UUID recipientId, Exception ex) {
-        log.error("[ONFIDO] Circuit breaker open — KYC verification failed sender={} recipient={}",
-                senderId, recipientId, ex);
+        log.error("[ONFIDO] Resilience fallback — KYC verification failed sender={} recipient={} due to {}",
+                senderId, recipientId, ex.getClass().getSimpleName(), ex);
         throw new IllegalStateException("KYC verification unavailable", ex);
     }
 

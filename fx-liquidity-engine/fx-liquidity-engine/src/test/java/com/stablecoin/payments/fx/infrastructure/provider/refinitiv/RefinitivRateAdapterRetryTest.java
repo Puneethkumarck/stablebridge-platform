@@ -34,6 +34,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("RefinitivRateAdapter retry behavior")
 class RefinitivRateAdapterRetryTest {
 
+    /** Must match RefinitivRateAdapter.DEFAULT_SPREAD_BPS */
+    private static final int EXPECTED_SPREAD_BPS = 30;
+    /** Must match RefinitivRateAdapter.DEFAULT_FEE_BPS */
+    private static final int EXPECTED_FEE_BPS = 30;
+
     private static WireMockServer wireMock;
 
     @Autowired
@@ -107,8 +112,8 @@ class RefinitivRateAdapterRetryTest {
                 .fromCurrency("USD")
                 .toCurrency("EUR")
                 .rate(new BigDecimal("0.92"))
-                .spreadBps(30)
-                .feeBps(30)
+                .spreadBps(EXPECTED_SPREAD_BPS)
+                .feeBps(EXPECTED_FEE_BPS)
                 .provider("refinitiv")
                 .build();
         assertThat(result.get())

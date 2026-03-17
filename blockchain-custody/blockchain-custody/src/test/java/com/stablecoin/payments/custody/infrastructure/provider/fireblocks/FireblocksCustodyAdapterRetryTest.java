@@ -4,6 +4,7 @@ import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
 import com.stablecoin.payments.custody.domain.port.CustodyEngine;
 import com.stablecoin.payments.custody.domain.port.SignResult;
+import com.stablecoin.payments.custody.domain.port.TransactionStatus;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.github.resilience4j.springboot3.circuitbreaker.autoconfigure.CircuitBreakerAutoConfiguration;
 import io.github.resilience4j.springboot3.retry.autoconfigure.RetryAutoConfiguration;
@@ -25,9 +26,12 @@ import java.security.KeyPairGenerator;
 import java.util.Base64;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.get;
+import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.post;
 import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlPathMatching;
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static com.stablecoin.payments.custody.fixtures.CustodyEngineFixtures.aSignRequest;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -127,7 +131,8 @@ class FireblocksCustodyAdapterRetryTest {
                                 """)));
 
         assertThatThrownBy(() -> custodyEngine.signAndSubmit(aSignRequest()))
-                .isInstanceOf(Exception.class);
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Fireblocks custody unavailable");
 
         wireMock.verify(1, postRequestedFor(urlEqualTo("/v1/transactions")));
     }
@@ -139,9 +144,74 @@ class FireblocksCustodyAdapterRetryTest {
                 .willReturn(aResponse().withStatus(503)));
 
         assertThatThrownBy(() -> custodyEngine.signAndSubmit(aSignRequest()))
-                .isInstanceOf(Exception.class);
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Fireblocks custody unavailable");
 
         wireMock.verify(3, postRequestedFor(urlEqualTo("/v1/transactions")));
+    }
+
+    @Test
+    @DisplayName("should retry getTransactionStatus on transient 503 then succeed")
+    void shouldRetryGetTransactionStatusOnTransientFailureThenSucceed() {
+        wireMock.stubFor(get(urlPathMatching("/v1/transactions/.+"))
+                .inScenario("status-retry-then-success")
+                .whenScenarioStateIs(Scenario.STARTED)
+                .willReturn(aResponse().withStatus(503))
+                .willSetStateTo("status-second-attempt"));
+
+        wireMock.stubFor(get(urlPathMatching("/v1/transactions/.+"))
+                .inScenario("status-retry-then-success")
+                .whenScenarioStateIs("status-second-attempt")
+                .willReturn(aResponse()
+                        .withStatus(200)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("""
+                                {
+                                  "id": "fb-tx-001",
+                                  "status": "COMPLETED",
+                                  "txHash": "0xabc123",
+                                  "numOfConfirmations": 12
+                                }
+                                """)));
+
+        var result = custodyEngine.getTransactionStatus("fb-tx-001");
+
+        var expected = new TransactionStatus("COMPLETED", "0xabc123", 12);
+        assertThat(result).usingRecursiveComparison().isEqualTo(expected);
+    }
+
+    @Test
+    @DisplayName("should not retry getTransactionStatus on 400 client error")
+    void shouldNotRetryGetTransactionStatusOnClientError() {
+        wireMock.stubFor(get(urlPathMatching("/v1/transactions/.+"))
+                .willReturn(aResponse()
+                        .withStatus(400)
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("""
+                                {
+                                  "message": "Invalid transaction ID",
+                                  "code": 1000
+                                }
+                                """)));
+
+        assertThatThrownBy(() -> custodyEngine.getTransactionStatus("invalid-tx"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Fireblocks custody unavailable");
+
+        wireMock.verify(1, getRequestedFor(urlPathMatching("/v1/transactions/.+")));
+    }
+
+    @Test
+    @DisplayName("should exhaust retries on persistent 503 for getTransactionStatus")
+    void shouldExhaustRetriesForGetTransactionStatus() {
+        wireMock.stubFor(get(urlPathMatching("/v1/transactions/.+"))
+                .willReturn(aResponse().withStatus(503)));
+
+        assertThatThrownBy(() -> custodyEngine.getTransactionStatus("fb-tx-001"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Fireblocks custody unavailable");
+
+        wireMock.verify(3, getRequestedFor(urlPathMatching("/v1/transactions/.+")));
     }
 
     @Configuration

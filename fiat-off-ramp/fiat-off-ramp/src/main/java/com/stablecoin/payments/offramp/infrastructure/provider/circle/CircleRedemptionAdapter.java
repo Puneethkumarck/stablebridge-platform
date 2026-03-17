@@ -89,8 +89,8 @@ public class CircleRedemptionAdapter implements RedemptionGateway {
 
     @SuppressWarnings("unused")
     private RedemptionResult redeemFallback(RedemptionRequest request, Exception ex) {
-        log.error("[CIRCLE] Circuit breaker open — redemption failed payoutId={}",
-                request.payoutId(), ex);
+        log.error("[CIRCLE] Resilience fallback — redemption failed payoutId={} due to {}",
+                request.payoutId(), ex.getClass().getSimpleName(), ex);
         throw new IllegalStateException("Circle redemption unavailable", ex);
     }
 }

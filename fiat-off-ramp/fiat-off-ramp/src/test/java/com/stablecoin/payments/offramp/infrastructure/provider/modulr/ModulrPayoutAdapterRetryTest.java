@@ -6,6 +6,7 @@ import com.stablecoin.payments.offramp.domain.model.AccountType;
 import com.stablecoin.payments.offramp.domain.model.BankAccount;
 import com.stablecoin.payments.offramp.domain.model.PartnerIdentifier;
 import com.stablecoin.payments.offramp.domain.model.PaymentRail;
+import com.stablecoin.payments.offramp.domain.exception.PayoutPartnerException;
 import com.stablecoin.payments.offramp.domain.port.PayoutPartnerGateway;
 import com.stablecoin.payments.offramp.domain.port.PayoutRequest;
 import com.stablecoin.payments.offramp.domain.port.PayoutResult;
@@ -141,7 +142,7 @@ class ModulrPayoutAdapterRetryTest {
                                 """)));
 
         assertThatThrownBy(() -> payoutPartnerGateway.initiatePayout(aPayoutRequest()))
-                .isInstanceOf(Exception.class);
+                .isInstanceOf(PayoutPartnerException.class);
 
         wireMock.verify(1, postRequestedFor(urlEqualTo("/api-sandbox-token/payments")));
     }
@@ -153,7 +154,7 @@ class ModulrPayoutAdapterRetryTest {
                 .willReturn(aResponse().withStatus(503)));
 
         assertThatThrownBy(() -> payoutPartnerGateway.initiatePayout(aPayoutRequest()))
-                .isInstanceOf(Exception.class);
+                .isInstanceOf(PayoutPartnerException.class);
 
         wireMock.verify(3, postRequestedFor(urlEqualTo("/api-sandbox-token/payments")));
     }

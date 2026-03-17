@@ -162,8 +162,8 @@ public class WorldCheckSanctionsAdapter implements SanctionsProvider {
 
     @SuppressWarnings("unused")
     private SanctionsResult screenFallback(UUID senderId, UUID recipientId, Exception ex) {
-        log.error("[WORLD-CHECK] Circuit breaker open — screening failed sender={} recipient={}",
-                senderId, recipientId, ex);
+        log.error("[WORLD-CHECK] Resilience fallback — screening failed sender={} recipient={} due to {}",
+                senderId, recipientId, ex.getClass().getSimpleName(), ex);
         throw new IllegalStateException("Sanctions screening unavailable", ex);
     }
 }

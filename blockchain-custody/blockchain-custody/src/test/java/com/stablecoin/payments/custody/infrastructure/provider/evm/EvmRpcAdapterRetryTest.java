@@ -106,7 +106,8 @@ class EvmRpcAdapterRetryTest {
                 .willReturn(aResponse().withStatus(400)));
 
         assertThatThrownBy(() -> chainRpcProvider.getLatestBlockNumber(BASE_CHAIN))
-                .isInstanceOf(Exception.class);
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("EVM RPC unavailable for getLatestBlockNumber");
 
         wireMock.verify(1, postRequestedFor(urlEqualTo("/")));
     }
@@ -118,7 +119,8 @@ class EvmRpcAdapterRetryTest {
                 .willReturn(aResponse().withStatus(503)));
 
         assertThatThrownBy(() -> chainRpcProvider.getLatestBlockNumber(BASE_CHAIN))
-                .isInstanceOf(Exception.class);
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("EVM RPC unavailable for getLatestBlockNumber");
 
         wireMock.verify(3, postRequestedFor(urlEqualTo("/")));
     }

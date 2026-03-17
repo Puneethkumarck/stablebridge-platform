@@ -147,7 +147,8 @@ class StripePspAdapterRetryTest {
                                 """)));
 
         assertThatThrownBy(() -> pspGateway.initiatePayment(aPaymentRequest()))
-                .isInstanceOf(Exception.class);
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Stripe payment initiation unavailable");
 
         wireMock.verify(1, postRequestedFor(urlEqualTo("/v1/payment_intents")));
     }
@@ -159,7 +160,8 @@ class StripePspAdapterRetryTest {
                 .willReturn(aResponse().withStatus(503)));
 
         assertThatThrownBy(() -> pspGateway.initiatePayment(aPaymentRequest()))
-                .isInstanceOf(Exception.class);
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Stripe payment initiation unavailable");
 
         wireMock.verify(3, postRequestedFor(urlEqualTo("/v1/payment_intents")));
     }

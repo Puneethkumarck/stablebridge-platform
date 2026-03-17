@@ -171,23 +171,23 @@ public class SolanaRpcAdapter implements ChainRpcProvider {
 
     @SuppressWarnings("unused")
     private TransactionReceipt getTransactionReceiptFallback(ChainId chainId, String txHash, Exception ex) {
-        log.error("[SOLANA-RPC] Circuit breaker open - getTransactionReceipt failed chain={} signature={}",
-                chainId.value(), txHash, ex);
+        log.error("[SOLANA-RPC] Resilience fallback — getTransactionReceipt failed chain={} signature={} due to {}",
+                chainId.value(), txHash, ex.getClass().getSimpleName(), ex);
         throw new IllegalStateException("Solana RPC unavailable for getTransactionReceipt", ex);
     }
 
     @SuppressWarnings("unused")
     private long getLatestBlockNumberFallback(ChainId chainId, Exception ex) {
-        log.error("[SOLANA-RPC] Circuit breaker open - getLatestBlockNumber failed chain={}",
-                chainId.value(), ex);
+        log.error("[SOLANA-RPC] Resilience fallback — getLatestBlockNumber failed chain={} due to {}",
+                chainId.value(), ex.getClass().getSimpleName(), ex);
         throw new IllegalStateException("Solana RPC unavailable for getSlot", ex);
     }
 
     @SuppressWarnings("unused")
     private BigDecimal getTokenBalanceFallback(ChainId chainId, String address, String tokenContract,
                                                Exception ex) {
-        log.error("[SOLANA-RPC] Circuit breaker open - getTokenBalance failed chain={} owner={}",
-                chainId.value(), address, ex);
+        log.error("[SOLANA-RPC] Resilience fallback — getTokenBalance failed chain={} owner={} due to {}",
+                chainId.value(), address, ex.getClass().getSimpleName(), ex);
         throw new IllegalStateException("Solana RPC unavailable for getTokenBalance", ex);
     }
 

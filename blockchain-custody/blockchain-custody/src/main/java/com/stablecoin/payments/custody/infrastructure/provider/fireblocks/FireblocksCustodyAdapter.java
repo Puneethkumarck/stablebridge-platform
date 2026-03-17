@@ -134,14 +134,15 @@ public class FireblocksCustodyAdapter implements CustodyEngine {
 
     @SuppressWarnings("unused")
     private SignResult signAndSubmitFallback(SignRequest request, Exception ex) {
-        log.error("[FIREBLOCKS] Circuit breaker open — signAndSubmit failed transferId={}",
-                request.transferId(), ex);
+        log.error("[FIREBLOCKS] Resilience fallback — signAndSubmit failed transferId={} due to {}",
+                request.transferId(), ex.getClass().getSimpleName(), ex);
         throw new IllegalStateException("Fireblocks custody unavailable", ex);
     }
 
     @SuppressWarnings("unused")
     private TransactionStatus getTransactionStatusFallback(String txId, Exception ex) {
-        log.error("[FIREBLOCKS] Circuit breaker open — getTransactionStatus failed txId={}", txId, ex);
+        log.error("[FIREBLOCKS] Resilience fallback — getTransactionStatus failed txId={} due to {}",
+                txId, ex.getClass().getSimpleName(), ex);
         throw new IllegalStateException("Fireblocks custody unavailable", ex);
     }
 

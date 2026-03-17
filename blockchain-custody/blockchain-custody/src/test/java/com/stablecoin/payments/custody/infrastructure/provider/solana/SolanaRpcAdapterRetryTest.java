@@ -104,7 +104,8 @@ class SolanaRpcAdapterRetryTest {
                 .willReturn(aResponse().withStatus(400)));
 
         assertThatThrownBy(() -> chainRpcProvider.getLatestBlockNumber(SOLANA_CHAIN))
-                .isInstanceOf(Exception.class);
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Solana RPC unavailable for getSlot");
 
         wireMock.verify(1, postRequestedFor(urlEqualTo("/")));
     }
@@ -116,7 +117,8 @@ class SolanaRpcAdapterRetryTest {
                 .willReturn(aResponse().withStatus(503)));
 
         assertThatThrownBy(() -> chainRpcProvider.getLatestBlockNumber(SOLANA_CHAIN))
-                .isInstanceOf(Exception.class);
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Solana RPC unavailable for getSlot");
 
         wireMock.verify(3, postRequestedFor(urlEqualTo("/")));
     }

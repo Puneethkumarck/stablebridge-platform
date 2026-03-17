@@ -132,7 +132,8 @@ class ChainalysisAmlAdapterRetryTest {
                 .willReturn(aResponse().withStatus(400)));
 
         assertThatThrownBy(() -> amlProvider.analyze(SENDER_ID, RECIPIENT_ID))
-                .isInstanceOf(Exception.class);
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("AML screening unavailable");
 
         // 400 is not retried — exactly 1 POST call
         wireMock.verify(1, postRequestedFor(urlPathMatching("/v2/users/.+/transfers")));
@@ -145,7 +146,8 @@ class ChainalysisAmlAdapterRetryTest {
                 .willReturn(aResponse().withStatus(503)));
 
         assertThatThrownBy(() -> amlProvider.analyze(SENDER_ID, RECIPIENT_ID))
-                .isInstanceOf(Exception.class);
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("AML screening unavailable");
 
         // max-attempts=3 => 3 calls for the first registerTransfer call
         wireMock.verify(3, postRequestedFor(urlPathMatching("/v2/users/.+/transfers")));

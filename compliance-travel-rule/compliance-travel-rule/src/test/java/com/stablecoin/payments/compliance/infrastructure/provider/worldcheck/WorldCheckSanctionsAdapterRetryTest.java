@@ -133,7 +133,8 @@ class WorldCheckSanctionsAdapterRetryTest {
         var recipientId = UUID.fromString("22222222-2222-2222-2222-222222222222");
 
         assertThatThrownBy(() -> sanctionsProvider.screen(senderId, recipientId))
-                .isInstanceOf(Exception.class);
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Sanctions screening unavailable");
 
         // Should call exactly once — 400 is not retried (sender call fails, no recipient call)
         wireMock.verify(1, postRequestedFor(urlEqualTo("/v2/cases/screeningRequest")));
@@ -149,7 +150,8 @@ class WorldCheckSanctionsAdapterRetryTest {
         var recipientId = UUID.fromString("22222222-2222-2222-2222-222222222222");
 
         assertThatThrownBy(() -> sanctionsProvider.screen(senderId, recipientId))
-                .isInstanceOf(Exception.class);
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Sanctions screening unavailable");
 
         // max-attempts=3 => 3 calls for the first screenEntity call (sender)
         wireMock.verify(3, postRequestedFor(urlEqualTo("/v2/cases/screeningRequest")));

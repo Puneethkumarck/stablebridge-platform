@@ -139,7 +139,8 @@ class OnfidoKycAdapterRetryTest {
                 .willReturn(aResponse().withStatus(400)));
 
         assertThatThrownBy(() -> kycProvider.verify(SENDER_ID, RECIPIENT_ID))
-                .isInstanceOf(Exception.class);
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("KYC verification unavailable");
 
         wireMock.verify(1, getRequestedFor(urlPathEqualTo("/v3.6/checks")));
     }
@@ -151,7 +152,8 @@ class OnfidoKycAdapterRetryTest {
                 .willReturn(aResponse().withStatus(503)));
 
         assertThatThrownBy(() -> kycProvider.verify(SENDER_ID, RECIPIENT_ID))
-                .isInstanceOf(Exception.class);
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("KYC verification unavailable");
 
         wireMock.verify(3, getRequestedFor(urlPathEqualTo("/v3.6/checks")));
     }
