@@ -2,11 +2,11 @@ package com.stablecoin.payments.offramp.infrastructure.provider.modulr;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.stubbing.Scenario;
+import com.stablecoin.payments.offramp.domain.exception.PayoutPartnerException;
 import com.stablecoin.payments.offramp.domain.model.AccountType;
 import com.stablecoin.payments.offramp.domain.model.BankAccount;
 import com.stablecoin.payments.offramp.domain.model.PartnerIdentifier;
 import com.stablecoin.payments.offramp.domain.model.PaymentRail;
-import com.stablecoin.payments.offramp.domain.exception.PayoutPartnerException;
 import com.stablecoin.payments.offramp.domain.port.PayoutPartnerGateway;
 import com.stablecoin.payments.offramp.domain.port.PayoutRequest;
 import com.stablecoin.payments.offramp.domain.port.PayoutResult;
