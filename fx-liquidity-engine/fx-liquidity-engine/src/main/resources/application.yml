@@ -127,6 +127,11 @@ app:
 resilience4j:
   circuitbreaker:
     circuit-breaker-aspect-order: 1
+    instances:
+      frankfurter:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
   retry:
     retry-aspect-order: 3
     instances:
@@ -135,6 +140,18 @@ resilience4j:
         wait-duration: 200ms
         enable-exponential-backoff: true
         exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - java.io.IOException
+          - java.net.http.HttpTimeoutException
+          - java.net.http.HttpConnectTimeoutException
+          - org.springframework.web.client.ResourceAccessException
+          - org.springframework.web.client.HttpServerErrorException
+        ignore-exceptions:
+          - org.springframework.web.client.HttpClientErrorException
+          - io.github.resilience4j.circuitbreaker.CallNotPermittedException
+      frankfurter:
+        maxAttempts: 3
+        waitDuration: 1s
         retry-exceptions:
           - java.io.IOException
           - java.net.http.HttpTimeoutException
