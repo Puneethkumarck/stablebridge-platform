@@ -20,9 +20,6 @@ dependencies {
     // Redis — payment state cache
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
 
-    // Kafka via Spring Kafka (in addition to cloud-stream from convention)
-    implementation("org.springframework.boot:spring-boot-starter-kafka")
-
     // Temporal SDK
     implementation("io.temporal:temporal-sdk:$temporalVersion")
     implementation("io.temporal:temporal-spring-boot-starter:$temporalVersion")

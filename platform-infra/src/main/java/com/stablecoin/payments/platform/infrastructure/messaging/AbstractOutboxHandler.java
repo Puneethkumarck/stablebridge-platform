@@ -25,6 +25,7 @@ public abstract class AbstractOutboxHandler {
             Thread.currentThread().interrupt();
             throw new RuntimeException("Kafka send interrupted for event " + event.getClass().getSimpleName(), e);
         } catch (Exception e) {
+            // Kafka errors don't contain user PII — safe to log
             log.error("Failed to publish event type={} topic={}: {}",
                     event.getClass().getSimpleName(), topic, e.getMessage());
             throw new RuntimeException("Kafka send failed for event " + event.getClass().getSimpleName(), e);

@@ -26,7 +26,10 @@ public abstract class AbstractOutboxEventPublisher {
         for (String fieldName : keyFieldNames) {
             try {
                 var method = event.getClass().getMethod(fieldName);
-                return String.valueOf(method.invoke(event));
+                var value = method.invoke(event);
+                if (value != null) {
+                    return String.valueOf(value);
+                }
             } catch (NoSuchMethodException ignored) {
                 // try next field name
             } catch (Exception e) {
@@ -35,6 +38,6 @@ public abstract class AbstractOutboxEventPublisher {
             }
         }
         throw new IllegalArgumentException(
-                "Event class missing accessor for any of " + keyFieldNames + ": " + event.getClass().getName());
+                "Event class has no non-null value for any of " + keyFieldNames + ": " + event.getClass().getName());
     }
 }

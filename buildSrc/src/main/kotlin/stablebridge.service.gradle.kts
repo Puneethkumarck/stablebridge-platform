@@ -59,7 +59,6 @@ tasks.register<Test>("integrationTest") {
     classpath = integrationTestSourceSet.runtimeClasspath
     shouldRunAfter(tasks.test)
     configure<JacocoTaskExtension> { isEnabled = false }
-    failOnNoDiscoveredTests = false
     exclude("**/Abstract*", "**/config/**")
 }
 
@@ -98,6 +97,7 @@ val archunitVersion: String by project
 val testcontainersVersion: String by project
 val wiremockVersion: String by project
 val springdocVersion: String by project
+val namastackVersion: String by project
 
 // ---------------------------------------------------------------------------
 // Common dependencies — every service gets these
@@ -141,7 +141,7 @@ dependencies {
     annotationProcessor("org.projectlombok:lombok-mapstruct-binding:$lombokMapstructBindingVersion")
 
     // Outbox (namastack)
-    implementation("io.namastack:namastack-outbox-starter-jdbc:1.1.0")
+    implementation("io.namastack:namastack-outbox-starter-jdbc:$namastackVersion")
 
     // Database
     runtimeOnly("org.postgresql:postgresql")

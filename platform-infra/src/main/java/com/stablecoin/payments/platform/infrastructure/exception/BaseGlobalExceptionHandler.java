@@ -33,7 +33,7 @@ public abstract class BaseGlobalExceptionHandler {
                 .collect(Collectors.groupingBy(
                         FieldError::getField,
                         Collectors.mapping(ObjectError::getDefaultMessage, Collectors.toList())));
-        log.info("Validation failed: {}", errors);
+        log.info("Validation failed: field count={}", errors.size());
         return ApiError.withErrors(code("0001"), BAD_REQUEST.getReasonPhrase(),
                 "Invalid request content", errors);
     }
@@ -46,6 +46,7 @@ public abstract class BaseGlobalExceptionHandler {
                         v -> v.getPropertyPath().toString(),
                         Collectors.mapping(jakarta.validation.ConstraintViolation::getMessage,
                                 Collectors.toList())));
+        log.info("Constraint violation: {} violations", errors.size());
         return ApiError.withErrors(code("0001"), BAD_REQUEST.getReasonPhrase(),
                 "Invalid request content", errors);
     }
@@ -61,6 +62,7 @@ public abstract class BaseGlobalExceptionHandler {
     @ResponseStatus(BAD_REQUEST)
     @ExceptionHandler(IllegalArgumentException.class)
     public ApiError handleIllegalArgument(IllegalArgumentException ex) {
+        // Note: message may contain domain identifiers but not user PII
         log.info("Illegal argument: {}", ex.getMessage());
         return ApiError.of(code("0001"), BAD_REQUEST.getReasonPhrase(), ex.getMessage());
     }
@@ -68,6 +70,7 @@ public abstract class BaseGlobalExceptionHandler {
     @ResponseStatus(UNPROCESSABLE_ENTITY)
     @ExceptionHandler(IllegalStateException.class)
     public ApiError handleInvalidState(IllegalStateException ex) {
+        // Note: message may contain domain identifiers but not user PII
         log.info("Invalid state: {}", ex.getMessage());
         return ApiError.of(code("0004"), UNPROCESSABLE_ENTITY.getReasonPhrase(), ex.getMessage());
     }

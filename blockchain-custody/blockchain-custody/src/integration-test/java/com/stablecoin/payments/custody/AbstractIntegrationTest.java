@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -37,6 +38,9 @@ public abstract class AbstractIntegrationTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private StringRedisTemplate redisTemplate;
+
     @BeforeEach
     void cleanDatabase() {
         jdbcTemplate.execute("""
@@ -52,6 +56,11 @@ public abstract class AbstractIntegrationTest {
                     custody_outbox_record
                 CASCADE
                 """);
+
+        // Flush Redis cache between tests
+        var connection = redisTemplate.getConnectionFactory().getConnection();
+        connection.serverCommands().flushAll();
+        connection.close();
     }
 
     @DynamicPropertySource
