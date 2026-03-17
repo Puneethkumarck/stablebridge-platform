@@ -22,6 +22,12 @@ spring:
         binder:
           brokers: localhost:9092
 
+app:
+  idempotency:
+    ttl-hours: 24
+    cleanup:
+      enabled: false
+
 logging:
   level:
     com.stablecoin.payments: DEBUG

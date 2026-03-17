@@ -1,6 +1,10 @@
 app:
   security:
     enabled: false
+  idempotency:
+    ttl-hours: 24
+    cleanup:
+      enabled: false
 
 spring:
   jpa:

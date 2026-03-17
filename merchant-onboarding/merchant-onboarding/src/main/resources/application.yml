@@ -63,6 +63,13 @@ spring:
         merchant-corridor-approved-out-0:
           destination: merchant.corridor.approved
 
+app:
+  idempotency:
+    ttl-hours: 24
+    cleanup-cron: "0 0 * * * *"
+    cleanup:
+      enabled: true
+
 namastack:
   outbox:
     poll-interval: 2000

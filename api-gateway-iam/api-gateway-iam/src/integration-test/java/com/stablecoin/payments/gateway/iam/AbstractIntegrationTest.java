@@ -55,6 +55,7 @@ public abstract class AbstractIntegrationTest {
                     oauth_clients,
                     rate_limit_events,
                     gateway_audit_log,
+                    gatewayiam_idempotency_keys,
                     merchants
                 CASCADE
                 """);
