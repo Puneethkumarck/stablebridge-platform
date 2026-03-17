@@ -28,7 +28,7 @@ dependencyCheck {
     formats = listOf("HTML", "JSON")
     suppressionFile = "${rootDir}/config/owasp-suppressions.xml"
     nvd {
-        apiKey = System.getenv("NVD_API_KEY") ?: ""
+        System.getenv("NVD_API_KEY")?.let { apiKey = it }
     }
     analyzers {
         nodeEnabled = false
