@@ -139,6 +139,14 @@ app:
       interval-ms: ${LOCK_EXPIRY_INTERVAL_MS:5000}
 
 resilience4j:
+  bulkhead:
+    instances:
+      frankfurter:
+        maxConcurrentCalls: 10
+        maxWaitDuration: 500ms
+      fxRate:
+        maxConcurrentCalls: 10
+        maxWaitDuration: 500ms
   circuitbreaker:
     circuit-breaker-aspect-order: 1
     instances:

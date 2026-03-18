@@ -4,6 +4,7 @@ import com.stablecoin.payments.compliance.domain.model.KycResult;
 import com.stablecoin.payments.compliance.domain.model.KycStatus;
 import com.stablecoin.payments.compliance.domain.model.KycTier;
 import com.stablecoin.payments.compliance.domain.port.KycProvider;
+import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
@@ -58,6 +59,7 @@ public class OnfidoKycAdapter implements KycProvider {
     }
 
     @Override
+    @Bulkhead(name = "kyc")
     @Retry(name = "kyc", fallbackMethod = "verifyFallback")
     @CircuitBreaker(name = "kyc", fallbackMethod = "verifyFallback")
     public KycResult verify(UUID senderId, UUID recipientId) {

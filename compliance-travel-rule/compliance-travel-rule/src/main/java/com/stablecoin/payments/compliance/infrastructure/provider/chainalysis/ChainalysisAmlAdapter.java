@@ -2,6 +2,7 @@ package com.stablecoin.payments.compliance.infrastructure.provider.chainalysis;
 
 import com.stablecoin.payments.compliance.domain.model.AmlResult;
 import com.stablecoin.payments.compliance.domain.port.AmlProvider;
+import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
@@ -53,6 +54,7 @@ public class ChainalysisAmlAdapter implements AmlProvider {
     }
 
     @Override
+    @Bulkhead(name = "aml")
     @Retry(name = "aml", fallbackMethod = "analyzeFallback")
     @CircuitBreaker(name = "aml", fallbackMethod = "analyzeFallback")
     public AmlResult analyze(UUID senderId, UUID recipientId) {

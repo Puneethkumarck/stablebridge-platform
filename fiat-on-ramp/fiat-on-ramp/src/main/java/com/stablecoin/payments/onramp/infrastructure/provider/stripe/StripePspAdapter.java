@@ -5,6 +5,7 @@ import com.stablecoin.payments.onramp.domain.port.PspPaymentRequest;
 import com.stablecoin.payments.onramp.domain.port.PspPaymentResult;
 import com.stablecoin.payments.onramp.domain.port.PspRefundRequest;
 import com.stablecoin.payments.onramp.domain.port.PspRefundResult;
+import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +48,7 @@ public class StripePspAdapter implements PspGateway {
     }
 
     @Override
+    @Bulkhead(name = "stripe")
     @Retry(name = "stripe", fallbackMethod = "initiatePaymentFallback")
     @CircuitBreaker(name = "stripe", fallbackMethod = "initiatePaymentFallback")
     public PspPaymentResult initiatePayment(PspPaymentRequest request) {
@@ -78,6 +80,7 @@ public class StripePspAdapter implements PspGateway {
     }
 
     @Override
+    @Bulkhead(name = "stripe")
     @Retry(name = "stripe", fallbackMethod = "initiateRefundFallback")
     @CircuitBreaker(name = "stripe", fallbackMethod = "initiateRefundFallback")
     public PspRefundResult initiateRefund(PspRefundRequest request) {

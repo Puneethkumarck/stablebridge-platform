@@ -3,6 +3,7 @@ package com.stablecoin.payments.offramp.infrastructure.provider.circle;
 import com.stablecoin.payments.offramp.domain.port.RedemptionGateway;
 import com.stablecoin.payments.offramp.domain.port.RedemptionRequest;
 import com.stablecoin.payments.offramp.domain.port.RedemptionResult;
+import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
@@ -50,6 +51,7 @@ public class CircleRedemptionAdapter implements RedemptionGateway {
     }
 
     @Override
+    @Bulkhead(name = "circle")
     @Retry(name = "circle", fallbackMethod = "redeemFallback")
     @CircuitBreaker(name = "circle", fallbackMethod = "redeemFallback")
     public RedemptionResult redeem(RedemptionRequest request) {

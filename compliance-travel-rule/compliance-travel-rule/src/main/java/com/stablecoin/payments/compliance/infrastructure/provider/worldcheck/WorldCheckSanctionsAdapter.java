@@ -2,6 +2,7 @@ package com.stablecoin.payments.compliance.infrastructure.provider.worldcheck;
 
 import com.stablecoin.payments.compliance.domain.model.SanctionsResult;
 import com.stablecoin.payments.compliance.domain.port.SanctionsProvider;
+import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
@@ -49,6 +50,7 @@ public class WorldCheckSanctionsAdapter implements SanctionsProvider {
     }
 
     @Override
+    @Bulkhead(name = "sanctions")
     @Retry(name = "sanctions", fallbackMethod = "screenFallback")
     @CircuitBreaker(name = "sanctions", fallbackMethod = "screenFallback")
     public SanctionsResult screen(UUID senderId, UUID recipientId) {

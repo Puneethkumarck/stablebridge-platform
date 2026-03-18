@@ -1,6 +1,7 @@
 package com.stablecoin.payments.merchant.onboarding.infrastructure.kyb;
 
 import com.stablecoin.payments.merchant.onboarding.domain.merchant.CompanyRegistryProvider;
+import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -53,6 +54,7 @@ public class CompaniesHouseAdapter implements CompanyRegistryProvider {
   }
 
   @Override
+  @Bulkhead(name = "companiesHouse")
   @CircuitBreaker(name = "companiesHouse", fallbackMethod = "lookupFallback")
   public Optional<CompanyProfile> lookup(String registrationNumber, String country) {
     if (!"GB".equalsIgnoreCase(country)) {
