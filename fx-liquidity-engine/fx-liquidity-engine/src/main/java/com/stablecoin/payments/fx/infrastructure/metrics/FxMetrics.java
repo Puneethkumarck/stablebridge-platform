@@ -1,6 +1,7 @@
 package com.stablecoin.payments.fx.infrastructure.metrics;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tags;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -64,7 +65,7 @@ public class FxMetrics {
     private AtomicInteger getActiveLockCounter(String corridor) {
         return activeLockCounters.computeIfAbsent(corridor, key -> {
             var counter = new AtomicInteger(0);
-            meterRegistry.gauge("fx.lock.active.count", io.micrometer.core.instrument.Tags.of("corridor", key), counter);
+            meterRegistry.gauge("fx.lock.active.count", Tags.of("corridor", key), counter);
             return counter;
         });
     }
