@@ -81,10 +81,12 @@ scrape_configs:
         labels:
           service: "merchant-onboarding"
 
+  # Note: merchant-iam defaults to port 8083 (same as compliance-travel-rule).
+  # When running both, set SERVER_PORT=8089 for merchant-iam to avoid conflict.
   - job_name: "merchant-iam"
     metrics_path: "/iam/actuator/prometheus"
     static_configs:
-      - targets: ["host.docker.internal:8089"]
+      - targets: ["host.docker.internal:8083"]
         labels:
           service: "merchant-iam"
 

@@ -16,12 +16,12 @@ route:
   repeat_interval: 1h
   receiver: "null"
   routes:
-    - match:
-        severity: critical
+    - matchers:
+        - severity = "critical"
       receiver: pagerduty-critical
       continue: true
-    - match:
-        severity: warning
+    - matchers:
+        - severity = "warning"
       receiver: slack-warnings
 
 receivers:
@@ -46,8 +46,8 @@ receivers:
         send_resolved: true
 
 inhibit_rules:
-  - source_match:
-      severity: "critical"
-    target_match:
-      severity: "warning"
+  - source_matchers:
+      - severity = "critical"
+    target_matchers:
+      - severity = "warning"
     equal: ["alertname", "service"]

@@ -136,6 +136,7 @@ dependencies {
     // Resilience4j (circuit breaker — retry is per-service opt-in)
     implementation("io.github.resilience4j:resilience4j-spring-boot3:$resilience4jVersion")
     implementation("io.github.resilience4j:resilience4j-circuitbreaker:$resilience4jVersion")
+    implementation("io.github.resilience4j:resilience4j-micrometer:$resilience4jVersion")
 
     // MapStruct
     implementation("org.mapstruct:mapstruct:$mapstructVersion")
