@@ -2,17 +2,11 @@ package com.stablecoin.payments.compliance.infrastructure.provider.ofacsdn;
 
 import com.stablecoin.payments.compliance.domain.model.SanctionsResult;
 import com.stablecoin.payments.compliance.domain.port.SanctionsProvider;
-import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
-import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestClient;
 
-import java.net.http.HttpClient;
-import java.net.http.HttpClient.Version;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -31,29 +25,20 @@ public class OfacSdnSanctionsAdapter implements SanctionsProvider {
     private static final List<String> LISTS_CHECKED = List.of("OFAC_SDN");
 
     private final OfacSdnProperties properties;
-    private final RestClient restClient;
+    private final SdnListDownloader downloader;
     private final ReentrantReadWriteLock cacheLock = new ReentrantReadWriteLock();
 
     private volatile List<SdnEntry> cachedEntries;
     private volatile Instant lastRefresh;
 
-    public OfacSdnSanctionsAdapter(OfacSdnProperties properties) {
+    public OfacSdnSanctionsAdapter(OfacSdnProperties properties, SdnListDownloader downloader) {
         this.properties = properties;
-
-        var httpClient = HttpClient.newBuilder()
-                .version(Version.HTTP_1_1)
-                .connectTimeout(Duration.ofMillis(properties.connectionTimeoutMs()))
-                .build();
-
-        var requestFactory = new JdkClientHttpRequestFactory(httpClient);
-        requestFactory.setReadTimeout(Duration.ofMillis(properties.readTimeoutMs()));
-
-        this.restClient = RestClient.builder()
-                .baseUrl(properties.baseUrl())
-                .requestFactory(requestFactory)
-                .build();
+        this.downloader = downloader;
     }
 
+    // TODO: SanctionsProvider port currently passes UUIDs, not party names.
+    //  OFAC SDN matching requires actual names. Once the port is extended with
+    //  senderName/recipientName (domain-level change), replace UUID.toString() below.
     @Override
     public SanctionsResult screen(UUID senderId, UUID recipientId) {
         log.info("[OFAC-SDN] Screening sender={} recipient={}", senderId, recipientId);
@@ -138,8 +123,16 @@ public class OfacSdnSanctionsAdapter implements SanctionsProvider {
             if (cachedEntries != null && !isCacheExpired()) {
                 return cachedEntries;
             }
-            refreshSdnList();
+            cachedEntries = downloader.download();
+            lastRefresh = Instant.now();
             return cachedEntries;
+        } catch (IllegalStateException ex) {
+            if (cachedEntries != null) {
+                log.warn("[OFAC-SDN] Using stale cached SDN list ({} entries, last refresh: {})",
+                        cachedEntries.size(), lastRefresh);
+                return cachedEntries;
+            }
+            throw ex;
         } finally {
             cacheLock.writeLock().unlock();
         }
@@ -150,33 +143,6 @@ public class OfacSdnSanctionsAdapter implements SanctionsProvider {
             return true;
         }
         return Duration.between(lastRefresh, Instant.now()).toHours() >= properties.cacheRefreshHours();
-    }
-
-    @Retry(name = "sanctions", fallbackMethod = "downloadFallback")
-    @CircuitBreaker(name = "sanctions", fallbackMethod = "downloadFallback")
-    void refreshSdnList() {
-        log.info("[OFAC-SDN] Downloading SDN list from {}/{}", properties.baseUrl(), properties.sdnFileName());
-
-        var xml = restClient.get()
-                .uri("/{fileName}", properties.sdnFileName())
-                .retrieve()
-                .body(String.class);
-
-        var entries = SdnXmlParser.parse(xml);
-        this.cachedEntries = entries;
-        this.lastRefresh = Instant.now();
-
-        log.info("[OFAC-SDN] SDN list loaded with {} entries", entries.size());
-    }
-
-    @SuppressWarnings("unused")
-    private void downloadFallback(Exception ex) {
-        log.error("[OFAC-SDN] Failed to download SDN list: {}", ex.getMessage(), ex);
-        if (cachedEntries == null) {
-            throw new IllegalStateException("OFAC SDN list unavailable and no cached data", ex);
-        }
-        log.warn("[OFAC-SDN] Using stale cached SDN list ({} entries, last refresh: {})",
-                cachedEntries.size(), lastRefresh);
     }
 
     private String buildHitDetails(List<SdnMatchResult> senderMatches, List<SdnMatchResult> recipientMatches) {

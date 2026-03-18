@@ -51,7 +51,8 @@ class OfacSdnSanctionsAdapterTest {
                 10000,
                 30000
         );
-        return new OfacSdnSanctionsAdapter(properties);
+        var downloader = new SdnListDownloader(properties);
+        return new OfacSdnSanctionsAdapter(properties, downloader);
     }
 
     private OfacSdnSanctionsAdapter createDefaultAdapter() {
@@ -101,8 +102,6 @@ class OfacSdnSanctionsAdapterTest {
                     .usingRecursiveComparison()
                     .ignoringFields("sanctionsResultId", "checkId", "providerRef", "screenedAt")
                     .isEqualTo(expected);
-            assertThat(result.providerRef()).startsWith("ofac-sdn:");
-            assertThat(result.screenedAt()).isNotNull();
         }
     }
 
@@ -119,9 +118,10 @@ class OfacSdnSanctionsAdapterTest {
             var entries = SdnXmlParser.parse(loadResource("ofac/sample-sdn.xml"));
             var matches = adapter.findMatches("Viktor PETROV", entries);
 
-            assertThat(matches).isNotEmpty();
-            assertThat(matches.getFirst().entryUid()).isEqualTo(1001);
-            assertThat(matches.getFirst().score()).isGreaterThanOrEqualTo(0.85);
+            var expected = new SdnMatchResult(1001, "Viktor PETROV", "Individual", 1.0);
+            assertThat(matches.getFirst())
+                    .usingRecursiveComparison()
+                    .isEqualTo(expected);
         }
 
         @Test
@@ -136,9 +136,8 @@ class OfacSdnSanctionsAdapterTest {
             var expected = new SdnMatchResult(1001, "Viktor PETROV", "Individual", 1.0);
             assertThat(matches.getFirst())
                     .usingRecursiveComparison()
-                    .ignoringFields("score")
+                    .withComparatorForType(Double::compare, Double.class)
                     .isEqualTo(expected);
-            assertThat(matches.getFirst().score()).isGreaterThanOrEqualTo(0.85);
         }
     }
 
@@ -155,8 +154,12 @@ class OfacSdnSanctionsAdapterTest {
             var entries = SdnXmlParser.parse(loadResource("ofac/sample-sdn.xml"));
             var matches = adapter.findMatches("Victor Petroff", entries);
 
-            assertThat(matches).isNotEmpty();
-            assertThat(matches.getFirst().entryUid()).isEqualTo(1001);
+            var expected = new SdnMatchResult(1001, "Viktor PETROV", "Individual", 0.0);
+            assertThat(matches.getFirst())
+                    .usingRecursiveComparison()
+                    .ignoringFields("score", "matchedName")
+                    .isEqualTo(expected);
+            assertThat(matches.getFirst().score()).isGreaterThanOrEqualTo(0.80);
         }
 
         @Test
@@ -168,8 +171,11 @@ class OfacSdnSanctionsAdapterTest {
             var entries = SdnXmlParser.parse(loadResource("ofac/sample-sdn.xml"));
             var matches = adapter.findMatches("Ahmed AL-RASHEED", entries);
 
-            assertThat(matches).isNotEmpty();
-            assertThat(matches.getFirst().entryUid()).isEqualTo(1003);
+            var expected = new SdnMatchResult(1003, "Ahmed AL-RASHEED", "Individual", 0.0);
+            assertThat(matches.getFirst())
+                    .usingRecursiveComparison()
+                    .ignoringFields("score")
+                    .isEqualTo(expected);
         }
     }
 

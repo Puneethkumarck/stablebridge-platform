@@ -1,5 +1,6 @@
 package com.stablecoin.payments.compliance.infrastructure.provider.ofacsdn;
 
+import java.util.ArrayList;
 import java.util.List;
 
 record SdnEntry(
@@ -27,7 +28,7 @@ record SdnEntry(
     }
 
     List<String> allNames() {
-        var names = new java.util.ArrayList<String>();
+        var names = new ArrayList<String>();
         var primary = fullName();
         if (!primary.isBlank()) {
             names.add(primary);
