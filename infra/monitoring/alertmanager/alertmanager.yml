@@ -1,0 +1,53 @@
+# Alertmanager configuration for Stablecoin Payments Platform
+# STA-227 — PagerDuty + Slack routing
+#
+# Replace placeholder values before production use:
+#   <PAGERDUTY_INTEGRATION_KEY> — from PagerDuty service integration
+#   <SLACK_WEBHOOK_URL> — from Slack incoming webhook
+
+global:
+  resolve_timeout: 5m
+  pagerduty_url: "https://events.pagerduty.com/v2/enqueue"
+
+route:
+  group_by: ["alertname", "service"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 1h
+  receiver: "null"
+  routes:
+    - matchers:
+        - severity = "critical"
+      receiver: pagerduty-critical
+      continue: true
+    - matchers:
+        - severity = "warning"
+      receiver: slack-warnings
+
+receivers:
+  - name: "null"
+
+  - name: pagerduty-critical
+    pagerduty_configs:
+      - routing_key: "<PAGERDUTY_INTEGRATION_KEY>"
+        description: "{{ .CommonAnnotations.summary }}"
+        severity: "{{ .CommonLabels.severity }}"
+        details:
+          service: "{{ .CommonLabels.service }}"
+          alertname: "{{ .CommonLabels.alertname }}"
+          description: "{{ .CommonAnnotations.description }}"
+
+  - name: slack-warnings
+    slack_configs:
+      - api_url: "<SLACK_WEBHOOK_URL>"
+        channel: "#alerts-payments"
+        title: "[{{ .CommonLabels.severity | toUpper }}] {{ .CommonAnnotations.summary }}"
+        text: "{{ .CommonAnnotations.description }}"
+        send_resolved: true
+
+inhibit_rules:
+  - source_matchers:
+      - severity = "critical"
+    target_matchers:
+      - severity = "warning"
+    equal: ["alertname", "service"]

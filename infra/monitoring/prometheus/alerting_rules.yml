@@ -1,0 +1,156 @@
+# Prometheus alerting rules for Stablecoin Payments Platform
+# STA-227 — DORA Art. 10, SOC 2 CC7.2
+#
+# Micrometer → Prometheus name rules:
+#   payment.failed → payment_failed_total (counter)
+#   http.server.requests → http_server_requests_seconds (histogram)
+#   resilience4j CB state → resilience4j_circuitbreaker_state (gauge)
+
+groups:
+
+  # ─────────────────────────────────────────────
+  # HTTP SLO — error rate and latency
+  # ─────────────────────────────────────────────
+  - name: http_slo
+    interval: 30s
+    rules:
+      - alert: HighHttpErrorRate
+        expr: |
+          (
+            sum by (service) (rate(http_server_requests_seconds_count{status=~"5.."}[5m]))
+            /
+            sum by (service) (rate(http_server_requests_seconds_count[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "HTTP 5xx error rate above 5% on {{ $labels.service }}"
+          description: "{{ $labels.service }} has {{ $value | humanizePercentage }} server error rate over the last 5 minutes."
+
+      - alert: HighP99Latency
+        expr: |
+          histogram_quantile(0.99,
+            sum by (service, le) (rate(http_server_requests_seconds_bucket[5m]))
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "P99 latency above 2s on {{ $labels.service }}"
+          description: "{{ $labels.service }} p99 latency is {{ $value | humanizeDuration }}."
+
+  # ─────────────────────────────────────────────
+  # Circuit Breaker — Resilience4j state alerts
+  # ─────────────────────────────────────────────
+  - name: circuit_breaker
+    interval: 30s
+    rules:
+      - alert: CircuitBreakerOpen
+        expr: resilience4j_circuitbreaker_state{state="open"} == 1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Circuit breaker OPEN: {{ $labels.name }} on {{ $labels.service }}"
+          description: "Circuit breaker {{ $labels.name }} has been open for over 1 minute. Downstream dependency is failing."
+
+      - alert: CircuitBreakerHalfOpenStuck
+        expr: resilience4j_circuitbreaker_state{state="half_open"} == 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Circuit breaker stuck in HALF_OPEN: {{ $labels.name }} on {{ $labels.service }}"
+          description: "Circuit breaker {{ $labels.name }} has been in half-open state for 10+ minutes. May indicate intermittent downstream failure."
+
+  # ─────────────────────────────────────────────
+  # Kafka Consumer — lag monitoring
+  # Note: kafka_consumer_fetch_manager_records_lag is registered by
+  # Spring Kafka's Micrometer binder (client-side lag gauge).
+  # Only emits when consumers are running.
+  # ─────────────────────────────────────────────
+  - name: kafka_consumer
+    interval: 60s
+    rules:
+      - alert: KafkaConsumerLagHigh
+        expr: kafka_consumer_fetch_manager_records_lag > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Kafka consumer lag > 1000 on {{ $labels.topic }}"
+          description: "Consumer {{ $labels.client_id }} has lag {{ $value }} on topic {{ $labels.topic }} partition {{ $labels.partition }}."
+
+      - alert: KafkaConsumerLagCritical
+        expr: kafka_consumer_fetch_manager_records_lag > 5000
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Kafka consumer lag > 5000 on {{ $labels.topic }}"
+          description: "Consumer {{ $labels.client_id }} has critical lag {{ $value }} on topic {{ $labels.topic }} partition {{ $labels.partition }}. Messages are piling up."
+
+  # ─────────────────────────────────────────────
+  # HikariCP — connection pool health
+  # All services: maximum-pool-size=10, minimum-idle=2
+  # ─────────────────────────────────────────────
+  - name: hikaricp
+    interval: 30s
+    rules:
+      - alert: HikariConnectionPoolExhausted
+        expr: rate(hikaricp_connections_timeout_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "HikariCP connection timeouts on {{ $labels.service }}"
+          description: "Pool {{ $labels.pool }} on {{ $labels.service }} has connection acquisition timeouts. Database connections exhausted."
+
+      - alert: HikariConnectionsPendingHigh
+        expr: hikaricp_connections_pending > 3
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "HikariCP pending connections high on {{ $labels.service }}"
+          description: "Pool {{ $labels.pool }} on {{ $labels.service }} has {{ $value }} threads waiting for a connection. Pool contention building."
+
+  # ─────────────────────────────────────────────
+  # Payment Business — failure rate and financial integrity
+  # SOC 2 CC7.2, DORA Art. 10
+  # ─────────────────────────────────────────────
+  - name: payment_business
+    interval: 60s
+    rules:
+      - alert: PaymentFailureSpike
+        expr: |
+          (
+            rate(payment_failed_total[5m])
+            /
+            (rate(payment_initiated_total[5m]) + 1)
+          ) > 0.10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Payment failure rate above 10%"
+          description: "Payment failure rate is {{ $value | humanizePercentage }} over the last 5 minutes. Investigate compliance rejections, FX failures, or downstream outages."
+
+      - alert: PaymentFailureRateAbsolute
+        expr: rate(payment_failed_total[5m]) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Sustained payment failures (> 2/sec)"
+          description: "Payment failure rate is {{ $value }}/sec. May indicate systemic issue even if percentage is low."
+
+      - alert: LedgerReconciliationDiscrepancy
+        expr: increase(ledger_reconciliation_discrepancy_total[1h]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Ledger reconciliation discrepancy detected"
+          description: "A ledger reconciliation discrepancy has been detected. Financial integrity at risk — investigate immediately."

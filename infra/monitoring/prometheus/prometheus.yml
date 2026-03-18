@@ -1,0 +1,97 @@
+# Prometheus scrape configuration for Stablecoin Payments Platform
+# All 10 services expose /actuator/prometheus via Micrometer
+# Services run on host machine — use host.docker.internal (macOS/Docker Desktop)
+# Linux users: replace host.docker.internal with 172.17.0.1
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+rule_files:
+  - "/etc/prometheus/alerting_rules.yml"
+
+scrape_configs:
+  # --- Platform services ---
+
+  - job_name: "payment-orchestrator"
+    metrics_path: "/orchestrator/actuator/prometheus"
+    static_configs:
+      - targets: ["host.docker.internal:8082"]
+        labels:
+          service: "payment-orchestrator"
+
+  - job_name: "compliance-travel-rule"
+    metrics_path: "/compliance/actuator/prometheus"
+    static_configs:
+      - targets: ["host.docker.internal:8083"]
+        labels:
+          service: "compliance-travel-rule"
+
+  - job_name: "fx-liquidity-engine"
+    metrics_path: "/fx/actuator/prometheus"
+    static_configs:
+      - targets: ["host.docker.internal:8084"]
+        labels:
+          service: "fx-liquidity-engine"
+
+  - job_name: "fiat-on-ramp"
+    metrics_path: "/on-ramp/actuator/prometheus"
+    static_configs:
+      - targets: ["host.docker.internal:8085"]
+        labels:
+          service: "fiat-on-ramp"
+
+  - job_name: "blockchain-custody"
+    metrics_path: "/custody/actuator/prometheus"
+    static_configs:
+      - targets: ["host.docker.internal:8086"]
+        labels:
+          service: "blockchain-custody"
+
+  - job_name: "fiat-off-ramp"
+    metrics_path: "/off-ramp/actuator/prometheus"
+    static_configs:
+      - targets: ["host.docker.internal:8087"]
+        labels:
+          service: "fiat-off-ramp"
+
+  - job_name: "ledger-accounting"
+    metrics_path: "/ledger/actuator/prometheus"
+    static_configs:
+      - targets: ["host.docker.internal:8088"]
+        labels:
+          service: "ledger-accounting"
+
+  - job_name: "api-gateway-iam"
+    metrics_path: "/gateway/actuator/prometheus"
+    static_configs:
+      - targets: ["host.docker.internal:8080"]
+        labels:
+          service: "api-gateway-iam"
+
+  - job_name: "merchant-onboarding"
+    metrics_path: "/onboarding/actuator/prometheus"
+    static_configs:
+      - targets: ["host.docker.internal:8081"]
+        labels:
+          service: "merchant-onboarding"
+
+  # Note: merchant-iam defaults to port 8083 (same as compliance-travel-rule).
+  # When running both, set SERVER_PORT=8089 for merchant-iam to avoid conflict.
+  - job_name: "merchant-iam"
+    metrics_path: "/iam/actuator/prometheus"
+    static_configs:
+      - targets: ["host.docker.internal:8083"]
+        labels:
+          service: "merchant-iam"
+
+  # --- Infrastructure ---
+
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
