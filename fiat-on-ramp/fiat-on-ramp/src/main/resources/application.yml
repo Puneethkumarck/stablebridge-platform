@@ -140,6 +140,11 @@ app:
         tolerance-seconds: 300
 
 resilience4j:
+  bulkhead:
+    instances:
+      stripe:
+        maxConcurrentCalls: 10
+        maxWaitDuration: 500ms
   circuitbreaker:
     circuit-breaker-aspect-order: 1
   retry:

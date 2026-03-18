@@ -165,6 +165,20 @@ app:
 resilience4j:
   circuitbreaker:
     circuit-breaker-aspect-order: 1
+  bulkhead:
+    instances:
+      sanctions:
+        maxConcurrentCalls: 5
+        maxWaitDuration: 500ms
+      kyc:
+        maxConcurrentCalls: 5
+        maxWaitDuration: 500ms
+      aml:
+        maxConcurrentCalls: 5
+        maxWaitDuration: 500ms
+      travel-rule:
+        maxConcurrentCalls: 5
+        maxWaitDuration: 500ms
   retry:
     retry-aspect-order: 3
     instances:

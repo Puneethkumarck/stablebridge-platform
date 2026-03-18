@@ -3,6 +3,7 @@ package com.stablecoin.payments.custody.infrastructure.provider.solana;
 import com.stablecoin.payments.custody.domain.model.ChainId;
 import com.stablecoin.payments.custody.domain.port.ChainRpcProvider;
 import com.stablecoin.payments.custody.domain.port.TransactionReceipt;
+import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
@@ -56,6 +57,7 @@ public class SolanaRpcAdapter implements ChainRpcProvider {
     }
 
     @Override
+    @Bulkhead(name = "solanaRpc")
     @Retry(name = "solanaRpc", fallbackMethod = "getTransactionReceiptFallback")
     @CircuitBreaker(name = "solanaRpc", fallbackMethod = "getTransactionReceiptFallback")
     public TransactionReceipt getTransactionReceipt(ChainId chainId, String txHash) {
@@ -88,6 +90,7 @@ public class SolanaRpcAdapter implements ChainRpcProvider {
     }
 
     @Override
+    @Bulkhead(name = "solanaRpc")
     @Retry(name = "solanaRpc", fallbackMethod = "getLatestBlockNumberFallback")
     @CircuitBreaker(name = "solanaRpc", fallbackMethod = "getLatestBlockNumberFallback")
     public long getLatestBlockNumber(ChainId chainId) {
@@ -102,6 +105,7 @@ public class SolanaRpcAdapter implements ChainRpcProvider {
     }
 
     @Override
+    @Bulkhead(name = "solanaRpc")
     @Retry(name = "solanaRpc", fallbackMethod = "getTokenBalanceFallback")
     @CircuitBreaker(name = "solanaRpc", fallbackMethod = "getTokenBalanceFallback")
     public BigDecimal getTokenBalance(ChainId chainId, String address, String tokenContract) {

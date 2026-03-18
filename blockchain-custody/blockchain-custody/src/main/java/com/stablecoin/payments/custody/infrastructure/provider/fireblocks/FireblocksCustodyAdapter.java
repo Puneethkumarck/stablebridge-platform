@@ -6,6 +6,7 @@ import com.stablecoin.payments.custody.domain.port.CustodyEngine;
 import com.stablecoin.payments.custody.domain.port.SignRequest;
 import com.stablecoin.payments.custody.domain.port.SignResult;
 import com.stablecoin.payments.custody.domain.port.TransactionStatus;
+import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
@@ -69,6 +70,7 @@ public class FireblocksCustodyAdapter implements CustodyEngine {
     }
 
     @Override
+    @Bulkhead(name = "fireblocks")
     @Retry(name = "fireblocks", fallbackMethod = "signAndSubmitFallback")
     @CircuitBreaker(name = "fireblocks", fallbackMethod = "signAndSubmitFallback")
     public SignResult signAndSubmit(SignRequest request) {
@@ -111,6 +113,7 @@ public class FireblocksCustodyAdapter implements CustodyEngine {
     }
 
     @Override
+    @Bulkhead(name = "fireblocks")
     @Retry(name = "fireblocks", fallbackMethod = "getTransactionStatusFallback")
     @CircuitBreaker(name = "fireblocks", fallbackMethod = "getTransactionStatusFallback")
     public TransactionStatus getTransactionStatus(String txId) {

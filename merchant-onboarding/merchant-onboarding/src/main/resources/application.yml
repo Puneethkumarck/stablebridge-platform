@@ -149,6 +149,11 @@ springdoc:
     version: 1.0.0
 
 resilience4j:
+  bulkhead:
+    instances:
+      companiesHouse:
+        maxConcurrentCalls: 5
+        maxWaitDuration: 500ms
   circuitbreaker:
     circuit-breaker-aspect-order: 1
   retry:

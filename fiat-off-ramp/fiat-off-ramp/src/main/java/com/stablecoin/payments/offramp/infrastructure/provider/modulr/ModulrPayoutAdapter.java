@@ -5,6 +5,7 @@ import com.stablecoin.payments.offramp.domain.model.PaymentRail;
 import com.stablecoin.payments.offramp.domain.port.PayoutPartnerGateway;
 import com.stablecoin.payments.offramp.domain.port.PayoutRequest;
 import com.stablecoin.payments.offramp.domain.port.PayoutResult;
+import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
@@ -57,6 +58,7 @@ public class ModulrPayoutAdapter implements PayoutPartnerGateway {
     }
 
     @Override
+    @Bulkhead(name = "modulr")
     @Retry(name = "modulr", fallbackMethod = "initiatePayoutFallback")
     @CircuitBreaker(name = "modulr", fallbackMethod = "initiatePayoutFallback")
     public PayoutResult initiatePayout(PayoutRequest request) {

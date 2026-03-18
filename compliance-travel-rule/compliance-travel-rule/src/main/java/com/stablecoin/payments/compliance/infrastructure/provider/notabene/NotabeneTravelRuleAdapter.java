@@ -2,6 +2,7 @@ package com.stablecoin.payments.compliance.infrastructure.provider.notabene;
 
 import com.stablecoin.payments.compliance.domain.model.TravelRulePackage;
 import com.stablecoin.payments.compliance.domain.port.TravelRuleProvider;
+import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
@@ -61,6 +62,7 @@ public class NotabeneTravelRuleAdapter implements TravelRuleProvider {
     }
 
     @Override
+    @Bulkhead(name = "travel-rule")
     @Retry(name = "travel-rule", fallbackMethod = "transmitFallback")
     @CircuitBreaker(name = "travel-rule", fallbackMethod = "transmitFallback")
     public String transmit(TravelRulePackage travelRulePackage) {

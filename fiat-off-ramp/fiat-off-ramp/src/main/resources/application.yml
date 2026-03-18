@@ -150,6 +150,14 @@ app:
         tolerance-seconds: 300
 
 resilience4j:
+  bulkhead:
+    instances:
+      circle:
+        maxConcurrentCalls: 5
+        maxWaitDuration: 500ms
+      modulr:
+        maxConcurrentCalls: 5
+        maxWaitDuration: 500ms
   circuitbreaker:
     circuit-breaker-aspect-order: 1
   retry:

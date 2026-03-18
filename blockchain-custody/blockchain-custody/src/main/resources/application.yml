@@ -195,6 +195,17 @@ app:
 resilience4j:
   circuitbreaker:
     circuit-breaker-aspect-order: 1
+  bulkhead:
+    instances:
+      evmRpc:
+        maxConcurrentCalls: 10
+        maxWaitDuration: 500ms
+      solanaRpc:
+        maxConcurrentCalls: 10
+        maxWaitDuration: 500ms
+      fireblocks:
+        maxConcurrentCalls: 5
+        maxWaitDuration: 500ms
   retry:
     retry-aspect-order: 3
     instances:

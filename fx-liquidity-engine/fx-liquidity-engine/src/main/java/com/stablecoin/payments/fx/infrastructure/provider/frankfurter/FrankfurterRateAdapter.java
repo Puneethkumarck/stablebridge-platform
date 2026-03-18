@@ -2,6 +2,7 @@ package com.stablecoin.payments.fx.infrastructure.provider.frankfurter;
 
 import com.stablecoin.payments.fx.domain.model.CorridorRate;
 import com.stablecoin.payments.fx.domain.port.RateProvider;
+import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
@@ -43,6 +44,7 @@ public class FrankfurterRateAdapter implements RateProvider {
     }
 
     @Override
+    @Bulkhead(name = "frankfurter")
     @Retry(name = "frankfurter", fallbackMethod = "frankfurterFallback")
     @CircuitBreaker(name = "frankfurter", fallbackMethod = "frankfurterFallback")
     public Optional<CorridorRate> getRate(String fromCurrency, String toCurrency) {

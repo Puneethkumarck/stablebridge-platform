@@ -1,5 +1,6 @@
 package com.stablecoin.payments.compliance.infrastructure.provider.ofacsdn;
 
+import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
@@ -41,6 +42,7 @@ class SdnListDownloader {
                 .build();
     }
 
+    @Bulkhead(name = "sanctions")
     @Retry(name = "sanctions", fallbackMethod = "downloadFallback")
     @CircuitBreaker(name = "sanctions", fallbackMethod = "downloadFallback")
     List<SdnEntry> download() {
