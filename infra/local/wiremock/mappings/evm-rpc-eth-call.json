@@ -1,0 +1,19 @@
+{
+  "request": {
+    "method": "POST",
+    "urlPath": "/evm-rpc",
+    "bodyPatterns": [
+      {
+        "matchesJsonPath": "$[?(@.method == 'eth_call')]"
+      }
+    ]
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "bodyFileName": "evm/eth-call-balance.json"
+  },
+  "priority": 5
+}

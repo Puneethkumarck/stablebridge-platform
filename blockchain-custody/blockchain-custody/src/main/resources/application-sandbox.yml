@@ -1,0 +1,74 @@
+# Sandbox profile — real Alchemy RPC endpoints, local infrastructure
+# Run: ./gradlew :blockchain-custody:blockchain-custody:bootRun --args='--spring.profiles.active=sandbox'
+# Requires: ALCHEMY_API_KEY env var (free tier: 30M CU/month, 500 CU/s)
+# Chains: Base Sepolia (84532) + Ethereum Sepolia (11155111) + Solana Devnet
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/s4_blockchain_custody
+    username: sp_user
+    password: sp_pass
+
+  cloud:
+    vault:
+      enabled: false
+
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
+
+app:
+  security:
+    enabled: false
+  custody:
+    provider: dev
+    evm:
+      enabled: true
+      chains:
+        base:
+          rpc-url: https://base-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}
+          chain-id: 84532
+          usdc-contract-address: "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+          connect-timeout-ms: 10000
+          read-timeout-ms: 30000
+        ethereum:
+          rpc-url: https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}
+          chain-id: 11155111
+          usdc-contract-address: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
+          connect-timeout-ms: 10000
+          read-timeout-ms: 30000
+    solana:
+      enabled: true
+      rpc-url: https://api.devnet.solana.com
+      usdc-mint-address: "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"
+      commitment: confirmed
+      connect-timeout-ms: 10000
+      read-timeout-ms: 30000
+  chains:
+    base:
+      min-confirmations: 1
+      avg-finality-s: 12
+      rpc-url: https://base-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}
+      token-contracts:
+        USDC: "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+    ethereum:
+      min-confirmations: 32
+      avg-finality-s: 300
+      rpc-url: https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}
+      token-contracts:
+        USDC: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
+    solana:
+      min-confirmations: 1
+      avg-finality-s: 5
+      rpc-url: https://api.devnet.solana.com
+      token-contracts:
+        USDC: "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"
+
+logging:
+  level:
+    com.stablecoin.payments: DEBUG
+    com.stablecoin.payments.custody.infrastructure.provider.evm: DEBUG
+    com.stablecoin.payments.custody.infrastructure.provider.solana: DEBUG
+    org.springframework.web.client: DEBUG
