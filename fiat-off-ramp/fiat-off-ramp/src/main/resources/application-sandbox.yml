@@ -1,0 +1,53 @@
+# Sandbox profile — real Circle + Modulr sandbox APIs, local infrastructure
+# Run: ./gradlew :fiat-off-ramp:fiat-off-ramp:bootRun --args='--spring.profiles.active=sandbox'
+# Requires: CIRCLE_SANDBOX_API_KEY, MODULR_SANDBOX_API_KEY, MODULR_SANDBOX_SOURCE_ACCOUNT_ID env vars
+# Circle sandbox: https://developers.circle.com/docs/test-account
+# Modulr sandbox: https://api-sandbox.modulrfinance.com
+
+app:
+  security:
+    enabled: false
+  redemption:
+    provider: circle
+    circle:
+      base-url: https://api-sandbox.circle.com
+      api-key: ${CIRCLE_SANDBOX_API_KEY:SAND_placeholder}
+      destination-id: ${CIRCLE_SANDBOX_DESTINATION_ID:placeholder-wire-id}
+      timeout-seconds: 15
+  payout:
+    provider: modulr
+    modulr:
+      base-url: https://api-sandbox.modulrfinance.com
+      api-key: ${MODULR_SANDBOX_API_KEY:placeholder}
+      api-secret: ""
+      source-account-id: ${MODULR_SANDBOX_SOURCE_ACCOUNT_ID:placeholder}
+      timeout-seconds: 15
+    monitor:
+      enabled: false
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/s5_fiat_off_ramp
+    username: sp_user
+    password: sp_pass
+
+  cloud:
+    vault:
+      enabled: false
+    stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
+
+logging:
+  level:
+    com.stablecoin.payments: DEBUG
+    com.stablecoin.payments.offramp.infrastructure.provider.circle: DEBUG
+    com.stablecoin.payments.offramp.infrastructure.provider.modulr: DEBUG
+    org.springframework.web.client: DEBUG
