@@ -1,0 +1,19 @@
+# Fireblocks sandbox profile — overlays on top of application-sandbox.yml
+# Run: ./gradlew :blockchain-custody:blockchain-custody:bootRun \
+#   --args='--spring.profiles.active=sandbox,fireblocks-sandbox'
+# Requires: FIREBLOCKS_SANDBOX_API_KEY, FIREBLOCKS_SANDBOX_API_SECRET_PATH, FIREBLOCKS_SANDBOX_VAULT_ACCOUNT_ID
+# Fireblocks sandbox URL: https://sandbox-api.fireblocks.io
+# Note: sandbox-api uses the same RS256 JWT auth as production
+#
+# The API secret (RSA PEM) should be stored in a file. Set FIREBLOCKS_SANDBOX_API_SECRET_PATH
+# to the file path, or set FIREBLOCKS_SANDBOX_API_SECRET directly with the PEM content.
+
+app:
+  custody:
+    provider: fireblocks
+    fireblocks:
+      base-url: https://sandbox-api.fireblocks.io
+      api-key: ${FIREBLOCKS_SANDBOX_API_KEY:placeholder-api-key}
+      api-secret: ${FIREBLOCKS_SANDBOX_API_SECRET:}
+      vault-account-id: ${FIREBLOCKS_SANDBOX_VAULT_ACCOUNT_ID:0}
+      timeout-seconds: 30

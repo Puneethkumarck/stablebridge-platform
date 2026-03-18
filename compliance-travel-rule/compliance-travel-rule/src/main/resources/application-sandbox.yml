@@ -1,0 +1,49 @@
+# Sandbox profile — real Onfido EU sandbox, local infrastructure
+# Run: ./gradlew :compliance-travel-rule:compliance-travel-rule:bootRun --args='--spring.profiles.active=sandbox'
+# Requires: ONFIDO_SANDBOX_TOKEN env var
+# Onfido sandbox deterministic results:
+#   last_name "Consider" → consider (maps to PENDING)
+#   any other last_name  → clear (maps to VERIFIED)
+
+app:
+  security:
+    enabled: false
+  kyc:
+    provider: onfido
+    onfido:
+      base-url: https://api.eu.onfido.com/v3.6
+      api-token: ${ONFIDO_SANDBOX_TOKEN:api_sandbox.placeholder}
+      timeout-seconds: 15
+      cache-ttl-minutes: 60
+  sanctions:
+    provider: fallback
+  aml:
+    provider: fallback
+  travel-rule:
+    provider: fallback
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/s2_compliance
+    username: sp_user
+    password: sp_pass
+
+  cloud:
+    vault:
+      enabled: false
+    stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
+
+logging:
+  level:
+    com.stablecoin.payments: DEBUG
+    com.stablecoin.payments.compliance.infrastructure.provider.onfido: DEBUG
+    org.springframework.web.client: DEBUG

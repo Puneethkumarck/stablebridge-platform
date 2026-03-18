@@ -7,6 +7,7 @@ import com.stablecoin.payments.compliance.domain.port.KycProvider;
 import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
+import jakarta.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -37,7 +38,7 @@ public class OnfidoKycAdapter implements KycProvider {
     private final JsonMapper jsonMapper;
     private final Duration cacheTtl;
 
-    public OnfidoKycAdapter(OnfidoProperties properties, StringRedisTemplate redisTemplate) {
+    public OnfidoKycAdapter(OnfidoProperties properties, @Nullable StringRedisTemplate redisTemplate) {
         var httpClient = HttpClient.newBuilder()
                 .version(Version.HTTP_1_1)
                 .connectTimeout(Duration.ofSeconds(properties.timeoutSeconds()))
@@ -84,15 +85,17 @@ public class OnfidoKycAdapter implements KycProvider {
     }
 
     private CustomerKycResult resolveCustomerStatus(UUID customerId) {
-        var cached = getFromCache(customerId);
-        if (cached != null) {
-            log.debug("[ONFIDO] Cache hit for customer={}", customerId);
-            return cached;
+        if (redisTemplate != null) {
+            var cached = getFromCache(customerId);
+            if (cached != null) {
+                log.debug("[ONFIDO] Cache hit for customer={}", customerId);
+                return cached;
+            }
         }
 
         var kycResult = callOnfido(customerId);
 
-        if (kycResult.status() == KycStatus.VERIFIED) {
+        if (redisTemplate != null && kycResult.status() == KycStatus.VERIFIED) {
             putInCache(customerId, kycResult);
         }
 
