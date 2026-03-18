@@ -127,6 +127,15 @@ springdoc:
     version: 1.0.0
 
 app:
+  sanctions:
+    ofac-sdn:
+      base-url: ${OFAC_SDN_BASE_URL:https://www.treasury.gov/ofac/downloads}
+      sdn-file-name: ${OFAC_SDN_FILE_NAME:sdn.xml}
+      match-threshold: ${OFAC_SDN_MATCH_THRESHOLD:0.85}
+      cache-refresh-hours: ${OFAC_SDN_CACHE_REFRESH_HOURS:24}
+      connection-timeout-ms: ${OFAC_SDN_CONNECTION_TIMEOUT:10000}
+      read-timeout-ms: ${OFAC_SDN_READ_TIMEOUT:30000}
+
   travel-rule:
     notabene:
       base-url: ${NOTABENE_BASE_URL:https://api.notabene.id}
