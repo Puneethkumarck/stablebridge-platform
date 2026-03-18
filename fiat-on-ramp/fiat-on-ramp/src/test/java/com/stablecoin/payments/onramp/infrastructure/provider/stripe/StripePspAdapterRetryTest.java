@@ -117,10 +117,14 @@ class StripePspAdapterRetryTest {
                         .withBody("""
                                 {
                                   "id": "pi_test123",
+                                  "object": "payment_intent",
                                   "status": "succeeded",
                                   "amount": 25000,
+                                  "amount_received": 25000,
                                   "currency": "usd",
-                                  "client_secret": "pi_test123_secret_xxx"
+                                  "client_secret": "pi_test123_secret_xxx",
+                                  "capture_method": "automatic",
+                                  "created": 1700000000
                                 }
                                 """)));
 

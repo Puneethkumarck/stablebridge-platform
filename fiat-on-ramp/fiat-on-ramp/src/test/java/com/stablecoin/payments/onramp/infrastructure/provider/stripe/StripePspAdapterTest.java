@@ -90,10 +90,16 @@ class StripePspAdapterTest {
                             .withBody("""
                                     {
                                       "id": "pi_test123",
+                                      "object": "payment_intent",
                                       "status": "succeeded",
                                       "amount": 25000,
+                                      "amount_received": 25000,
                                       "currency": "usd",
-                                      "client_secret": "pi_test123_secret_xxx"
+                                      "client_secret": "pi_test123_secret_xxx",
+                                      "capture_method": "automatic",
+                                      "payment_method": "pm_card_visa",
+                                      "created": 1700000000,
+                                      "description": "Collection a1b2c3d4"
                                     }
                                     """)));
 
@@ -137,10 +143,14 @@ class StripePspAdapterTest {
                             .withBody("""
                                     {
                                       "id": "pi_test_late",
+                                      "object": "payment_intent",
                                       "status": "succeeded",
                                       "amount": 25000,
+                                      "amount_received": 25000,
                                       "currency": "usd",
-                                      "client_secret": "pi_test_late_secret"
+                                      "client_secret": "pi_test_late_secret",
+                                      "capture_method": "automatic",
+                                      "created": 1700000000
                                     }
                                     """)));
 
@@ -158,10 +168,14 @@ class StripePspAdapterTest {
                             .withBody("""
                                     {
                                       "id": "pi_verify",
+                                      "object": "payment_intent",
                                       "status": "requires_action",
                                       "amount": 25000,
+                                      "amount_received": 0,
                                       "currency": "usd",
-                                      "client_secret": "pi_verify_secret"
+                                      "client_secret": "pi_verify_secret",
+                                      "capture_method": "automatic",
+                                      "created": 1700000000
                                     }
                                     """)));
 
@@ -191,10 +205,14 @@ class StripePspAdapterTest {
                             .withBody("""
                                     {
                                       "id": "re_test456",
+                                      "object": "refund",
                                       "status": "succeeded",
                                       "amount": 10000,
                                       "currency": "usd",
-                                      "payment_intent": "pi_test123"
+                                      "payment_intent": "pi_test123",
+                                      "charge": "ch_test789",
+                                      "reason": "requested_by_customer",
+                                      "created": 1700000100
                                     }
                                     """)));
 
@@ -234,10 +252,14 @@ class StripePspAdapterTest {
                             .withBody("""
                                     {
                                       "id": "re_verify",
+                                      "object": "refund",
                                       "status": "pending",
                                       "amount": 10000,
                                       "currency": "usd",
-                                      "payment_intent": "pi_test123"
+                                      "payment_intent": "pi_test123",
+                                      "charge": "ch_test789",
+                                      "reason": "requested_by_customer",
+                                      "created": 1700000200
                                     }
                                     """)));
 

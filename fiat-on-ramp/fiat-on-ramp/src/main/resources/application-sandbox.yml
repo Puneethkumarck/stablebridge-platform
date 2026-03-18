@@ -1,0 +1,50 @@
+# Sandbox profile -- real Stripe test mode API, local infrastructure
+# Run: ./gradlew :fiat-on-ramp:fiat-on-ramp:bootRun --args='--spring.profiles.active=sandbox'
+# Requires: STRIPE_TEST_SECRET_KEY, STRIPE_TEST_WEBHOOK_SECRET env vars
+# Webhooks: ngrok http 8085 -> register URL in Stripe Dashboard (test mode)
+#
+# Stripe test mode notes:
+#   - Use test API keys (sk_test_...) -- never live keys
+#   - ACH test routing: 110000000 (success), 000000000 (micro-deposit)
+#   - Test amounts: amounts trigger deterministic outcomes in test mode
+#   - Webhooks fire instantly in test mode (no settlement delay)
+# See: https://docs.stripe.com/testing
+
+app:
+  security:
+    enabled: false
+  psp:
+    provider: stripe
+    stripe:
+      base-url: https://api.stripe.com
+      api-key: ${STRIPE_TEST_SECRET_KEY:sk_test_placeholder}
+      timeout-seconds: 15
+      webhook:
+        webhook-secret: ${STRIPE_TEST_WEBHOOK_SECRET:whsec_test_placeholder}
+        tolerance-seconds: 300
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/s3_fiat_on_ramp
+    username: sp_user
+    password: sp_pass
+
+  cloud:
+    vault:
+      enabled: false
+    stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
+
+logging:
+  level:
+    com.stablecoin.payments: DEBUG
+    com.stablecoin.payments.onramp.infrastructure.provider.stripe: DEBUG
+    org.springframework.web.client: DEBUG
