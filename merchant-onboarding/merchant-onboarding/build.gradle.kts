@@ -3,6 +3,7 @@ plugins {
 }
 
 val temporalVersion: String by project
+val wiremockVersion: String by project
 
 stablebridge {
     jibImageName.set("stablebridge/merchant-onboarding")
@@ -16,4 +17,5 @@ dependencies {
 
     // Test
     testImplementation("io.temporal:temporal-testing:$temporalVersion")
+    testImplementation("org.wiremock:wiremock-standalone:$wiremockVersion")
 }
