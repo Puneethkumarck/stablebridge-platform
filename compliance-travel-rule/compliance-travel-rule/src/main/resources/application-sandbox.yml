@@ -1,15 +1,22 @@
-# Sandbox profile — real Onfido EU sandbox, local infrastructure
+# Sandbox profile — real Persona sandbox API, local infrastructure
 # Run: ./gradlew :compliance-travel-rule:compliance-travel-rule:bootRun --args='--spring.profiles.active=sandbox'
-# Requires: ONFIDO_SANDBOX_TOKEN env var
-# Onfido sandbox deterministic results:
-#   last_name "Consider" → consider (maps to PENDING)
-#   any other last_name  → clear (maps to VERIFIED)
+# Requires: PERSONA_SANDBOX_API_KEY, PERSONA_INQUIRY_TEMPLATE_ID env vars
+# Persona sandbox: inquiries created via API start as "created" status
+# API docs: https://docs.withpersona.com/api-quickstart-tutorial
+#
+# Alternative: Onfido (set app.kyc.provider=onfido, ONFIDO_SANDBOX_TOKEN)
 
 app:
   security:
     enabled: false
   kyc:
-    provider: onfido
+    provider: persona
+    persona:
+      base-url: https://api.withpersona.com
+      api-key: ${PERSONA_SANDBOX_API_KEY:persona_sandbox_placeholder}
+      inquiry-template-id: ${PERSONA_INQUIRY_TEMPLATE_ID:itmpl_placeholder}
+      persona-version: "2023-01-05"
+      timeout-seconds: 15
     onfido:
       base-url: https://api.eu.onfido.com/v3.6
       api-token: ${ONFIDO_SANDBOX_TOKEN:api_sandbox.placeholder}
@@ -45,5 +52,6 @@ spring:
 logging:
   level:
     com.stablecoin.payments: DEBUG
+    com.stablecoin.payments.compliance.infrastructure.provider.persona: DEBUG
     com.stablecoin.payments.compliance.infrastructure.provider.onfido: DEBUG
     org.springframework.web.client: DEBUG
