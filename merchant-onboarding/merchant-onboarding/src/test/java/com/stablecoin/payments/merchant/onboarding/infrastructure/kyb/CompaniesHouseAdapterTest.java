@@ -246,7 +246,7 @@ class CompaniesHouseAdapterTest {
         }
 
         @Test
-        @DisplayName("should return empty when API returns 401 unauthorized")
+        @DisplayName("should throw on 401 unauthorized")
         void shouldThrowOnUnauthorized() {
             wireMock.stubFor(get(urlEqualTo("/company/" + COMPANY_NUMBER))
                     .willReturn(aResponse()
