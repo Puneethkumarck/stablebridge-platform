@@ -1,0 +1,49 @@
+# Sandbox profile — real Persona sandbox API, local infrastructure
+# Run: ./gradlew :compliance-travel-rule:compliance-travel-rule:bootRun --args='--spring.profiles.active=sandbox'
+# Requires: PERSONA_SANDBOX_API_KEY, PERSONA_INQUIRY_TEMPLATE_ID env vars
+# Persona sandbox: inquiries created via API start as "created" status
+# API docs: https://docs.withpersona.com/api-quickstart-tutorial
+
+app:
+  security:
+    enabled: false
+  kyc:
+    provider: persona
+    persona:
+      base-url: https://api.withpersona.com
+      api-key: ${PERSONA_SANDBOX_API_KEY:persona_sandbox_placeholder}
+      inquiry-template-id: ${PERSONA_INQUIRY_TEMPLATE_ID:itmpl_placeholder}
+      persona-version: "2023-01-05"
+      timeout-seconds: 15
+  sanctions:
+    provider: fallback
+  aml:
+    provider: fallback
+  travel-rule:
+    provider: fallback
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/s2_compliance
+    username: sp_user
+    password: sp_pass
+
+  cloud:
+    vault:
+      enabled: false
+    stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
+
+logging:
+  level:
+    com.stablecoin.payments: DEBUG
+    com.stablecoin.payments.compliance.infrastructure.provider.persona: DEBUG
+    org.springframework.web.client: DEBUG
