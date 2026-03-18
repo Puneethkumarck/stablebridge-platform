@@ -11,6 +11,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.kafka:spring-kafka")
+    implementation("org.springframework.cloud:spring-cloud-starter-vault-config")
     implementation("io.namastack:namastack-outbox-starter-jdbc:$namastackVersion")
 
     // Feign — compileOnly so services without Feign are not forced to pull it in;

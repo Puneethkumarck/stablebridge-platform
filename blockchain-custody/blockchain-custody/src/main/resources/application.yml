@@ -2,6 +2,22 @@ spring:
   application:
     name: blockchain-custody
 
+  config:
+    import: optional:vault://
+
+  cloud:
+    vault:
+      enabled: ${app.vault.enabled:false}
+      host: ${VAULT_HOST:localhost}
+      port: ${VAULT_PORT:8200}
+      scheme: ${VAULT_SCHEME:https}
+      authentication: TOKEN
+      token: ${VAULT_TOKEN:}
+      kv:
+        enabled: true
+        backend: secret
+        default-context: application
+
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/s4_blockchain_custody}
     username: ${DB_USER:dev}

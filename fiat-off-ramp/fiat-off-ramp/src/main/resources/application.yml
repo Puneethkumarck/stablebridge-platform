@@ -2,6 +2,34 @@ spring:
   application:
     name: fiat-off-ramp
 
+  config:
+    import: optional:vault://
+
+  cloud:
+    vault:
+      enabled: ${app.vault.enabled:false}
+      host: ${VAULT_HOST:localhost}
+      port: ${VAULT_PORT:8200}
+      scheme: ${VAULT_SCHEME:https}
+      authentication: TOKEN
+      token: ${VAULT_TOKEN:}
+      kv:
+        enabled: true
+        backend: secret
+        default-context: application
+    stream:
+      kafka:
+        binder:
+          brokers: ${KAFKA_BROKERS:localhost:9092}
+          auto-create-topics: false
+      bindings:
+        fiat-payout-initiated-out-0:
+          destination: fiat.payout.initiated
+        fiat-payout-completed-out-0:
+          destination: fiat.payout.completed
+        fiat-payout-failed-out-0:
+          destination: fiat.payout.failed
+
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/s5_fiat_off_ramp}
     username: ${DB_USER:sp_user}
@@ -35,20 +63,6 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
-
-  cloud:
-    stream:
-      kafka:
-        binder:
-          brokers: ${KAFKA_BROKERS:localhost:9092}
-          auto-create-topics: false
-      bindings:
-        fiat-payout-initiated-out-0:
-          destination: fiat.payout.initiated
-        fiat-payout-completed-out-0:
-          destination: fiat.payout.completed
-        fiat-payout-failed-out-0:
-          destination: fiat.payout.failed
 
 namastack:
   outbox:

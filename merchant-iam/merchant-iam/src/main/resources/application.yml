@@ -2,6 +2,27 @@ spring:
   application:
     name: merchant-iam
 
+  config:
+    import: optional:vault://
+
+  cloud:
+    vault:
+      enabled: ${app.vault.enabled:false}
+      host: ${VAULT_HOST:localhost}
+      port: ${VAULT_PORT:8200}
+      scheme: ${VAULT_SCHEME:https}
+      authentication: TOKEN
+      token: ${VAULT_TOKEN:}
+      kv:
+        enabled: true
+        backend: secret
+        default-context: application
+    stream:
+      kafka:
+        binder:
+          brokers: ${KAFKA_BROKERS:localhost:9092}
+          auto-create-topics: false
+
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/s13_merchant_iam}
     username: ${DB_USER:sp_user}
@@ -46,13 +67,6 @@ spring:
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-
-  cloud:
-    stream:
-      kafka:
-        binder:
-          brokers: ${KAFKA_BROKERS:localhost:9092}
-          auto-create-topics: false
 
   mail:
     host: ${MAIL_HOST:localhost}
