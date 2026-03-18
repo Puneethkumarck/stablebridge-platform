@@ -10,6 +10,8 @@ app:
     provider: onfido
   company-registry:
     provider: companies-house
+    companies-house:
+      api-key: ${COMPANIES_HOUSE_API_KEY}
 
 spring:
   datasource:
@@ -37,11 +39,6 @@ onfido:
   base-url: https://api.eu.onfido.com/v3.6
   webhook-secret: ${ONFIDO_WEBHOOK_SECRET:sandbox-webhook-secret}
   region: EU
-
-# Companies House — free API, real UK company data
-companies-house:
-  api-key: ${COMPANIES_HOUSE_API_KEY:placeholder}
-  base-url: https://api.company-information.service.gov.uk
 
 # SEC EDGAR — free, no key needed (just User-Agent)
 sec-edgar:
