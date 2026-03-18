@@ -127,6 +127,16 @@ springdoc:
     version: 1.0.0
 
 app:
+  travel-rule:
+    notabene:
+      base-url: ${NOTABENE_BASE_URL:https://api.notabene.id}
+      auth-url: ${NOTABENE_AUTH_URL:https://auth.notabene.id/oauth/token}
+      client-id: ${NOTABENE_CLIENT_ID:}
+      client-secret: ${NOTABENE_CLIENT_SECRET:}
+      audience: ${NOTABENE_AUDIENCE:https://api.notabene.id}
+      vasp-did: ${NOTABENE_VASP_DID:}
+      timeout-seconds: ${NOTABENE_TIMEOUT:5}
+
   compliance:
     risk-scoring:
       kyc-tier1-penalty: 20
@@ -174,6 +184,18 @@ resilience4j:
           - org.springframework.web.client.HttpClientErrorException
           - io.github.resilience4j.circuitbreaker.CallNotPermittedException
       aml:
+        max-attempts: 3
+        wait-duration: 500ms
+        retry-exceptions:
+          - java.io.IOException
+          - java.net.http.HttpTimeoutException
+          - java.net.http.HttpConnectTimeoutException
+          - org.springframework.web.client.ResourceAccessException
+          - org.springframework.web.client.HttpServerErrorException
+        ignore-exceptions:
+          - org.springframework.web.client.HttpClientErrorException
+          - io.github.resilience4j.circuitbreaker.CallNotPermittedException
+      travel-rule:
         max-attempts: 3
         wait-duration: 500ms
         retry-exceptions:
