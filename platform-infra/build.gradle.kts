@@ -14,6 +14,10 @@ dependencies {
     implementation("org.springframework.cloud:spring-cloud-starter-vault-config")
     implementation("io.namastack:namastack-outbox-starter-jdbc:$namastackVersion")
 
+    // Micrometer — compileOnly so services pick the actual registry via their own starter;
+    // the MetricsConfig activates only when MeterRegistry is on the classpath.
+    compileOnly("io.micrometer:micrometer-core")
+
     // Feign — compileOnly so services without Feign are not forced to pull it in;
     // the interceptor activates only when RequestInterceptor is on the classpath.
     compileOnly("org.springframework.cloud:spring-cloud-starter-openfeign")
@@ -24,5 +28,6 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-starter-test")
     testImplementation("org.springframework.boot:spring-boot-starter-kafka")
     testImplementation("org.springframework.cloud:spring-cloud-starter-openfeign")
+    testImplementation("io.micrometer:micrometer-core")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
