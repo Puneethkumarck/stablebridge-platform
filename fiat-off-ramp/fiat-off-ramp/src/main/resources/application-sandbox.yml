@@ -19,7 +19,7 @@ app:
     modulr:
       base-url: https://api-sandbox.modulrfinance.com
       api-key: ${MODULR_SANDBOX_API_KEY:placeholder}
-      api-secret: ""
+      api-secret: ${MODULR_SANDBOX_API_SECRET:}
       source-account-id: ${MODULR_SANDBOX_SOURCE_ACCOUNT_ID:placeholder}
       timeout-seconds: 15
     monitor:

@@ -20,6 +20,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Sandbox tests that run against the real Modulr sandbox API.
  * <p>
+ * Uses GBP Faster Payments with SCAN destination (sort code + account number).
+ * The Modulr sandbox GBP account only supports domestic UK payments.
+ * Auth: raw API key in Authorization header (no Bearer prefix for sandbox-token endpoint).
+ * <p>
  * Requires {@code MODULR_SANDBOX_API_KEY} and {@code MODULR_SANDBOX_SOURCE_ACCOUNT_ID}
  * environment variables from Modulr partner sandbox access.
  * <p>
@@ -39,9 +43,6 @@ class ModulrPayoutAdapterSandboxTest {
 
     private ModulrPayoutAdapter adapter;
 
-    // Test IBAN from Modulr sandbox documentation
-    private static final String TEST_IBAN = "DE89370400440532013000";
-
     @BeforeEach
     void setUp() {
         var properties = new ModulrProperties(
@@ -54,14 +55,14 @@ class ModulrPayoutAdapterSandboxTest {
         adapter = new ModulrPayoutAdapter(properties);
     }
 
-    private PayoutRequest aPayoutRequest(BigDecimal amount) {
+    private PayoutRequest aFpsPayoutRequest(BigDecimal amount) {
         return new PayoutRequest(
                 UUID.randomUUID(),
                 amount,
-                "EUR",
-                new BankAccount(TEST_IBAN, "COBADEFFXXX", AccountType.IBAN, "DE"),
+                "GBP",
+                new BankAccount("12345678", "000000", AccountType.SORT_CODE, "GB"),
                 null,
-                PaymentRail.SEPA,
+                PaymentRail.FASTER_PAYMENTS,
                 new PartnerIdentifier("modulr-sandbox", "Test Beneficiary")
         );
     }
@@ -71,9 +72,9 @@ class ModulrPayoutAdapterSandboxTest {
     class InitiatePayout {
 
         @Test
-        @DisplayName("should create a SEPA payout in Modulr sandbox and return a valid reference")
-        void shouldInitiateSepaPayoutInSandbox() {
-            var request = aPayoutRequest(new BigDecimal("25.00"));
+        @DisplayName("should create a GBP FPS payout in Modulr sandbox and return a valid reference")
+        void shouldInitiateFpsPayoutInSandbox() {
+            var request = aFpsPayoutRequest(new BigDecimal("25.00"));
 
             var result = adapter.initiatePayout(request);
 
@@ -84,11 +85,11 @@ class ModulrPayoutAdapterSandboxTest {
         @Test
         @DisplayName("should return a Modulr payment reference with expected format")
         void shouldReturnModulrReferenceWithExpectedFormat() {
-            var request = aPayoutRequest(new BigDecimal("15.00"));
+            var request = aFpsPayoutRequest(new BigDecimal("15.00"));
 
             var result = adapter.initiatePayout(request);
 
-            assertThat(result.partnerReference()).isNotBlank();
+            assertThat(result.partnerReference()).startsWith("P");
         }
     }
 }

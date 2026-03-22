@@ -50,7 +50,7 @@ public class ModulrPayoutAdapter implements PayoutPartnerGateway {
 
         this.restClient = RestClient.builder()
                 .baseUrl(properties.baseUrl())
-                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + properties.apiKey())
+                .defaultHeader(HttpHeaders.AUTHORIZATION, properties.apiKey())
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .requestFactory(requestFactory)
@@ -62,21 +62,17 @@ public class ModulrPayoutAdapter implements PayoutPartnerGateway {
     @Retry(name = "modulr", fallbackMethod = "initiatePayoutFallback")
     @CircuitBreaker(name = "modulr", fallbackMethod = "initiatePayoutFallback")
     public PayoutResult initiatePayout(PayoutRequest request) {
-        log.info("[MODULR] Initiating SEPA payout payoutId={} amount={} currency={}",
-                request.payoutId(), request.fiatAmount(), request.currency());
+        log.info("[MODULR] Initiating payout payoutId={} amount={} currency={} rail={}",
+                request.payoutId(), request.fiatAmount(), request.currency(), request.paymentRail());
 
-        var destination = new ModulrPaymentRequest.ModulrDestination(
-                "IBAN",
-                request.bankAccount().accountNumber(),
-                request.partnerIdentifier().partnerName()
-        );
+        var destination = resolveDestination(request);
         var permittedScheme = resolvePermittedScheme(request.paymentRail());
 
         var modulrRequest = new ModulrPaymentRequest(
                 properties.sourceAccountId(),
                 request.fiatAmount(),
                 request.currency(),
-                "Payout " + request.payoutId(),
+                truncateReference(request.payoutId().toString(), 18),
                 request.payoutId().toString(),
                 destination,
                 permittedScheme
@@ -103,9 +99,27 @@ public class ModulrPayoutAdapter implements PayoutPartnerGateway {
         );
     }
 
+    private static String truncateReference(String ref, int maxLength) {
+        return ref.length() <= maxLength ? ref : ref.substring(0, maxLength);
+    }
+
+    private static ModulrPaymentRequest.ModulrDestination resolveDestination(PayoutRequest request) {
+        var name = request.partnerIdentifier().partnerName();
+        return switch (request.paymentRail()) {
+            case FASTER_PAYMENTS -> ModulrPaymentRequest.ModulrDestination.scan(
+                    request.bankAccount().bankCode(),
+                    request.bankAccount().accountNumber(),
+                    name);
+            default -> ModulrPaymentRequest.ModulrDestination.iban(
+                    request.bankAccount().accountNumber(),
+                    name);
+        };
+    }
+
     private static String resolvePermittedScheme(PaymentRail rail) {
         return switch (rail) {
-            case SEPA -> "SEPA_CREDIT";
+            case SEPA -> "SEPA_CREDIT_TRANSFER";
+            case FASTER_PAYMENTS -> null;
             default -> null;
         };
     }
