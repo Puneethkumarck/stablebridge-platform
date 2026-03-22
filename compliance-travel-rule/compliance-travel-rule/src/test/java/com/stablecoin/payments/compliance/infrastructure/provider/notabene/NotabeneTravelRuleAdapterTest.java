@@ -61,7 +61,7 @@ class NotabeneTravelRuleAdapterTest {
                 VASP_DID,
                 2
         );
-        adapter = new NotabeneTravelRuleAdapter(properties);
+        adapter = new NotabeneTravelRuleAdapter(properties, null);
     }
 
     private void stubTokenSuccess() {

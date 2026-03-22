@@ -2,6 +2,7 @@ package com.stablecoin.payments.fx.infrastructure.provider.refinitiv;
 
 import com.stablecoin.payments.fx.domain.model.CorridorRate;
 import com.stablecoin.payments.fx.domain.port.RateProvider;
+import com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor;
 import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -10,6 +11,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -18,6 +20,8 @@ import java.net.http.HttpClient.Version;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
+
+import static com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor.applyTo;
 
 @Slf4j
 @Component
@@ -30,7 +34,8 @@ public class RefinitivRateAdapter implements RateProvider {
 
     private final RestClient restClient;
 
-    public RefinitivRateAdapter(RefinitivProperties properties) {
+    public RefinitivRateAdapter(RefinitivProperties properties,
+                                @Nullable ExternalApiLoggingInterceptor loggingInterceptor) {
         var httpClient = HttpClient.newBuilder()
                 .version(Version.HTTP_1_1)
                 .connectTimeout(Duration.ofSeconds(properties.timeoutSeconds()))
@@ -39,10 +44,10 @@ public class RefinitivRateAdapter implements RateProvider {
         var requestFactory = new JdkClientHttpRequestFactory(httpClient);
         requestFactory.setReadTimeout(Duration.ofSeconds(properties.timeoutSeconds()));
 
-        this.restClient = RestClient.builder()
+        this.restClient = applyTo(RestClient.builder()
                 .baseUrl(properties.baseUrl())
                 .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + properties.apiKey())
-                .requestFactory(requestFactory)
+                .requestFactory(requestFactory), loggingInterceptor)
                 .build();
     }
 

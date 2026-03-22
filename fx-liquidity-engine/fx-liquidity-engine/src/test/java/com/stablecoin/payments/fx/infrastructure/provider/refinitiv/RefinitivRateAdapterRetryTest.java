@@ -163,7 +163,7 @@ class RefinitivRateAdapterRetryTest {
 
         @Bean
         RefinitivRateAdapter refinitivRateAdapter(RefinitivProperties properties) {
-            return new RefinitivRateAdapter(properties);
+            return new RefinitivRateAdapter(properties, null);
         }
     }
 }

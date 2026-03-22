@@ -169,7 +169,7 @@ class CircleRedemptionAdapterRetryTest {
 
         @Bean
         CircleRedemptionAdapter circleRedemptionAdapter(CircleProperties properties) {
-            return new CircleRedemptionAdapter(properties);
+            return new CircleRedemptionAdapter(properties, null);
         }
     }
 }

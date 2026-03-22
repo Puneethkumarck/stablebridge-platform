@@ -180,7 +180,7 @@ class OnfidoKycAdapterRetryTest {
 
         @Bean
         OnfidoKycAdapter onfidoKycAdapter(OnfidoProperties properties, StringRedisTemplate template) {
-            return new OnfidoKycAdapter(properties, template);
+            return new OnfidoKycAdapter(properties, template, null);
         }
     }
 }

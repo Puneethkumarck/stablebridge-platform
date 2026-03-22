@@ -142,7 +142,7 @@ class SolanaRpcAdapterRetryTest {
 
         @Bean
         SolanaRpcAdapter solanaRpcAdapter(SolanaChainProperties properties) {
-            return new SolanaRpcAdapter(properties);
+            return new SolanaRpcAdapter(properties, null);
         }
     }
 }

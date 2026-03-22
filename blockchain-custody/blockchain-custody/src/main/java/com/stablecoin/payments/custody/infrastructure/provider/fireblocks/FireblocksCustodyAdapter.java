@@ -6,6 +6,7 @@ import com.stablecoin.payments.custody.domain.port.CustodyEngine;
 import com.stablecoin.payments.custody.domain.port.SignRequest;
 import com.stablecoin.payments.custody.domain.port.SignResult;
 import com.stablecoin.payments.custody.domain.port.TransactionStatus;
+import com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor;
 import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -14,6 +15,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import tools.jackson.databind.json.JsonMapper;
@@ -31,6 +33,8 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.Map;
 import java.util.UUID;
+
+import static com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor.applyTo;
 
 @Slf4j
 @Component
@@ -50,7 +54,8 @@ public class FireblocksCustodyAdapter implements CustodyEngine {
     private final FireblocksProperties properties;
     private final RSAPrivateKey privateKey;
 
-    public FireblocksCustodyAdapter(FireblocksProperties properties) {
+    public FireblocksCustodyAdapter(FireblocksProperties properties,
+                                    @Nullable ExternalApiLoggingInterceptor loggingInterceptor) {
         this.properties = properties;
 
         var httpClient = HttpClient.newBuilder()
@@ -61,9 +66,9 @@ public class FireblocksCustodyAdapter implements CustodyEngine {
         var requestFactory = new JdkClientHttpRequestFactory(httpClient);
         requestFactory.setReadTimeout(Duration.ofSeconds(properties.timeoutSeconds()));
 
-        this.restClient = RestClient.builder()
+        this.restClient = applyTo(RestClient.builder()
                 .baseUrl(properties.baseUrl())
-                .requestFactory(requestFactory)
+                .requestFactory(requestFactory), loggingInterceptor)
                 .build();
 
         this.privateKey = parsePrivateKey(properties.apiSecret());

@@ -3,6 +3,7 @@ package com.stablecoin.payments.custody.infrastructure.provider.solana;
 import com.stablecoin.payments.custody.domain.model.ChainId;
 import com.stablecoin.payments.custody.domain.port.ChainRpcProvider;
 import com.stablecoin.payments.custody.domain.port.TransactionReceipt;
+import com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor;
 import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -11,6 +12,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import tools.jackson.databind.JsonNode;
@@ -22,6 +24,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpClient.Version;
 import java.time.Duration;
 import java.util.Map;
+
+import static com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor.applyTo;
 
 @Slf4j
 @Component
@@ -36,7 +40,8 @@ public class SolanaRpcAdapter implements ChainRpcProvider {
     private final RestClient restClient;
     private final SolanaChainProperties properties;
 
-    public SolanaRpcAdapter(SolanaChainProperties properties) {
+    public SolanaRpcAdapter(SolanaChainProperties properties,
+                            @Nullable ExternalApiLoggingInterceptor loggingInterceptor) {
         this.properties = properties;
 
         var httpClient = HttpClient.newBuilder()
@@ -47,9 +52,9 @@ public class SolanaRpcAdapter implements ChainRpcProvider {
         var requestFactory = new JdkClientHttpRequestFactory(httpClient);
         requestFactory.setReadTimeout(Duration.ofMillis(properties.readTimeoutMs()));
 
-        this.restClient = RestClient.builder()
+        this.restClient = applyTo(RestClient.builder()
                 .baseUrl(properties.rpcUrl())
-                .requestFactory(requestFactory)
+                .requestFactory(requestFactory), loggingInterceptor)
                 .build();
 
         log.info("[SOLANA-RPC] Configured RestClient rpcUrl={} commitment={} usdcMint={}",

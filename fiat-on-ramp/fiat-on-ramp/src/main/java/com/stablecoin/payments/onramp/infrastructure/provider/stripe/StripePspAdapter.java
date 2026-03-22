@@ -5,6 +5,7 @@ import com.stablecoin.payments.onramp.domain.port.PspPaymentRequest;
 import com.stablecoin.payments.onramp.domain.port.PspPaymentResult;
 import com.stablecoin.payments.onramp.domain.port.PspRefundRequest;
 import com.stablecoin.payments.onramp.domain.port.PspRefundResult;
+import com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor;
 import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -14,6 +15,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -23,6 +25,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpClient.Version;
 import java.time.Duration;
 
+import static com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor.applyTo;
+
 @Slf4j
 @Component
 @ConditionalOnProperty(name = "app.psp.provider", havingValue = "stripe")
@@ -31,7 +35,8 @@ public class StripePspAdapter implements PspGateway {
 
     private final RestClient restClient;
 
-    public StripePspAdapter(StripeProperties properties) {
+    public StripePspAdapter(StripeProperties properties,
+                            @Nullable ExternalApiLoggingInterceptor loggingInterceptor) {
         var httpClient = HttpClient.newBuilder()
                 .version(Version.HTTP_1_1)
                 .connectTimeout(Duration.ofSeconds(properties.timeoutSeconds()))
@@ -40,10 +45,10 @@ public class StripePspAdapter implements PspGateway {
         var requestFactory = new JdkClientHttpRequestFactory(httpClient);
         requestFactory.setReadTimeout(Duration.ofSeconds(properties.timeoutSeconds()));
 
-        this.restClient = RestClient.builder()
+        this.restClient = applyTo(RestClient.builder()
                 .baseUrl(properties.baseUrl())
                 .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + properties.apiKey())
-                .requestFactory(requestFactory)
+                .requestFactory(requestFactory), loggingInterceptor)
                 .build();
     }
 

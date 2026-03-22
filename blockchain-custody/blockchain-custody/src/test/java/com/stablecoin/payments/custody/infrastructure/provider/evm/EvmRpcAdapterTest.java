@@ -38,7 +38,7 @@ class EvmRpcAdapterTest {
                         wmRuntimeInfo.getHttpBaseUrl(), 84532L,
                         USDC_CONTRACT, 5000, 10000)
         ));
-        adapter = new EvmRpcAdapter(properties);
+        adapter = new EvmRpcAdapter(properties, null);
     }
 
     @Nested

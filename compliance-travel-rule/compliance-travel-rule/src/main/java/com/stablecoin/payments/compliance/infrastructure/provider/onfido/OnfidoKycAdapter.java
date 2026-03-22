@@ -4,10 +4,10 @@ import com.stablecoin.payments.compliance.domain.model.KycResult;
 import com.stablecoin.payments.compliance.domain.model.KycStatus;
 import com.stablecoin.payments.compliance.domain.model.KycTier;
 import com.stablecoin.payments.compliance.domain.port.KycProvider;
+import com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor;
 import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
-import jakarta.annotation.Nullable;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -15,6 +15,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import tools.jackson.databind.json.JsonMapper;
@@ -24,6 +25,8 @@ import java.net.http.HttpClient.Version;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
+
+import static com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor.applyTo;
 
 @Slf4j
 @Component
@@ -38,7 +41,9 @@ public class OnfidoKycAdapter implements KycProvider {
     private final JsonMapper jsonMapper;
     private final Duration cacheTtl;
 
-    public OnfidoKycAdapter(OnfidoProperties properties, @Nullable StringRedisTemplate redisTemplate) {
+    public OnfidoKycAdapter(OnfidoProperties properties,
+                            @Nullable StringRedisTemplate redisTemplate,
+                            @Nullable ExternalApiLoggingInterceptor loggingInterceptor) {
         var httpClient = HttpClient.newBuilder()
                 .version(Version.HTTP_1_1)
                 .connectTimeout(Duration.ofSeconds(properties.timeoutSeconds()))
@@ -47,11 +52,11 @@ public class OnfidoKycAdapter implements KycProvider {
         var requestFactory = new JdkClientHttpRequestFactory(httpClient);
         requestFactory.setReadTimeout(Duration.ofSeconds(properties.timeoutSeconds()));
 
-        this.restClient = RestClient.builder()
+        this.restClient = applyTo(RestClient.builder()
                 .baseUrl(properties.baseUrl())
                 .defaultHeader("Authorization", "Token token=" + properties.apiToken())
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .requestFactory(requestFactory)
+                .requestFactory(requestFactory), loggingInterceptor)
                 .build();
 
         this.redisTemplate = redisTemplate;

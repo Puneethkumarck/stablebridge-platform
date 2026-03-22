@@ -1,6 +1,7 @@
 package com.stablecoin.payments.merchant.onboarding.infrastructure.kyb;
 
 import com.stablecoin.payments.merchant.onboarding.domain.merchant.CompanyRegistryProvider;
+import com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor;
 import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.extern.slf4j.Slf4j;
@@ -8,6 +9,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClient;
@@ -18,6 +20,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.Optional;
+
+import static com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor.applyTo;
 
 /**
  * Companies House API adapter — free, real UK company data.
@@ -34,7 +38,8 @@ public class CompaniesHouseAdapter implements CompanyRegistryProvider {
 
   private final RestClient restClient;
 
-  public CompaniesHouseAdapter(CompaniesHouseProperties properties) {
+  public CompaniesHouseAdapter(CompaniesHouseProperties properties,
+                               @Nullable ExternalApiLoggingInterceptor loggingInterceptor) {
     var basicAuth = Base64.getEncoder()
         .encodeToString((properties.apiKey() + ":").getBytes(StandardCharsets.UTF_8));
 
@@ -46,10 +51,10 @@ public class CompaniesHouseAdapter implements CompanyRegistryProvider {
     var requestFactory = new JdkClientHttpRequestFactory(httpClient);
     requestFactory.setReadTimeout(Duration.ofMillis(properties.readTimeoutMs()));
 
-    this.restClient = RestClient.builder()
+    this.restClient = applyTo(RestClient.builder()
         .baseUrl(properties.baseUrl())
         .requestFactory(requestFactory)
-        .defaultHeader(HttpHeaders.AUTHORIZATION, "Basic " + basicAuth)
+        .defaultHeader(HttpHeaders.AUTHORIZATION, "Basic " + basicAuth), loggingInterceptor)
         .build();
   }
 

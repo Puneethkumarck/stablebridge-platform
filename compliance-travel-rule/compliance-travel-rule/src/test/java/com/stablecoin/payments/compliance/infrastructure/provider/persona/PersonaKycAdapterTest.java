@@ -37,7 +37,7 @@ class PersonaKycAdapterTest {
                 "2023-01-05",
                 5
         );
-        adapter = new PersonaKycAdapter(properties);
+        adapter = new PersonaKycAdapter(properties, null);
     }
 
     private void stubInquiryCreation(String status) {

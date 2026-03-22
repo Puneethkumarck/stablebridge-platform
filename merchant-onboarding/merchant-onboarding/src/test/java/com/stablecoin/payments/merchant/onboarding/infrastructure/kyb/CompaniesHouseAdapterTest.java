@@ -43,7 +43,7 @@ class CompaniesHouseAdapterTest {
         wireMock.resetAll();
         var properties = new CompaniesHouseProperties(
                 wireMock.baseUrl(), TEST_API_KEY, 5000, 10000);
-        adapter = new CompaniesHouseAdapter(properties);
+        adapter = new CompaniesHouseAdapter(properties, null);
     }
 
     @Nested
@@ -224,7 +224,7 @@ class CompaniesHouseAdapterTest {
         void shouldThrowOnReadTimeout() {
             var timeoutProperties = new CompaniesHouseProperties(
                     wireMock.baseUrl(), TEST_API_KEY, 1000, 1000);
-            var timeoutAdapter = new CompaniesHouseAdapter(timeoutProperties);
+            var timeoutAdapter = new CompaniesHouseAdapter(timeoutProperties, null);
 
             wireMock.stubFor(get(urlEqualTo("/company/" + COMPANY_NUMBER))
                     .willReturn(aResponse()

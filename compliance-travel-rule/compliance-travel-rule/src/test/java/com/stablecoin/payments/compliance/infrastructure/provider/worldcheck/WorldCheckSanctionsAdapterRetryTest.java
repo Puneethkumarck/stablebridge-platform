@@ -175,7 +175,7 @@ class WorldCheckSanctionsAdapterRetryTest {
 
         @Bean
         WorldCheckSanctionsAdapter worldCheckSanctionsAdapter(WorldCheckProperties properties) {
-            return new WorldCheckSanctionsAdapter(properties);
+            return new WorldCheckSanctionsAdapter(properties, null);
         }
     }
 }

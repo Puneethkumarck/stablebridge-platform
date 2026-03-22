@@ -64,7 +64,7 @@ class OnfidoKycAdapterTest {
                 "test-token",
                 2,
                 60);
-        adapter = new OnfidoKycAdapter(properties, redisTemplate);
+        adapter = new OnfidoKycAdapter(properties, redisTemplate, null);
     }
 
     @Nested

@@ -52,7 +52,7 @@ class ModulrPayoutAdapterSandboxTest {
                 System.getenv("MODULR_SANDBOX_SOURCE_ACCOUNT_ID"),
                 15
         );
-        adapter = new ModulrPayoutAdapter(properties);
+        adapter = new ModulrPayoutAdapter(properties, null);
     }
 
     private PayoutRequest aFpsPayoutRequest(BigDecimal amount) {

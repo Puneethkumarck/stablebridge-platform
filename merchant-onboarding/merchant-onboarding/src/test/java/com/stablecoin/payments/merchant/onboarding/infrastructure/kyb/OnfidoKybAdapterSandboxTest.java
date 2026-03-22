@@ -49,7 +49,7 @@ class OnfidoKybAdapterSandboxTest {
                 "EU",
                 30
         );
-        adapter = new OnfidoKybAdapter(properties);
+        adapter = new OnfidoKybAdapter(properties, null);
     }
 
     @Nested

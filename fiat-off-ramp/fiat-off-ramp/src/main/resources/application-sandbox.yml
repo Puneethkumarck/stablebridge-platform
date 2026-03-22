@@ -7,6 +7,9 @@
 app:
   security:
     enabled: false
+  external-api:
+    logging:
+      enabled: true
   redemption:
     provider: circle
     circle:

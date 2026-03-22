@@ -48,7 +48,7 @@ class EvmRpcAdapterSandboxTest {
                         "https://eth-sepolia.g.alchemy.com/v2/" + apiKey,
                         11155111L, ETH_SEPOLIA_USDC, 10000, 30000)
         ));
-        adapter = new EvmRpcAdapter(properties);
+        adapter = new EvmRpcAdapter(properties, null);
     }
 
     @Nested

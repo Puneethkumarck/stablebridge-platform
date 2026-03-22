@@ -142,7 +142,7 @@ class EvmRpcAdapterRetryTest {
 
         @Bean
         EvmRpcAdapter evmRpcAdapter(EvmChainProperties properties) {
-            return new EvmRpcAdapter(properties);
+            return new EvmRpcAdapter(properties, null);
         }
     }
 }

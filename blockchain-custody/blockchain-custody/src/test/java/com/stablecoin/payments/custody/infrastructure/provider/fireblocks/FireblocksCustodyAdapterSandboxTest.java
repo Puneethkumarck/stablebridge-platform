@@ -62,7 +62,7 @@ class FireblocksCustodyAdapterSandboxTest {
                 vaultAccountId,
                 30
         );
-        adapter = new FireblocksCustodyAdapter(properties);
+        adapter = new FireblocksCustodyAdapter(properties, null);
     }
 
     private static String loadApiSecret() throws IOException {

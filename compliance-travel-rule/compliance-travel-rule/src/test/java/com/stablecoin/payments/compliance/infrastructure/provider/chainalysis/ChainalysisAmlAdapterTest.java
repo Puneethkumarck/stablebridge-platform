@@ -46,7 +46,7 @@ class ChainalysisAmlAdapterTest {
                 "test-api-key",
                 2
         );
-        adapter = new ChainalysisAmlAdapter(properties);
+        adapter = new ChainalysisAmlAdapter(properties, null);
     }
 
     private void stubRegisterTransfer() {

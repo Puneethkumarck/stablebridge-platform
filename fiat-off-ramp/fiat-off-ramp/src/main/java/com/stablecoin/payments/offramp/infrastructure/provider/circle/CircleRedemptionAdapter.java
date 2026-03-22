@@ -3,6 +3,7 @@ package com.stablecoin.payments.offramp.infrastructure.provider.circle;
 import com.stablecoin.payments.offramp.domain.port.RedemptionGateway;
 import com.stablecoin.payments.offramp.domain.port.RedemptionRequest;
 import com.stablecoin.payments.offramp.domain.port.RedemptionResult;
+import com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor;
 import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -12,6 +13,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -20,6 +22,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpClient.Version;
 import java.time.Duration;
 import java.time.Instant;
+
+import static com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor.applyTo;
 
 @Slf4j
 @Component
@@ -30,7 +34,8 @@ public class CircleRedemptionAdapter implements RedemptionGateway {
     private final RestClient restClient;
     private final CircleProperties properties;
 
-    public CircleRedemptionAdapter(CircleProperties properties) {
+    public CircleRedemptionAdapter(CircleProperties properties,
+                                    @Nullable ExternalApiLoggingInterceptor loggingInterceptor) {
         this.properties = properties;
 
         var httpClient = HttpClient.newBuilder()
@@ -41,12 +46,12 @@ public class CircleRedemptionAdapter implements RedemptionGateway {
         var requestFactory = new JdkClientHttpRequestFactory(httpClient);
         requestFactory.setReadTimeout(Duration.ofSeconds(properties.timeoutSeconds()));
 
-        this.restClient = RestClient.builder()
+        this.restClient = applyTo(RestClient.builder()
                 .baseUrl(properties.baseUrl())
                 .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + properties.apiKey())
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
-                .requestFactory(requestFactory)
+                .requestFactory(requestFactory), loggingInterceptor)
                 .build();
     }
 

@@ -172,7 +172,7 @@ class ModulrPayoutAdapterRetryTest {
 
         @Bean
         ModulrPayoutAdapter modulrPayoutAdapter(ModulrProperties properties) {
-            return new ModulrPayoutAdapter(properties);
+            return new ModulrPayoutAdapter(properties, null);
         }
     }
 }

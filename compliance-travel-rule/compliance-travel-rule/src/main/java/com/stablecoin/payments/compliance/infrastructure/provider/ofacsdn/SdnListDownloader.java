@@ -1,10 +1,12 @@
 package com.stablecoin.payments.compliance.infrastructure.provider.ofacsdn;
 
+import com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor;
 import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -12,6 +14,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpClient.Version;
 import java.time.Duration;
 import java.util.List;
+
+import static com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor.applyTo;
 
 /**
  * Separate Spring bean for downloading the OFAC SDN list so that
@@ -25,7 +29,8 @@ class SdnListDownloader {
     private final RestClient restClient;
     private final String sdnFileName;
 
-    SdnListDownloader(OfacSdnProperties properties) {
+    SdnListDownloader(OfacSdnProperties properties,
+                      @Nullable ExternalApiLoggingInterceptor loggingInterceptor) {
         this.sdnFileName = properties.sdnFileName();
 
         var httpClient = HttpClient.newBuilder()
@@ -36,9 +41,9 @@ class SdnListDownloader {
         var requestFactory = new JdkClientHttpRequestFactory(httpClient);
         requestFactory.setReadTimeout(Duration.ofMillis(properties.readTimeoutMs()));
 
-        this.restClient = RestClient.builder()
+        this.restClient = applyTo(RestClient.builder()
                 .baseUrl(properties.baseUrl())
-                .requestFactory(requestFactory)
+                .requestFactory(requestFactory), loggingInterceptor)
                 .build();
     }
 

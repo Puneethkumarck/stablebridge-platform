@@ -4,11 +4,13 @@ import com.stablecoin.payments.merchant.onboarding.domain.merchant.KybProvider;
 import com.stablecoin.payments.merchant.onboarding.domain.merchant.model.core.DocumentType;
 import com.stablecoin.payments.merchant.onboarding.domain.merchant.model.core.KybStatus;
 import com.stablecoin.payments.merchant.onboarding.domain.merchant.model.core.KybVerification;
+import com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -20,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+
+import static com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor.applyTo;
 
 /**
  * Onfido sandbox/production KYB adapter.
@@ -40,7 +44,8 @@ public class OnfidoKybAdapter implements KybProvider {
   private final RestClient restClient;
   private final OnfidoProperties properties;
 
-  public OnfidoKybAdapter(OnfidoProperties properties) {
+  public OnfidoKybAdapter(OnfidoProperties properties,
+                          @Nullable ExternalApiLoggingInterceptor loggingInterceptor) {
     this.properties = properties;
     var httpClient = HttpClient.newBuilder()
         .version(HttpClient.Version.HTTP_1_1)
@@ -50,10 +55,11 @@ public class OnfidoKybAdapter implements KybProvider {
     var requestFactory = new JdkClientHttpRequestFactory(httpClient);
     requestFactory.setReadTimeout(Duration.ofSeconds(properties.timeoutSeconds()));
 
-    this.restClient = RestClient.builder().baseUrl(properties.baseUrl())
+    this.restClient = applyTo(RestClient.builder().baseUrl(properties.baseUrl())
         .requestFactory(requestFactory)
         .defaultHeader(HttpHeaders.AUTHORIZATION, "Token token=" + properties.apiToken())
-        .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE).build();
+        .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE), loggingInterceptor)
+        .build();
   }
 
   @Override

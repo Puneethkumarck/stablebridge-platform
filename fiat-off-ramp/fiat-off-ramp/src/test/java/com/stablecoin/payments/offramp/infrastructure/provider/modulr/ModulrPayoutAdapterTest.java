@@ -53,7 +53,7 @@ class ModulrPayoutAdapterTest {
         wireMock.resetAll();
         var properties = new ModulrProperties(
                 wireMock.baseUrl(), API_KEY, "test-secret", SOURCE_ACCOUNT_ID, 10);
-        adapter = new ModulrPayoutAdapter(properties);
+        adapter = new ModulrPayoutAdapter(properties, null);
     }
 
     private PayoutRequest aPayoutRequest() {
@@ -221,7 +221,7 @@ class ModulrPayoutAdapterTest {
         void initiatePayout_timeout() {
             var timeoutProperties = new ModulrProperties(
                     wireMock.baseUrl(), API_KEY, "test-secret", SOURCE_ACCOUNT_ID, 1);
-            var timeoutAdapter = new ModulrPayoutAdapter(timeoutProperties);
+            var timeoutAdapter = new ModulrPayoutAdapter(timeoutProperties, null);
 
             wireMock.stubFor(post(urlEqualTo("/api-sandbox-token/payments"))
                     .willReturn(aResponse()

@@ -46,7 +46,7 @@ class CircleRedemptionAdapterSandboxTest {
                 System.getenv("CIRCLE_SANDBOX_DESTINATION_ID"),
                 15
         );
-        adapter = new CircleRedemptionAdapter(properties);
+        adapter = new CircleRedemptionAdapter(properties, null);
     }
 
     private RedemptionRequest aRedemptionRequest(BigDecimal amount) {

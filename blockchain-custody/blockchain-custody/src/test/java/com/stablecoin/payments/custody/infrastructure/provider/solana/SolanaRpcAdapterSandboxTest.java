@@ -45,7 +45,7 @@ class SolanaRpcAdapterSandboxTest {
                 10000,
                 30000
         );
-        adapter = new SolanaRpcAdapter(properties);
+        adapter = new SolanaRpcAdapter(properties, null);
     }
 
     @Nested

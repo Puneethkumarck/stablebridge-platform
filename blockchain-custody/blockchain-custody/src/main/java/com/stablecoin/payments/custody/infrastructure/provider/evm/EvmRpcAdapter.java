@@ -3,6 +3,7 @@ package com.stablecoin.payments.custody.infrastructure.provider.evm;
 import com.stablecoin.payments.custody.domain.model.ChainId;
 import com.stablecoin.payments.custody.domain.port.ChainRpcProvider;
 import com.stablecoin.payments.custody.domain.port.TransactionReceipt;
+import com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor;
 import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -11,6 +12,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import tools.jackson.databind.JsonNode;
@@ -25,6 +27,8 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor.applyTo;
+
 @Slf4j
 @Component
 @ConditionalOnProperty(name = "app.custody.evm.enabled", havingValue = "true")
@@ -38,7 +42,8 @@ public class EvmRpcAdapter implements ChainRpcProvider {
     private final Map<String, RestClient> restClients;
     private final EvmChainProperties properties;
 
-    public EvmRpcAdapter(EvmChainProperties properties) {
+    public EvmRpcAdapter(EvmChainProperties properties,
+                         @Nullable ExternalApiLoggingInterceptor loggingInterceptor) {
         this.properties = properties;
         this.restClients = new ConcurrentHashMap<>();
 
@@ -51,9 +56,9 @@ public class EvmRpcAdapter implements ChainRpcProvider {
             var requestFactory = new JdkClientHttpRequestFactory(httpClient);
             requestFactory.setReadTimeout(Duration.ofMillis(config.readTimeoutMs()));
 
-            var client = RestClient.builder()
+            var client = applyTo(RestClient.builder()
                     .baseUrl(config.rpcUrl())
-                    .requestFactory(requestFactory)
+                    .requestFactory(requestFactory), loggingInterceptor)
                     .build();
 
             restClients.put(chainName, client);

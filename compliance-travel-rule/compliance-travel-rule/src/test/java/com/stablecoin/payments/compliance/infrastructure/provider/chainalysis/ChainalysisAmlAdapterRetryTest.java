@@ -169,7 +169,7 @@ class ChainalysisAmlAdapterRetryTest {
 
         @Bean
         ChainalysisAmlAdapter chainalysisAmlAdapter(ChainalysisProperties properties) {
-            return new ChainalysisAmlAdapter(properties);
+            return new ChainalysisAmlAdapter(properties, null);
         }
     }
 }
