@@ -22,6 +22,9 @@ spring:
 app:
   security:
     enabled: false
+  external-api:
+    logging:
+      enabled: true
   custody:
     provider: dev
     evm:

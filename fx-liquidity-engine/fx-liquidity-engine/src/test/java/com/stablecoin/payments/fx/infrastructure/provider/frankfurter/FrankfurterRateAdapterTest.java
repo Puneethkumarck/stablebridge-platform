@@ -39,7 +39,7 @@ class FrankfurterRateAdapterTest {
     void setUp() {
         wireMock.resetAll();
         var properties = new FrankfurterProperties(wireMock.baseUrl(), 2000);
-        adapter = new FrankfurterRateAdapter(properties);
+        adapter = new FrankfurterRateAdapter(properties, null);
     }
 
     @Nested

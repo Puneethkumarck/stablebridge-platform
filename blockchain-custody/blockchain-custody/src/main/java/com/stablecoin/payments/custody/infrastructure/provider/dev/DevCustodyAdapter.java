@@ -4,11 +4,13 @@ import com.stablecoin.payments.custody.domain.port.CustodyEngine;
 import com.stablecoin.payments.custody.domain.port.SignRequest;
 import com.stablecoin.payments.custody.domain.port.SignResult;
 import com.stablecoin.payments.custody.domain.port.TransactionStatus;
+import com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.web3j.crypto.Credentials;
@@ -25,6 +27,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor.applyTo;
+
 @Slf4j
 @Component
 @ConditionalOnProperty(name = "app.custody.provider", havingValue = "dev")
@@ -38,10 +42,14 @@ public class DevCustodyAdapter implements CustodyEngine {
     private final DevCustodyProperties properties;
     private final Map<String, RestClient> restClients;
     private final Map<String, TxMapping> txMappings;
+    @Nullable
+    private final ExternalApiLoggingInterceptor loggingInterceptor;
 
     @org.springframework.beans.factory.annotation.Autowired
-    public DevCustodyAdapter(DevCustodyProperties properties) {
+    public DevCustodyAdapter(DevCustodyProperties properties,
+                             @Nullable ExternalApiLoggingInterceptor loggingInterceptor) {
         this.properties = properties;
+        this.loggingInterceptor = loggingInterceptor;
         this.restClients = new ConcurrentHashMap<>();
         this.txMappings = new ConcurrentHashMap<>();
 
@@ -50,6 +58,7 @@ public class DevCustodyAdapter implements CustodyEngine {
 
     DevCustodyAdapter(DevCustodyProperties properties, Map<String, RestClient> restClients) {
         this.properties = properties;
+        this.loggingInterceptor = null;
         this.restClients = new ConcurrentHashMap<>(restClients);
         this.txMappings = new ConcurrentHashMap<>();
     }
@@ -226,9 +235,9 @@ public class DevCustodyAdapter implements CustodyEngine {
         var requestFactory = new JdkClientHttpRequestFactory(httpClient);
         requestFactory.setReadTimeout(Duration.ofMillis(properties.readTimeoutMs()));
 
-        return RestClient.builder()
+        return applyTo(RestClient.builder()
                 .baseUrl(rpcUrl)
-                .requestFactory(requestFactory)
+                .requestFactory(requestFactory), loggingInterceptor)
                 .build();
     }
 

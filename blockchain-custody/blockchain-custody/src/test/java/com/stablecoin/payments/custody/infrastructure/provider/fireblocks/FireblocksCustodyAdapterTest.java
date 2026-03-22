@@ -65,7 +65,7 @@ class FireblocksCustodyAdapterTest {
                 VAULT_ACCOUNT_ID,
                 10
         );
-        adapter = new FireblocksCustodyAdapter(properties);
+        adapter = new FireblocksCustodyAdapter(properties, null);
     }
 
     @Nested

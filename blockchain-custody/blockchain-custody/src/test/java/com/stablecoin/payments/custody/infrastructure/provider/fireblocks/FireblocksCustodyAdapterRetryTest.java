@@ -232,7 +232,7 @@ class FireblocksCustodyAdapterRetryTest {
 
         @Bean
         FireblocksCustodyAdapter fireblocksCustodyAdapter(FireblocksProperties properties) {
-            return new FireblocksCustodyAdapter(properties);
+            return new FireblocksCustodyAdapter(properties, null);
         }
     }
 }

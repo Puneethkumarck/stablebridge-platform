@@ -47,7 +47,7 @@ class CircleRedemptionAdapterTest {
     void setUp() {
         wireMock.resetAll();
         var properties = new CircleProperties(wireMock.baseUrl(), "SAND_API_KEY_TEST", DESTINATION_ID, 10);
-        adapter = new CircleRedemptionAdapter(properties);
+        adapter = new CircleRedemptionAdapter(properties, null);
     }
 
     private RedemptionRequest aRedemptionRequest() {
@@ -131,7 +131,7 @@ class CircleRedemptionAdapterTest {
         @DisplayName("should throw on connection timeout")
         void redeem_timeout() {
             var timeoutProperties = new CircleProperties(wireMock.baseUrl(), "SAND_API_KEY_TEST", DESTINATION_ID, 1);
-            var timeoutAdapter = new CircleRedemptionAdapter(timeoutProperties);
+            var timeoutAdapter = new CircleRedemptionAdapter(timeoutProperties, null);
 
             wireMock.stubFor(post(urlEqualTo("/v1/businessAccount/payouts"))
                     .willReturn(aResponse()

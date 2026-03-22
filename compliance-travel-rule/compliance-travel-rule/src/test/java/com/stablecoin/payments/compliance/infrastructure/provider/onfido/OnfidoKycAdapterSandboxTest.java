@@ -52,7 +52,7 @@ class OnfidoKycAdapterSandboxTest {
                 60
         );
         // null Redis — adapter bypasses caching in sandbox mode
-        adapter = new OnfidoKycAdapter(properties, null);
+        adapter = new OnfidoKycAdapter(properties, null, null);
     }
 
     @Nested

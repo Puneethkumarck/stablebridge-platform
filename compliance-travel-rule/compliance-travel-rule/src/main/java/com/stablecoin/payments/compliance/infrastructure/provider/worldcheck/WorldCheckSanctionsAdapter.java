@@ -2,6 +2,7 @@ package com.stablecoin.payments.compliance.infrastructure.provider.worldcheck;
 
 import com.stablecoin.payments.compliance.domain.model.SanctionsResult;
 import com.stablecoin.payments.compliance.domain.port.SanctionsProvider;
+import com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor;
 import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -11,6 +12,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -22,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor.applyTo;
+
 @Slf4j
 @Component
 @ConditionalOnProperty(name = "app.sanctions.provider", havingValue = "world-check")
@@ -32,7 +36,8 @@ public class WorldCheckSanctionsAdapter implements SanctionsProvider {
 
     private final RestClient restClient;
 
-    public WorldCheckSanctionsAdapter(WorldCheckProperties properties) {
+    public WorldCheckSanctionsAdapter(WorldCheckProperties properties,
+                                     @Nullable ExternalApiLoggingInterceptor loggingInterceptor) {
         var httpClient = HttpClient.newBuilder()
                 .version(Version.HTTP_1_1)
                 .connectTimeout(Duration.ofSeconds(properties.timeoutSeconds()))
@@ -41,11 +46,11 @@ public class WorldCheckSanctionsAdapter implements SanctionsProvider {
         var requestFactory = new JdkClientHttpRequestFactory(httpClient);
         requestFactory.setReadTimeout(Duration.ofSeconds(properties.timeoutSeconds()));
 
-        this.restClient = RestClient.builder()
+        this.restClient = applyTo(RestClient.builder()
                 .baseUrl(properties.baseUrl())
                 .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + properties.apiKey())
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .requestFactory(requestFactory)
+                .requestFactory(requestFactory), loggingInterceptor)
                 .build();
     }
 

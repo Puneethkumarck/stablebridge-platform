@@ -182,7 +182,7 @@ class StripePspAdapterRetryTest {
 
         @Bean
         StripePspAdapter stripePspAdapter(StripeProperties properties) {
-            return new StripePspAdapter(properties);
+            return new StripePspAdapter(properties, null);
         }
     }
 }

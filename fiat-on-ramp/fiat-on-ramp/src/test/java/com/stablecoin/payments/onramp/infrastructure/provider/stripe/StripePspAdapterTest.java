@@ -52,7 +52,7 @@ class StripePspAdapterTest {
     void setUp() {
         wireMock.resetAll();
         var properties = new StripeProperties(wireMock.baseUrl(), "sk_test_xxx", 10);
-        adapter = new StripePspAdapter(properties);
+        adapter = new StripePspAdapter(properties, null);
     }
 
     private PspPaymentRequest aPaymentRequest() {
@@ -133,7 +133,7 @@ class StripePspAdapterTest {
         @DisplayName("should throw on connection timeout")
         void initiatePayment_timeout() {
             var timeoutProperties = new StripeProperties(wireMock.baseUrl(), "sk_test_xxx", 1);
-            var timeoutAdapter = new StripePspAdapter(timeoutProperties);
+            var timeoutAdapter = new StripePspAdapter(timeoutProperties, null);
 
             wireMock.stubFor(post(urlEqualTo("/v1/payment_intents"))
                     .willReturn(aResponse()

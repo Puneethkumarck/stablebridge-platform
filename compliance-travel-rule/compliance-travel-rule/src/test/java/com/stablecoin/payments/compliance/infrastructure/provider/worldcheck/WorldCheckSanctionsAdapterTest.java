@@ -46,7 +46,7 @@ class WorldCheckSanctionsAdapterTest {
                 "test-group",
                 2
         );
-        adapter = new WorldCheckSanctionsAdapter(properties);
+        adapter = new WorldCheckSanctionsAdapter(properties, null);
     }
 
     @Nested

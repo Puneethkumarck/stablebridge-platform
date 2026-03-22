@@ -2,6 +2,7 @@ package com.stablecoin.payments.compliance.infrastructure.provider.notabene;
 
 import com.stablecoin.payments.compliance.domain.model.TravelRulePackage;
 import com.stablecoin.payments.compliance.domain.port.TravelRuleProvider;
+import com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor;
 import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -11,6 +12,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -21,6 +23,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
+
+import static com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor.applyTo;
 
 @Slf4j
 @Component
@@ -38,7 +42,8 @@ public class NotabeneTravelRuleAdapter implements TravelRuleProvider {
     private volatile String cachedToken;
     private volatile Instant tokenExpiresAt = Instant.EPOCH;
 
-    public NotabeneTravelRuleAdapter(NotabeneProperties properties) {
+    public NotabeneTravelRuleAdapter(NotabeneProperties properties,
+                                     @Nullable ExternalApiLoggingInterceptor loggingInterceptor) {
         this.properties = properties;
 
         var httpClient = HttpClient.newBuilder()
@@ -49,15 +54,15 @@ public class NotabeneTravelRuleAdapter implements TravelRuleProvider {
         var requestFactory = new JdkClientHttpRequestFactory(httpClient);
         requestFactory.setReadTimeout(Duration.ofSeconds(properties.timeoutSeconds()));
 
-        this.apiClient = RestClient.builder()
+        this.apiClient = applyTo(RestClient.builder()
                 .baseUrl(properties.baseUrl())
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .requestFactory(requestFactory)
+                .requestFactory(requestFactory), loggingInterceptor)
                 .build();
 
-        this.authClient = RestClient.builder()
+        this.authClient = applyTo(RestClient.builder()
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .requestFactory(requestFactory)
+                .requestFactory(requestFactory), loggingInterceptor)
                 .build();
     }
 

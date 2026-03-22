@@ -5,6 +5,7 @@ import com.stablecoin.payments.offramp.domain.model.PaymentRail;
 import com.stablecoin.payments.offramp.domain.port.PayoutPartnerGateway;
 import com.stablecoin.payments.offramp.domain.port.PayoutRequest;
 import com.stablecoin.payments.offramp.domain.port.PayoutResult;
+import com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor;
 import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -14,12 +15,15 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 import java.net.http.HttpClient;
 import java.net.http.HttpClient.Version;
 import java.time.Duration;
+
+import static com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor.applyTo;
 
 /**
  * Modulr implementation of {@link PayoutPartnerGateway} for SEPA Credit transfers.
@@ -37,7 +41,8 @@ public class ModulrPayoutAdapter implements PayoutPartnerGateway {
     private final RestClient restClient;
     private final ModulrProperties properties;
 
-    public ModulrPayoutAdapter(ModulrProperties properties) {
+    public ModulrPayoutAdapter(ModulrProperties properties,
+                               @Nullable ExternalApiLoggingInterceptor loggingInterceptor) {
         this.properties = properties;
 
         var httpClient = HttpClient.newBuilder()
@@ -48,12 +53,12 @@ public class ModulrPayoutAdapter implements PayoutPartnerGateway {
         var requestFactory = new JdkClientHttpRequestFactory(httpClient);
         requestFactory.setReadTimeout(Duration.ofSeconds(properties.timeoutSeconds()));
 
-        this.restClient = RestClient.builder()
+        this.restClient = applyTo(RestClient.builder()
                 .baseUrl(properties.baseUrl())
                 .defaultHeader(HttpHeaders.AUTHORIZATION, properties.apiKey())
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
-                .requestFactory(requestFactory)
+                .requestFactory(requestFactory), loggingInterceptor)
                 .build();
     }
 

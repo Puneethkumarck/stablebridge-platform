@@ -13,6 +13,9 @@
 app:
   security:
     enabled: false
+  external-api:
+    logging:
+      enabled: true
   psp:
     provider: stripe
     stripe:

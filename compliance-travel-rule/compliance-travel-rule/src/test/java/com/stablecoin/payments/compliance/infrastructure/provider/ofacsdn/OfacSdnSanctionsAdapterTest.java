@@ -51,7 +51,7 @@ class OfacSdnSanctionsAdapterTest {
                 10000,
                 30000
         );
-        var downloader = new SdnListDownloader(properties);
+        var downloader = new SdnListDownloader(properties, null);
         return new OfacSdnSanctionsAdapter(properties, downloader);
     }
 

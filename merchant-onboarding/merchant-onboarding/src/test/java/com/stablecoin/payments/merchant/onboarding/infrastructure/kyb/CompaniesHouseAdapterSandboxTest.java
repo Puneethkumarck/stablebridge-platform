@@ -29,7 +29,7 @@ class CompaniesHouseAdapterSandboxTest {
         var apiKey = System.getenv("COMPANIES_HOUSE_API_KEY");
         var properties = new CompaniesHouseProperties(
                 "https://api.company-information.service.gov.uk", apiKey, 5000, 10000);
-        adapter = new CompaniesHouseAdapter(properties);
+        adapter = new CompaniesHouseAdapter(properties, null);
     }
 
     @Test

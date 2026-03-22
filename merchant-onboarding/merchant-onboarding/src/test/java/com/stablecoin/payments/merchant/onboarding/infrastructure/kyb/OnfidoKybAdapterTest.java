@@ -23,7 +23,7 @@ class OnfidoKybAdapterTest {
       var properties = new OnfidoProperties("test-token", "https://api.eu.onfido.com/v3.6", null, "EU", 30);
       // We can't easily call submit/getResult without a real HTTP server,
       // but getRequiredDocuments is pure logic
-      var adapter = new OnfidoKybAdapter(properties);
+      var adapter = new OnfidoKybAdapter(properties, null);
 
       var docs = adapter.getRequiredDocuments("GB", "PRIVATE_LIMITED");
 
@@ -35,7 +35,7 @@ class OnfidoKybAdapterTest {
     @DisplayName("should return same documents regardless of country")
     void shouldReturnSameDocumentsRegardlessOfCountry() {
       var properties = new OnfidoProperties("test-token", "https://api.eu.onfido.com/v3.6", null, "EU", 30);
-      var adapter = new OnfidoKybAdapter(properties);
+      var adapter = new OnfidoKybAdapter(properties, null);
 
       var gbDocs = adapter.getRequiredDocuments("GB", null);
       var usDocs = adapter.getRequiredDocuments("US", null);
@@ -52,7 +52,7 @@ class OnfidoKybAdapterTest {
     @DisplayName("should return null for non-check webhook events")
     void shouldReturnNullForNonCheckWebhookEvents() {
       var properties = new OnfidoProperties("test-token", "https://api.eu.onfido.com/v3.6", null, "EU", 30);
-      var adapter = new OnfidoKybAdapter(properties);
+      var adapter = new OnfidoKybAdapter(properties, null);
       var payload = Map.<String, Object>of("resource_type", "report", "action", "report.completed", "object",
           Map.of("id", "report-123", "status", "complete", "href", "https://api.onfido.com/reports/123"));
 
@@ -65,7 +65,7 @@ class OnfidoKybAdapterTest {
     @DisplayName("should return null for non-completed check action")
     void shouldReturnNullForNonCompletedCheckAction() {
       var properties = new OnfidoProperties("test-token", "https://api.eu.onfido.com/v3.6", null, "EU", 30);
-      var adapter = new OnfidoKybAdapter(properties);
+      var adapter = new OnfidoKybAdapter(properties, null);
       var payload = Map.<String, Object>of("resource_type", "check", "action", "check.started", "object",
           Map.of("id", "check-123", "status", "in_progress", "href", "https://api.onfido.com/checks/123"));
 

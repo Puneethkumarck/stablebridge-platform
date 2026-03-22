@@ -35,7 +35,7 @@ class FrankfurterRateAdapterSandboxTest {
     @BeforeEach
     void setUp() {
         var properties = new FrankfurterProperties("https://api.frankfurter.app", 10000);
-        adapter = new FrankfurterRateAdapter(properties);
+        adapter = new FrankfurterRateAdapter(properties, null);
     }
 
     @Nested

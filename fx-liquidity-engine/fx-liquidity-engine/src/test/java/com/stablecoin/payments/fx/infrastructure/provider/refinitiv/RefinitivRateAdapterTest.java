@@ -40,7 +40,7 @@ class RefinitivRateAdapterTest {
         wireMock.resetAll();
         var properties = new RefinitivProperties(
                 wireMock.baseUrl(), "test-api-key", 2);
-        adapter = new RefinitivRateAdapter(properties);
+        adapter = new RefinitivRateAdapter(properties, null);
     }
 
     @Nested

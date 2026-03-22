@@ -6,6 +6,9 @@
 app:
   security:
     enabled: false
+  external-api:
+    logging:
+      enabled: true
   ledger:
     reconciliation:
       tolerance: 0.01
