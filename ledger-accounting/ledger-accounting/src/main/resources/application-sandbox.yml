@@ -1,0 +1,43 @@
+# Sandbox profile — ledger consumes events from sandbox services, local infrastructure
+# Run: ./gradlew :ledger-accounting:ledger-accounting:bootRun --args='--spring.profiles.active=sandbox'
+# No external API keys needed — S7 is a pure consumer of Kafka events
+# Requires: Kafka + PostgreSQL running (docker-compose.dev.yml)
+
+app:
+  security:
+    enabled: false
+  ledger:
+    reconciliation:
+      tolerance: 0.01
+      retry-interval-ms: 600000
+      retry-enabled: true
+      audit-archive-enabled: false
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/s7_ledger_accounting
+    username: sp_user
+    password: sp_pass
+
+  cloud:
+    vault:
+      enabled: false
+    stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+
+  kafka:
+    bootstrap-servers: localhost:9092
+
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
+
+logging:
+  level:
+    com.stablecoin.payments: DEBUG
+    com.stablecoin.payments.ledger.infrastructure.messaging: DEBUG
+    org.apache.kafka: WARN

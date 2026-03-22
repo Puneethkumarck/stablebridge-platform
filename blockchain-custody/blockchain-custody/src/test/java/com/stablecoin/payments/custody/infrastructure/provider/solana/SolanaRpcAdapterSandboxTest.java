@@ -14,20 +14,19 @@ import java.math.BigDecimal;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Sandbox integration tests that hit the real Solana Devnet public RPC endpoint.
+ * Sandbox integration tests that hit the Solana Devnet via Alchemy RPC.
  *
- * <p>Guarded by {@code SOLANA_SANDBOX_ENABLED=true} env var to avoid
- * hitting public Devnet endpoints during every CI build. Solana Devnet
- * has rate limits and can be unstable.
+ * <p>Guarded by {@code ALCHEMY_API_KEY} env var — uses the same Alchemy key
+ * as the EVM sandbox tests.
  *
  * <p>Run manually:
  * <pre>
- *   SOLANA_SANDBOX_ENABLED=true ./gradlew :blockchain-custody:blockchain-custody:test --tests '*SolanaRpcAdapterSandboxTest*'
+ *   ALCHEMY_API_KEY=xxx ./gradlew :blockchain-custody:blockchain-custody:test --tests '*SolanaRpcAdapterSandboxTest*'
  * </pre>
  */
 @Tag("sandbox")
-@EnabledIfEnvironmentVariable(named = "SOLANA_SANDBOX_ENABLED", matches = "true")
-@DisplayName("SolanaRpcAdapter — Devnet Sandbox")
+@EnabledIfEnvironmentVariable(named = "ALCHEMY_API_KEY", matches = ".+")
+@DisplayName("SolanaRpcAdapter — Alchemy Devnet Sandbox")
 class SolanaRpcAdapterSandboxTest {
 
     private static final String SOLANA_DEVNET_USDC_MINT = "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU";
@@ -37,9 +36,10 @@ class SolanaRpcAdapterSandboxTest {
 
     @BeforeAll
     static void setUp() {
+        var alchemyKey = System.getenv("ALCHEMY_API_KEY");
         var properties = new SolanaChainProperties(
                 true,
-                "https://api.devnet.solana.com",
+                "https://solana-devnet.g.alchemy.com/v2/" + alchemyKey,
                 SOLANA_DEVNET_USDC_MINT,
                 "confirmed",
                 10000,
@@ -55,10 +55,8 @@ class SolanaRpcAdapterSandboxTest {
         @Test
         @DisplayName("should return positive slot number from Solana Devnet")
         void shouldReturnPositiveSlotNumber() {
-            // when
             var slot = adapter.getLatestBlockNumber(SOLANA_CHAIN);
 
-            // then — Solana Devnet has been running for years, slot numbers are in the billions
             assertThat(slot).isGreaterThan(0L);
         }
     }
@@ -70,13 +68,10 @@ class SolanaRpcAdapterSandboxTest {
         @Test
         @DisplayName("should return non-negative USDC balance for any address")
         void shouldReturnNonNegativeBalance() {
-            // given — a random address unlikely to have USDC token accounts
             var randomAddress = "BPFLoaderUpgradeab1e11111111111111111111111";
 
-            // when
             var balance = adapter.getTokenBalance(SOLANA_CHAIN, randomAddress, SOLANA_DEVNET_USDC_MINT);
 
-            // then — balance should be non-negative (likely zero for this address)
             assertThat(balance).isGreaterThanOrEqualTo(BigDecimal.ZERO);
         }
     }
@@ -88,14 +83,10 @@ class SolanaRpcAdapterSandboxTest {
         @Test
         @DisplayName("should return null for non-existent transaction signature")
         void shouldReturnNullForNonExistentTransaction() {
-            // given — a valid base58-encoded signature that does not exist on-chain
-            // Solana signatures are 64 bytes = 88 base58 characters
             var fakeSignature = "5VERv8NMvzbJMEkV8xnrLkEaWRtSz9CosKDYjCJjBRnbJLgp8uirBgmQpjKhoR4tjF3ZpRzrFmBV6UjKdiSZkQU";
 
-            // when
             TransactionReceipt receipt = adapter.getTransactionReceipt(SOLANA_CHAIN, fakeSignature);
 
-            // then — receipt should be null since the transaction does not exist
             assertThat(receipt).isNull();
         }
     }

@@ -1,0 +1,51 @@
+# Sandbox profile — orchestrator routes to downstream sandbox service instances
+# Run: ./gradlew :payment-orchestrator:payment-orchestrator:bootRun --args='--spring.profiles.active=sandbox'
+# Requires: All downstream services (S2, S3, S4, S5, S6, S7) running with sandbox profile
+# Temporal must be running (docker-compose.dev.yml)
+
+app:
+  security:
+    enabled: false
+  temporal:
+    worker:
+      enabled: true
+  services:
+    compliance:
+      url: ${COMPLIANCE_SERVICE_URL:http://localhost:8083/compliance}
+    fx:
+      url: ${FX_SERVICE_URL:http://localhost:8084/fx}
+    fiat-on-ramp:
+      url: ${ONRAMP_SERVICE_URL:http://localhost:8085/on-ramp}
+    blockchain-custody:
+      url: ${CUSTODY_SERVICE_URL:http://localhost:8086/custody}
+    fiat-off-ramp:
+      url: ${OFFRAMP_SERVICE_URL:http://localhost:8087/off-ramp}
+
+temporal:
+  server:
+    address: ${TEMPORAL_ADDRESS:localhost:7233}
+  namespace: ${TEMPORAL_NAMESPACE:default}
+  task-queue: payment-orchestrator-queue
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/s1_payment_orchestrator
+    username: sp_user
+    password: sp_pass
+
+  cloud:
+    vault:
+      enabled: false
+
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
+
+logging:
+  level:
+    com.stablecoin.payments: DEBUG
+    com.stablecoin.payments.orchestrator.infrastructure.activity: DEBUG
+    io.temporal: DEBUG
+    org.springframework.web.client: DEBUG

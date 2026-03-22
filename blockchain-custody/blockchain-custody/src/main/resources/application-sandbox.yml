@@ -41,7 +41,7 @@ app:
           read-timeout-ms: 30000
     solana:
       enabled: true
-      rpc-url: https://api.devnet.solana.com
+      rpc-url: https://solana-devnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}
       usdc-mint-address: "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"
       commitment: confirmed
       connect-timeout-ms: 10000
@@ -62,7 +62,7 @@ app:
     solana:
       min-confirmations: 1
       avg-finality-s: 5
-      rpc-url: https://api.devnet.solana.com
+      rpc-url: https://solana-devnet.g.alchemy.com/v2/${ALCHEMY_API_KEY}
       token-contracts:
         USDC: "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"
 

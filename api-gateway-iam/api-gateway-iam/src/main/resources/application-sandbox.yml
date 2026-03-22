@@ -1,0 +1,54 @@
+# Sandbox profile — gateway routes to sandbox services, local infrastructure
+# Run: ./gradlew :api-gateway-iam:api-gateway-iam:bootRun --args='--spring.profiles.active=sandbox'
+# Requires: JWT_PRIVATE_KEY_BASE64 env var for token signing
+# Requires: S13 Merchant IAM running with sandbox profile for JWKS validation
+
+app:
+  security:
+    enabled: false
+
+api-gateway-iam:
+  jwt:
+    private-key-base64: ${JWT_PRIVATE_KEY_BASE64:}
+    issuer: ${JWT_ISSUER:https://gateway.stablebridge.dev}
+    audience: ${JWT_AUDIENCE:payment-platform}
+    access-token-ttl-seconds: 3600
+  merchant-iam:
+    base-url: ${MERCHANT_IAM_BASE_URL:http://localhost:8083/iam}
+    issuer: ${MERCHANT_IAM_ISSUER:https://api.stablebridge.dev}
+    audience: ${MERCHANT_IAM_AUDIENCE:payment-platform}
+    jwks-cache-ttl-hours: 1
+  rate-limit:
+    default-tier: STARTER
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/s10_api_gateway_iam
+    username: sp_user
+    password: sp_pass
+
+  cloud:
+    vault:
+      enabled: false
+    stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
+
+logging:
+  level:
+    com.stablecoin.payments: DEBUG
+    com.stablecoin.payments.gateway.infrastructure: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web.client: DEBUG

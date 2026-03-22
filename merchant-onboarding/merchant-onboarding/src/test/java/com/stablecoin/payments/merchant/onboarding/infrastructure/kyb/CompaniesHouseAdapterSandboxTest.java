@@ -42,7 +42,7 @@ class CompaniesHouseAdapterSandboxTest {
                 "MARINE AND GENERAL MUTUAL LIFE ASSURANCE SOCIETY",
                 "00000006",
                 "GB",
-                "active",
+                "dissolved",
                 "private-unlimited-nsc",
                 "1862-10-25",
                 null);
