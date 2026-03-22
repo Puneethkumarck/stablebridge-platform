@@ -6,6 +6,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.math.BigDecimal;
 
@@ -91,7 +92,7 @@ class FrankfurterRateAdapterSandboxTest {
         @DisplayName("should throw on invalid currency pair (USD to USD returns 422)")
         void shouldThrowOnSameCurrencyPair() {
             assertThatThrownBy(() -> adapter.getRate("USD", "USD"))
-                    .isInstanceOf(Exception.class);
+                    .isInstanceOf(HttpClientErrorException.class);
         }
     }
 
