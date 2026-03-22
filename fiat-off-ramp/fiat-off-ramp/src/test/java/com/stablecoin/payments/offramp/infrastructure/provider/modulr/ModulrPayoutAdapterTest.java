@@ -140,21 +140,23 @@ class ModulrPayoutAdapterTest {
             adapter.initiatePayout(aPayoutRequest());
 
             wireMock.verify(postRequestedFor(urlEqualTo("/api-sandbox-token/payments"))
-                    .withHeader("Authorization", equalTo("Bearer " + API_KEY))
+                    .withHeader("Authorization", equalTo(API_KEY))
                     .withHeader("Content-Type", equalTo("application/json"))
                     .withRequestBody(equalToJson("""
                             {
                               "sourceAccountId": "A1100ABCD1",
                               "amount": 9500.00,
                               "currency": "EUR",
-                              "reference": "Payout 887adb57-1d2e-4f3a-b5c6-d7e8f9a0b1c2",
+                              "reference": "887adb57-1d2e-4f3a",
                               "externalReference": "887adb57-1d2e-4f3a-b5c6-d7e8f9a0b1c2",
                               "destination": {
                                 "type": "IBAN",
                                 "iban": "DE89370400440532013000",
-                                "name": "modulr"
+                                "name": "modulr",
+                                "sortCode": null,
+                                "accountNumber": null
                               },
-                              "permittedScheme": "SEPA_CREDIT"
+                              "permittedScheme": "SEPA_CREDIT_TRANSFER"
                             }
                             """)));
         }
