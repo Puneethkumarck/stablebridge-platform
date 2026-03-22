@@ -1,0 +1,60 @@
+# Sandbox profile — IAM with local Mailhog for email, local infrastructure
+# Run: ./gradlew :merchant-iam:merchant-iam:bootRun --args='--spring.profiles.active=sandbox'
+# Requires: JWT_PRIVATE_KEY_BASE64 env var for token signing
+# Email: Mailpit captures emails at http://localhost:8025 (SMTP on port 1025)
+
+app:
+  security:
+    enabled: false
+
+merchant-iam:
+  jwt:
+    private-key-base64: ${JWT_PRIVATE_KEY_BASE64:}
+    issuer: ${JWT_ISSUER:https://api.stablebridge.dev}
+    audience: ${JWT_AUDIENCE:payment-platform}
+    access-token-ttl-seconds: 3600
+    refresh-token-ttl-seconds: 86400
+  email:
+    from: noreply@stablebridge.dev
+    invitation-base-url: http://localhost:3000/invite
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/s13_merchant_iam
+    username: sp_user
+    password: sp_pass
+
+  cloud:
+    vault:
+      enabled: false
+    stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  mail:
+    host: localhost
+    port: 1025
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
+
+logging:
+  level:
+    com.stablecoin.payments: DEBUG
+    com.stablecoin.payments.iam.infrastructure: DEBUG
+    org.springframework.security: DEBUG

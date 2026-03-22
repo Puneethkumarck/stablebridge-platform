@@ -1,0 +1,44 @@
+# Sandbox profile — real Frankfurter API for FX rates, local infrastructure
+# Run: ./gradlew :fx-liquidity-engine:fx-liquidity-engine:bootRun --args='--spring.profiles.active=sandbox'
+# No API key needed — Frankfurter is free and keyless (uses ECB reference rates)
+# See: https://www.frankfurter.app/docs/
+
+app:
+  security:
+    enabled: false
+  fx:
+    rate-provider: frankfurter
+    frankfurter:
+      base-url: https://api.frankfurter.app
+      read-timeout-ms: 10000
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5433/fx_rates
+    username: sp_user
+    password: sp_pass
+
+  cloud:
+    vault:
+      enabled: false
+    stream:
+      kafka:
+        binder:
+          brokers: localhost:9092
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+  jpa:
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
+
+logging:
+  level:
+    com.stablecoin.payments: DEBUG
+    com.stablecoin.payments.fx.infrastructure.provider.frankfurter: DEBUG
+    org.springframework.web.client: DEBUG
