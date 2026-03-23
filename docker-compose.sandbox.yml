@@ -1,0 +1,398 @@
+# Sandbox E2E — Full Payment Sandwich with REAL external APIs
+#
+# Usage:
+#   make sandbox-build   # Build Docker images
+#   make sandbox-up      # Start infra + all 7 services
+#   make sandbox-status  # Check health
+#   make sandbox-logs    # Tail logs
+#   make sandbox-down    # Stop everything
+#
+# Requires: .env.sandbox with real API keys (copy from .env.sandbox.template)
+
+services:
+
+  # ── Infrastructure ─────────────────────────────────────────────
+
+  postgres:
+    image: postgres:18-alpine
+    container_name: sb-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: dev
+      POSTGRES_DB: postgres
+    volumes:
+      - sb-pgdata:/var/lib/postgresql/data
+      - ./infra/local/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  timescaledb:
+    image: timescale/timescaledb:latest-pg17
+    container_name: sb-timescaledb
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: dev
+      POSTGRES_DB: fx_rates
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:8-alpine
+    container_name: sb-redis
+    ports:
+      - "6379:6379"
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v24.3.18
+    container_name: sb-redpanda
+    command:
+      - redpanda
+      - start
+      - --smp=1
+      - --memory=512M
+      - --overprovisioned
+      - --kafka-addr=internal://0.0.0.0:29092,external://0.0.0.0:9092
+      - --advertise-kafka-addr=internal://redpanda:29092,external://localhost:9092
+      - --mode=dev-container
+    ports:
+      - "9092:9092"
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+    healthcheck:
+      test: ["CMD-SHELL", "rpk cluster health --api-urls=localhost:9644 | grep -q 'Healthy.*true' || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+
+  temporal:
+    image: temporalio/auto-setup:latest
+    container_name: sb-temporal
+    ports:
+      - "7233:7233"
+    environment:
+      DB: postgres12
+      DB_PORT: 5432
+      POSTGRES_USER: dev
+      POSTGRES_PWD: dev
+      POSTGRES_SEEDS: postgres
+      SKIP_DYNAMIC_CONFIG_SETUP: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    healthcheck:
+      test: ["CMD-SHELL", "temporal operator cluster health 2>/dev/null | grep -q 'OK' || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 15
+
+  # ── Application Services (Default Profile — env var overrides) ──
+
+  compliance-travel-rule:
+    image: stablebridge/compliance-travel-rule:latest
+    container_name: sb-compliance
+    ports:
+      - "8083:8083"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+    environment:
+      JAVA_TOOL_OPTIONS: "-XX:+UseZGC -XX:MaxRAMPercentage=75.0 -Xss256k"
+      SPRING_CLOUD_VAULT_ENABLED: "false"
+      APP_SECURITY_ENABLED: "false"
+      APP_EXTERNAL_API_LOGGING_ENABLED: "${APP_EXTERNAL_API_LOGGING_ENABLED:-false}"
+      APP_FALLBACK_ADAPTERS_ENABLED: "true"
+      DB_URL: "jdbc:postgresql://postgres:5432/s2_compliance"
+      DB_USER: dev
+      DB_PASS: dev
+      KAFKA_BROKERS: "redpanda:29092"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      APP_KYC_PROVIDER: persona
+      APP_KYC_PERSONA_API_KEY: ${PERSONA_SANDBOX_API_KEY}
+      APP_KYC_PERSONA_INQUIRY_TEMPLATE_ID: ${PERSONA_INQUIRY_TEMPLATE_ID}
+      APP_SANCTIONS_PROVIDER: ofac-sdn
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8083/compliance/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 120s
+
+  fx-liquidity-engine:
+    image: stablebridge/fx-liquidity-engine:latest
+    container_name: sb-fx-engine
+    ports:
+      - "8084:8084"
+    depends_on:
+      timescaledb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+    environment:
+      JAVA_TOOL_OPTIONS: "-XX:+UseZGC -XX:MaxRAMPercentage=75.0 -Xss256k"
+      SPRING_CLOUD_VAULT_ENABLED: "false"
+      APP_SECURITY_ENABLED: "false"
+      APP_EXTERNAL_API_LOGGING_ENABLED: "${APP_EXTERNAL_API_LOGGING_ENABLED:-false}"
+      APP_FALLBACK_ADAPTERS_ENABLED: "true"
+      DB_URL: "jdbc:postgresql://timescaledb:5432/fx_rates"
+      DB_USER: dev
+      DB_PASS: dev
+      KAFKA_BROKERS: "redpanda:29092"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      APP_FX_RATE_PROVIDER: frankfurter
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8084/fx/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 120s
+
+  fiat-on-ramp:
+    image: stablebridge/fiat-on-ramp:latest
+    container_name: sb-onramp
+    ports:
+      - "8085:8085"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+    environment:
+      JAVA_TOOL_OPTIONS: "-XX:+UseZGC -XX:MaxRAMPercentage=75.0 -Xss256k"
+      SPRING_CLOUD_VAULT_ENABLED: "false"
+      APP_SECURITY_ENABLED: "false"
+      APP_EXTERNAL_API_LOGGING_ENABLED: "${APP_EXTERNAL_API_LOGGING_ENABLED:-false}"
+      APP_FALLBACK_ADAPTERS_ENABLED: "true"
+      DB_URL: "jdbc:postgresql://postgres:5432/s3_fiat_on_ramp"
+      DB_USER: dev
+      DB_PASS: dev
+      KAFKA_BROKERS: "redpanda:29092"
+      APP_PSP_PROVIDER: stripe
+      APP_PSP_STRIPE_BASE_URL: "https://api.stripe.com"
+      APP_PSP_STRIPE_API_KEY: ${STRIPE_TEST_SECRET_KEY}
+      APP_PSP_STRIPE_TIMEOUT_SECONDS: "15"
+      APP_PSP_STRIPE_WEBHOOK_WEBHOOK_SECRET: ${STRIPE_SANDBOX_WEBHOOK_SECRET}
+      APP_PSP_STRIPE_WEBHOOK_TOLERANCE_SECONDS: "300"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8085/on-ramp/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 120s
+
+  blockchain-custody:
+    image: stablebridge/blockchain-custody:latest
+    container_name: sb-custody
+    ports:
+      - "8086:8086"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+    environment:
+      JAVA_TOOL_OPTIONS: "-XX:+UseZGC -XX:MaxRAMPercentage=75.0 -Xss256k"
+      SPRING_CLOUD_VAULT_ENABLED: "false"
+      APP_SECURITY_ENABLED: "false"
+      APP_EXTERNAL_API_LOGGING_ENABLED: "${APP_EXTERNAL_API_LOGGING_ENABLED:-false}"
+      APP_FALLBACK_ADAPTERS_ENABLED: "true"
+      DB_URL: "jdbc:postgresql://postgres:5432/s4_blockchain_custody"
+      DB_USER: dev
+      DB_PASS: dev
+      KAFKA_BROKERS: "redpanda:29092"
+      APP_CUSTODY_PROVIDER: dev
+      LOGGING_LEVEL_COM_STABLECOIN_PAYMENTS: DEBUG
+      APP_CUSTODY_DEV_EVM_PRIVATE_KEY: ${CUSTODY_DEV_EVM_PRIVATE_KEY}
+      APP_CUSTODY_DEV_BASE_RPC_URL: "https://base-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}"
+      APP_CUSTODY_DEV_ETHEREUM_RPC_URL: "https://eth-sepolia.g.alchemy.com/v2/${ALCHEMY_API_KEY}"
+      APP_CUSTODY_DEV_BASE_USDC_CONTRACT: "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+      APP_CUSTODY_DEV_ETHEREUM_USDC_CONTRACT: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"
+      ALCHEMY_API_KEY: ${ALCHEMY_API_KEY}
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8086/custody/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 120s
+
+  fiat-off-ramp:
+    image: stablebridge/fiat-off-ramp:latest
+    container_name: sb-offramp
+    ports:
+      - "8087:8087"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+    environment:
+      JAVA_TOOL_OPTIONS: "-XX:+UseZGC -XX:MaxRAMPercentage=75.0 -Xss256k"
+      SPRING_CLOUD_VAULT_ENABLED: "false"
+      APP_SECURITY_ENABLED: "false"
+      APP_EXTERNAL_API_LOGGING_ENABLED: "${APP_EXTERNAL_API_LOGGING_ENABLED:-false}"
+      APP_FALLBACK_ADAPTERS_ENABLED: "true"
+      DB_URL: "jdbc:postgresql://postgres:5432/s5_fiat_off_ramp"
+      DB_USER: dev
+      DB_PASS: dev
+      KAFKA_BROKERS: "redpanda:29092"
+      APP_REDEMPTION_PROVIDER: circle
+      APP_REDEMPTION_CIRCLE_BASE_URL: "https://api-sandbox.circle.com"
+      APP_REDEMPTION_CIRCLE_API_KEY: ${CIRCLE_SANDBOX_API_KEY}
+      APP_REDEMPTION_CIRCLE_DESTINATION_ID: ${CIRCLE_SANDBOX_DESTINATION_ID}
+      APP_PAYOUT_PROVIDER: modulr
+      APP_PAYOUT_MODULR_BASE_URL: "https://api-sandbox.modulrfinance.com"
+      APP_PAYOUT_MODULR_API_KEY: ${MODULR_SANDBOX_API_KEY}
+      APP_PAYOUT_MODULR_SOURCE_ACCOUNT_ID: ${MODULR_SANDBOX_SOURCE_ACCOUNT_ID}
+      APP_PAYOUT_MODULR_WEBHOOK_WEBHOOK_SECRET: ${MODULR_SANDBOX_API_SECRET}
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8087/off-ramp/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 120s
+
+  ledger-accounting:
+    image: stablebridge/ledger-accounting:latest
+    container_name: sb-ledger
+    ports:
+      - "8088:8088"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+    environment:
+      JAVA_TOOL_OPTIONS: "-XX:+UseZGC -XX:MaxRAMPercentage=75.0 -Xss256k"
+      SPRING_CLOUD_VAULT_ENABLED: "false"
+      APP_SECURITY_ENABLED: "false"
+      APP_EXTERNAL_API_LOGGING_ENABLED: "${APP_EXTERNAL_API_LOGGING_ENABLED:-false}"
+      APP_FALLBACK_ADAPTERS_ENABLED: "true"
+      DB_URL: "jdbc:postgresql://postgres:5432/s7_ledger_accounting"
+      DB_USER: dev
+      DB_PASS: dev
+      KAFKA_BROKERS: "redpanda:29092"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8088/ledger/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 120s
+
+  payment-orchestrator:
+    image: stablebridge/payment-orchestrator:latest
+    container_name: sb-orchestrator
+    ports:
+      - "8082:8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redpanda:
+        condition: service_healthy
+      temporal:
+        condition: service_healthy
+      compliance-travel-rule:
+        condition: service_healthy
+      fx-liquidity-engine:
+        condition: service_healthy
+    environment:
+      JAVA_TOOL_OPTIONS: "-XX:+UseZGC -XX:MaxRAMPercentage=75.0 -Xss256k"
+      SPRING_CLOUD_VAULT_ENABLED: "false"
+      APP_SECURITY_ENABLED: "false"
+      APP_EXTERNAL_API_LOGGING_ENABLED: "${APP_EXTERNAL_API_LOGGING_ENABLED:-false}"
+      APP_FALLBACK_ADAPTERS_ENABLED: "true"
+      DB_URL: "jdbc:postgresql://postgres:5432/s1_payment_orchestrator"
+      DB_USER: dev
+      DB_PASS: dev
+      KAFKA_BROKERS: "redpanda:29092"
+      TEMPORAL_ADDRESS: "temporal:7233"
+      TEMPORAL_NAMESPACE: default
+      TEMPORAL_WORKER_ENABLED: "true"
+      COMPLIANCE_SERVICE_URL: "http://compliance-travel-rule:8083/compliance"
+      FX_SERVICE_URL: "http://fx-liquidity-engine:8084/fx"
+      ONRAMP_SERVICE_URL: "http://fiat-on-ramp:8085/on-ramp"
+      CUSTODY_SERVICE_URL: "http://blockchain-custody:8086/custody"
+      OFFRAMP_SERVICE_URL: "http://fiat-off-ramp:8087/off-ramp"
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8082/orchestrator/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 60
+      start_period: 120s
+
+volumes:
+  sb-pgdata:

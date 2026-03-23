@@ -64,7 +64,6 @@ public class StripePspAdapter implements PspGateway {
         formData.add("amount", toMinorUnits(request));
         formData.add("currency", request.amount().currency().toLowerCase());
         formData.add("payment_method_types[]", "us_bank_account");
-        formData.add("confirm", "true");
         formData.add("metadata[collection_id]", request.collectionId().toString());
 
         var requestSpec = restClient.post()

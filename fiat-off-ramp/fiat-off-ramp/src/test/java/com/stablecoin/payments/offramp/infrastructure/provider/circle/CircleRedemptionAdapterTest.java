@@ -51,7 +51,7 @@ class CircleRedemptionAdapterTest {
     }
 
     private RedemptionRequest aRedemptionRequest() {
-        return new RedemptionRequest(PAYOUT_ID, "USDC", new BigDecimal("10000.000000"), BigDecimal.ONE);
+        return new RedemptionRequest(PAYOUT_ID, "USDC", new BigDecimal("10000.00"), BigDecimal.ONE);
     }
 
     @Nested
@@ -168,7 +168,7 @@ class CircleRedemptionAdapterTest {
                                       "data": {
                                         "id": "circle-payout-verify",
                                         "amount": {
-                                          "amount": "10000.000000",
+                                          "amount": "10000.00",
                                           "currency": "USD"
                                         },
                                         "status": "pending",
@@ -190,7 +190,7 @@ class CircleRedemptionAdapterTest {
                                 "id": "%s"
                               },
                               "amount": {
-                                "amount": "10000.000000",
+                                "amount": "10000.00",
                                 "currency": "USD"
                               }
                             }
@@ -213,6 +213,40 @@ class CircleRedemptionAdapterTest {
 
             assertThatThrownBy(() -> adapter.redeem(aRedemptionRequest()))
                     .isInstanceOf(Exception.class);
+        }
+
+        @Test
+        @DisplayName("should truncate outbound amount to 2 decimals for Circle request")
+        void redeem_truncatesAmountToTwoDecimals() {
+            wireMock.stubFor(post(urlEqualTo("/v1/businessAccount/payouts"))
+                    .willReturn(aResponse()
+                            .withStatus(201)
+                            .withHeader("Content-Type", "application/json")
+                            .withBody("""
+                                    {
+                                      "data": {
+                                        "id": "circle-payout-truncate",
+                                        "amount": {
+                                          "amount": "10000.00",
+                                          "currency": "USD"
+                                        },
+                                        "status": "pending",
+                                        "createDate": "2026-03-10T12:00:00.000Z"
+                                      }
+                                    }
+                                    """)));
+
+            var request = new RedemptionRequest(PAYOUT_ID, "USDC", new BigDecimal("10000.009"), BigDecimal.ONE);
+            adapter.redeem(request);
+
+            wireMock.verify(postRequestedFor(urlEqualTo("/v1/businessAccount/payouts"))
+                    .withRequestBody(equalToJson("""
+                            {
+                              "idempotencyKey": "%s",
+                              "destination": { "type": "wire", "id": "%s" },
+                              "amount": { "amount": "10000.00", "currency": "USD" }
+                            }
+                            """.formatted(PAYOUT_ID, DESTINATION_ID))));
         }
 
         @Test

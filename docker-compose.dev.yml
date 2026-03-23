@@ -148,12 +148,12 @@ services:
     ports:
       - "7233:7233"
     environment:
-      DB: postgresql
+      DB: postgres12
       DB_PORT: 5432
       POSTGRES_USER: dev
       POSTGRES_PWD: dev
       POSTGRES_SEEDS: postgres
-      DYNAMIC_CONFIG_FILE_PATH: /etc/temporal/config/dynamicconfig/development-sql.yaml
+      SKIP_DYNAMIC_CONFIG_SETUP: true
     depends_on:
       postgres:
         condition: service_healthy
@@ -241,7 +241,7 @@ services:
   # Jaeger — distributed trace visualization (STA-221)
   # ─────────────────────────────────────────────
   jaeger:
-    image: jaegertracing/all-in-one:1.67
+    image: jaegertracing/all-in-one:1.76.0
     container_name: sp-jaeger
     ports:
       - "16686:16686"  # Jaeger UI

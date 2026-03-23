@@ -10,6 +10,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
+
 import static com.stablecoin.payments.orchestrator.domain.workflow.activity.OffRampResult.OffRampStatus.FAILED;
 import static com.stablecoin.payments.orchestrator.domain.workflow.activity.OffRampResult.OffRampStatus.INITIATED;
 
@@ -44,14 +49,14 @@ public class OffRampActivityImpl implements OffRampActivity {
                 request.targetCurrency(),
                 request.appliedFxRate(),
                 request.recipientId(),
-                "sha256:" + request.recipientId(),
-                "SEPA",
+                sha256(request.recipientId().toString()),
+                resolvePaymentRail(request.targetCurrency()),
                 "modulr-default",
                 "Modulr",
-                "DE89370400440532013000",
-                "COBADEFFXXX",
-                "IBAN",
-                "DE",
+                resolveBankAccount(request.targetCurrency()),
+                resolveBankCode(request.targetCurrency()),
+                resolveAccountType(request.targetCurrency()),
+                resolveCountry(request.targetCurrency()),
                 null, null, null
         );
 
@@ -74,6 +79,56 @@ public class OffRampActivityImpl implements OffRampActivity {
             log.error("Off-ramp payout failed for paymentId={}: {}",
                     request.paymentId(), e.getMessage());
             return new OffRampResult(null, FAILED, e.getMessage());
+        }
+    }
+
+    private static String resolvePaymentRail(String targetCurrency) {
+        return switch (targetCurrency) {
+            case "GBP" -> "FASTER_PAYMENTS";
+            case "EUR" -> "SEPA";
+            default -> throw new IllegalArgumentException("Unsupported payout currency: " + targetCurrency);
+        };
+    }
+
+    private static String resolveBankAccount(String targetCurrency) {
+        return switch (targetCurrency) {
+            case "GBP" -> "12345678";
+            case "EUR" -> "DE89370400440532013000";
+            default -> throw new IllegalArgumentException("Unsupported payout currency: " + targetCurrency);
+        };
+    }
+
+    private static String resolveBankCode(String targetCurrency) {
+        return switch (targetCurrency) {
+            case "GBP" -> "000000";
+            case "EUR" -> "COBADEFFXXX";
+            default -> throw new IllegalArgumentException("Unsupported payout currency: " + targetCurrency);
+        };
+    }
+
+    private static String resolveAccountType(String targetCurrency) {
+        return switch (targetCurrency) {
+            case "GBP" -> "SORT_CODE";
+            case "EUR" -> "IBAN";
+            default -> throw new IllegalArgumentException("Unsupported payout currency: " + targetCurrency);
+        };
+    }
+
+    private static String resolveCountry(String targetCurrency) {
+        return switch (targetCurrency) {
+            case "GBP" -> "GB";
+            case "EUR" -> "DE";
+            default -> throw new IllegalArgumentException("Unsupported payout currency: " + targetCurrency);
+        };
+    }
+
+    static String sha256(String input) {
+        try {
+            var digest = MessageDigest.getInstance("SHA-256");
+            var hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+            return "sha256:" + HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 not available", e);
         }
     }
 }

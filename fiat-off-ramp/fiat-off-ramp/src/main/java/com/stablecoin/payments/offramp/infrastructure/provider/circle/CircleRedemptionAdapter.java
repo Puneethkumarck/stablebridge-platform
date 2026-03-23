@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.http.HttpClient;
 import java.net.http.HttpClient.Version;
 import java.time.Duration;
@@ -63,10 +64,16 @@ public class CircleRedemptionAdapter implements RedemptionGateway {
         log.info("[CIRCLE] Redeeming stablecoin payoutId={} stablecoin={} amount={}",
                 request.payoutId(), request.stablecoin(), request.amount());
 
+        var amount = request.amount();
+        if (amount == null || amount.signum() <= 0) {
+            throw new IllegalArgumentException("Redemption amount must be greater than zero");
+        }
+
         var circleRequest = new CirclePayoutRequest(
                 request.payoutId().toString(),
                 new CirclePayoutRequest.CircleDestination("wire", properties.destinationId()),
-                new CirclePayoutRequest.CircleAmount(request.amount().toPlainString(), "USD")
+                new CirclePayoutRequest.CircleAmount(
+                        amount.setScale(2, RoundingMode.DOWN).toPlainString(), "USD")
         );
 
         var response = restClient.post()

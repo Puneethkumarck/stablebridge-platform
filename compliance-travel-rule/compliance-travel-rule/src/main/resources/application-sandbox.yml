@@ -35,8 +35,8 @@ app:
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/s2_compliance
-    username: sp_user
-    password: sp_pass
+    username: dev
+    password: dev
 
   cloud:
     vault:
