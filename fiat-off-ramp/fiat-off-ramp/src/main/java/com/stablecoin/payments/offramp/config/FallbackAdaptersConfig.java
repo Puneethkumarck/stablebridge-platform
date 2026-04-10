@@ -29,6 +29,7 @@ public class FallbackAdaptersConfig {
     private static final BigDecimal DEV_FEE_MULTIPLIER = BigDecimal.ONE;
 
     @Bean
+    @ConditionalOnMissingBean
     public RedemptionGateway fallbackRedemptionGateway(Clock clock) {
         return request -> {
             var fiatReceived = request.amount().multiply(request.appliedFxRate());
@@ -44,6 +45,7 @@ public class FallbackAdaptersConfig {
     }
 
     @Bean
+    @ConditionalOnMissingBean
     public PayoutPartnerGateway fallbackPayoutPartnerGateway() {
         return request -> {
             log.warn("[FALLBACK-PAYOUT] Using dev payout gateway payoutId={} amount={} {}",
@@ -57,6 +59,7 @@ public class FallbackAdaptersConfig {
     }
 
     @Bean
+    @ConditionalOnMissingBean
     public WebhookSignatureValidator fallbackWebhookSignatureValidator() {
         return (payload, signature) -> {
             log.warn("[FALLBACK-WEBHOOK] Using dev webhook validator — accepting all signatures");

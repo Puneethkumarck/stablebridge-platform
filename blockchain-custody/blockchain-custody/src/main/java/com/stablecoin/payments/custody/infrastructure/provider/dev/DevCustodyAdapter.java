@@ -101,13 +101,8 @@ public class DevCustodyAdapter implements CustodyEngine {
         var credentials = Credentials.create(properties.evmPrivateKey());
 
         var usdcContract = chainConfig.usdcContract();
-        var scaledAmount = request.amount().movePointRight(USDC_DECIMALS).stripTrailingZeros();
-        if (scaledAmount.scale() > 0) {
-            throw new DevCustodyException(
-                    "Amount has sub-minor-unit precision after scaling to %d decimals: %s"
-                            .formatted(USDC_DECIMALS, request.amount()));
-        }
-        var amountMinorUnits = scaledAmount.toBigInteger();
+        var truncatedAmount = request.amount().setScale(USDC_DECIMALS, java.math.RoundingMode.DOWN);
+        var amountMinorUnits = truncatedAmount.movePointRight(USDC_DECIMALS).toBigIntegerExact();
         var data = encodeErc20Transfer(request.toAddress(), amountMinorUnits);
 
         var nonce = request.nonce() != null ? BigInteger.valueOf(request.nonce()) : BigInteger.ZERO;

@@ -5,6 +5,7 @@ import com.stablecoin.payments.onramp.domain.port.PspPaymentResult;
 import com.stablecoin.payments.onramp.domain.port.PspRefundResult;
 import com.stablecoin.payments.onramp.domain.port.WebhookSignatureValidator;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -24,6 +25,7 @@ import java.util.UUID;
 public class FallbackAdaptersConfig {
 
     @Bean
+    @ConditionalOnMissingBean
     public PspGateway fallbackPspGateway() {
         return new PspGateway() {
             @Override
@@ -45,6 +47,7 @@ public class FallbackAdaptersConfig {
     }
 
     @Bean
+    @ConditionalOnMissingBean
     public WebhookSignatureValidator fallbackWebhookSignatureValidator() {
         return (payload, signature) -> {
             log.warn("[FALLBACK-WEBHOOK] Using dev webhook signature validator — always valid");
@@ -53,6 +56,7 @@ public class FallbackAdaptersConfig {
     }
 
     @Bean
+    @ConditionalOnMissingBean
     public Clock clock() {
         return Clock.systemUTC();
     }

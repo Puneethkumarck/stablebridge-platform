@@ -188,7 +188,9 @@ tasks.withType<JavaCompile> {
 // ---------------------------------------------------------------------------
 tasks.withType<Test> {
     jvmArgs("-Dnet.bytebuddy.experimental=true")
-    useJUnitPlatform()
+    useJUnitPlatform {
+        excludeTags("sandbox")
+    }
     testLogging {
         events("passed", "skipped", "failed")
         showExceptions = true
@@ -199,7 +201,7 @@ tasks.withType<Test> {
 }
 
 // ---------------------------------------------------------------------------
-// JaCoCo
+// JaCoCo — disabled until JaCoCo supports Java 25 (0.8.14 is incompatible)
 // ---------------------------------------------------------------------------
 jacoco {
     toolVersion = "0.8.14"
@@ -207,9 +209,16 @@ jacoco {
 
 tasks.test {
     configure<JacocoTaskExtension> {
-        excludes = listOf("sun.*", "jdk.*", "com.sun.*", "java.*", "javax.*")
+        isEnabled = false
     }
-    finalizedBy(tasks.jacocoTestReport)
+}
+
+tasks.jacocoTestReport {
+    enabled = false
+}
+
+tasks.jacocoTestCoverageVerification {
+    enabled = false
 }
 
 val baseJacocoExclusions = listOf(

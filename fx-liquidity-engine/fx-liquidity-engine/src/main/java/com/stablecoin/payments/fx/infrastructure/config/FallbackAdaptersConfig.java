@@ -4,6 +4,7 @@ import com.stablecoin.payments.fx.domain.model.CorridorRate;
 import com.stablecoin.payments.fx.domain.port.RateCache;
 import com.stablecoin.payments.fx.domain.port.RateProvider;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,6 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class FallbackAdaptersConfig {
 
     @Bean
+    @ConditionalOnMissingBean
     public RateProvider fallbackRateProvider() {
         log.warn("Using fallback rate provider — returning fixed rates");
         return new RateProvider() {
@@ -51,6 +53,7 @@ public class FallbackAdaptersConfig {
     }
 
     @Bean
+    @ConditionalOnMissingBean
     public RateCache fallbackRateCache() {
         log.warn("Using in-memory fallback rate cache — not suitable for production");
         return new RateCache() {
