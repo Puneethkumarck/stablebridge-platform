@@ -6,12 +6,6 @@ import lombok.Builder;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Represents a custody wallet on a specific blockchain chain.
- * <p>
- * Wallets are managed by a custody provider (e.g., Fireblocks) and have a specific
- * tier (HOT/WARM/COLD) and purpose (ON_RAMP/OFF_RAMP/SWEEP/RESERVE).
- */
 @Builder(toBuilder = true, access = AccessLevel.PACKAGE)
 public record Wallet(
         UUID walletId,
@@ -30,9 +24,6 @@ public record Wallet(
 
     // -- Factory Method -------------------------------------------------
 
-    /**
-     * Creates a new active wallet.
-     */
     public static Wallet create(ChainId chainId, String address, String addressChecksum,
                                 WalletTier tier, WalletPurpose purpose,
                                 String custodian, String vaultAccountId,
@@ -80,9 +71,6 @@ public record Wallet(
 
     // -- Domain Methods -------------------------------------------------
 
-    /**
-     * Deactivates this wallet. Returns a new instance with active=false.
-     */
     public Wallet deactivate() {
         if (!active) {
             throw new IllegalStateException(
@@ -96,9 +84,6 @@ public record Wallet(
 
     // -- Query Methods --------------------------------------------------
 
-    /**
-     * Returns true if this wallet is currently active.
-     */
     public boolean isActive() {
         return active;
     }

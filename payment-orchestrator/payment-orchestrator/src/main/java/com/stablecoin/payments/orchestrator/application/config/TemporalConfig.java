@@ -16,8 +16,6 @@ import org.springframework.context.annotation.Configuration;
 @ConditionalOnProperty(name = "app.temporal.client.enabled", havingValue = "true", matchIfMissing = true)
 public class TemporalConfig {
 
-    public static final String TASK_QUEUE = "payment-orchestrator-queue";
-
     @Bean
     public WorkflowServiceStubs workflowServiceStubs(
             @Value("${temporal.server.address:localhost:7233}") String address) {

@@ -22,12 +22,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Kafka consumers for all 9 payment lifecycle events.
- * Each listener parses the event, delegates to {@link JournalCommandHandler}
- * for journal entry creation and {@link ReconciliationCommandHandler}
- * for reconciliation leg tracking.
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor

@@ -20,10 +20,9 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class JwtAuthenticationFilterTest {
@@ -61,7 +60,7 @@ class JwtAuthenticationFilterTest {
         void shouldPassThroughWithoutAuthHeader() throws ServletException, IOException {
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(filterChain).doFilter(request, response);
+            then(filterChain).should().doFilter(request, response);
             assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
         }
 
@@ -71,8 +70,8 @@ class JwtAuthenticationFilterTest {
 
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(filterChain).doFilter(request, response);
-            verify(tokenIssuer, never()).parseAndVerify(anyString());
+            then(filterChain).should().doFilter(request, response);
+            then(tokenIssuer).shouldHaveNoInteractions();
         }
     }
 
@@ -88,13 +87,13 @@ class JwtAuthenticationFilterTest {
             var token = "valid.jwt.token";
             request.addHeader("Authorization", "Bearer " + token);
 
-            when(tokenIssuer.parseAndVerify(token)).thenReturn(
+            given(tokenIssuer.parseAndVerify(token)).willReturn(
                     new TokenIssuer.ParsedToken(jti, merchantId, clientId, List.of("payments:read"), 9999999999L));
-            when(tokenRevocationCache.isRevoked(jti)).thenReturn(false);
+            given(tokenRevocationCache.isRevoked(jti)).willReturn(false);
 
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(filterChain).doFilter(request, response);
+            then(filterChain).should().doFilter(request, response);
             var auth = SecurityContextHolder.getContext().getAuthentication();
             assertThat(auth).isInstanceOf(MerchantAuthentication.class);
             var merchantAuth = (MerchantAuthentication) auth;
@@ -109,13 +108,13 @@ class JwtAuthenticationFilterTest {
             var token = "revoked.jwt.token";
             request.addHeader("Authorization", "Bearer " + token);
 
-            when(tokenIssuer.parseAndVerify(token)).thenReturn(
+            given(tokenIssuer.parseAndVerify(token)).willReturn(
                     new TokenIssuer.ParsedToken(jti, merchantId, clientId, List.of(), 9999999999L));
-            when(tokenRevocationCache.isRevoked(jti)).thenReturn(true);
+            given(tokenRevocationCache.isRevoked(jti)).willReturn(true);
 
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(filterChain, never()).doFilter(request, response);
+            then(filterChain).should(never()).doFilter(request, response);
             assertThat(response.getStatus()).isEqualTo(401);
             assertThat(response.getContentAsString()).contains("revoked");
         }
@@ -127,24 +126,24 @@ class JwtAuthenticationFilterTest {
         @Test
         void shouldRejectExpiredToken() throws ServletException, IOException {
             request.addHeader("Authorization", "Bearer expired.jwt.token");
-            when(tokenIssuer.parseAndVerify("expired.jwt.token"))
-                    .thenThrow(new IllegalArgumentException("JWT has expired"));
+            given(tokenIssuer.parseAndVerify("expired.jwt.token"))
+                    .willThrow(new IllegalArgumentException("JWT has expired"));
 
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(filterChain, never()).doFilter(request, response);
+            then(filterChain).should(never()).doFilter(request, response);
             assertThat(response.getStatus()).isEqualTo(401);
         }
 
         @Test
         void shouldRejectMalformedToken() throws ServletException, IOException {
             request.addHeader("Authorization", "Bearer not-a-jwt");
-            when(tokenIssuer.parseAndVerify("not-a-jwt"))
-                    .thenThrow(new IllegalArgumentException("Invalid JWT"));
+            given(tokenIssuer.parseAndVerify("not-a-jwt"))
+                    .willThrow(new IllegalArgumentException("Invalid JWT"));
 
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(filterChain, never()).doFilter(request, response);
+            then(filterChain).should(never()).doFilter(request, response);
             assertThat(response.getStatus()).isEqualTo(401);
         }
     }
@@ -158,7 +157,7 @@ class JwtAuthenticationFilterTest {
 
         filter.doFilterInternal(request, response, filterChain);
 
-        verify(filterChain).doFilter(request, response);
-        verify(tokenIssuer, never()).parseAndVerify(anyString());
+        then(filterChain).should().doFilter(request, response);
+        then(tokenIssuer).shouldHaveNoInteractions();
     }
 }

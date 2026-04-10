@@ -28,18 +28,6 @@ import static com.stablecoin.payments.custody.domain.model.TransferTrigger.START
 import static com.stablecoin.payments.custody.domain.model.TransferTrigger.START_SIGNING;
 import static com.stablecoin.payments.custody.domain.model.TransferTrigger.SUBMIT;
 
-/**
- * Aggregate root for a blockchain chain transfer.
- * <p>
- * Enforces the transfer lifecycle via an internal state machine:
- * {@code PENDING -> CHAIN_SELECTED -> SIGNING -> SUBMITTED -> CONFIRMING -> CONFIRMED}.
- * <p>
- * Resubmission path handles mempool drops: {@code SUBMITTED -> RESUBMITTING -> SUBMITTED}.
- * <p>
- * Failure can occur from multiple states: CHAIN_SELECTED, SIGNING, SUBMITTED, RESUBMITTING, CONFIRMING.
- * <p>
- * Immutable record — all state transitions return new instances via {@code toBuilder()}.
- */
 @Builder(toBuilder = true, access = AccessLevel.PACKAGE)
 public record ChainTransfer(
         UUID transferId,
@@ -94,9 +82,6 @@ public record ChainTransfer(
 
     // -- Factory Method -------------------------------------------------
 
-    /**
-     * Creates a new chain transfer in PENDING state.
-     */
     public static ChainTransfer initiate(UUID paymentId, UUID correlationId,
                                          TransferType transferType, UUID parentTransferId,
                                          StablecoinTicker stablecoin, BigDecimal amount,
@@ -148,9 +133,6 @@ public record ChainTransfer(
 
     // -- State Transition Methods ---------------------------------------
 
-    /**
-     * Selects the blockchain chain. Transitions PENDING -> CHAIN_SELECTED.
-     */
     public ChainTransfer selectChain(ChainId selectedChainId) {
         assertNotTerminal();
         if (selectedChainId == null) {
@@ -164,9 +146,6 @@ public record ChainTransfer(
                 .build();
     }
 
-    /**
-     * Starts the signing process. Transitions CHAIN_SELECTED -> SIGNING.
-     */
     public ChainTransfer startSigning(Long signingNonce) {
         assertNotTerminal();
         var nextState = STATE_MACHINE.transition(status, START_SIGNING);
@@ -177,9 +156,6 @@ public record ChainTransfer(
                 .build();
     }
 
-    /**
-     * Submits the signed transaction to the chain. Transitions SIGNING -> SUBMITTED.
-     */
     public ChainTransfer submit(String transactionHash) {
         assertNotTerminal();
         if (transactionHash == null || transactionHash.isBlank()) {
@@ -194,9 +170,6 @@ public record ChainTransfer(
                 .build();
     }
 
-    /**
-     * Starts the confirmation monitoring. Transitions SUBMITTED -> CONFIRMING.
-     */
     public ChainTransfer startConfirming() {
         assertNotTerminal();
         var nextState = STATE_MACHINE.transition(status, START_CONFIRMING);
@@ -206,10 +179,6 @@ public record ChainTransfer(
                 .build();
     }
 
-    /**
-     * Confirms the transfer after sufficient block confirmations.
-     * Transitions CONFIRMING -> CONFIRMED.
-     */
     public ChainTransfer confirm(long confirmedBlockNumber, int confirmedConfirmations,
                                  BigDecimal confirmedGasUsed, BigDecimal confirmedGasPriceGwei) {
         assertNotTerminal();
@@ -225,10 +194,6 @@ public record ChainTransfer(
                 .build();
     }
 
-    /**
-     * Marks the transfer for resubmission (mempool drop / timeout).
-     * Transitions SUBMITTED -> RESUBMITTING.
-     */
     public ChainTransfer markForResubmission() {
         assertNotTerminal();
         var nextState = STATE_MACHINE.transition(status, RESUBMIT);
@@ -238,9 +203,6 @@ public record ChainTransfer(
                 .build();
     }
 
-    /**
-     * Resubmits with a new transaction hash. Transitions RESUBMITTING -> SUBMITTED.
-     */
     public ChainTransfer resubmit(String newTxHash) {
         assertNotTerminal();
         if (newTxHash == null || newTxHash.isBlank()) {
@@ -255,11 +217,6 @@ public record ChainTransfer(
                 .build();
     }
 
-    /**
-     * Claims a resubmission attempt by incrementing the attempt counter.
-     * Must be persisted BEFORE calling the custody engine to ensure crash safety.
-     * Stays in RESUBMITTING state.
-     */
     public ChainTransfer claimResubmission() {
         assertNotTerminal();
         if (status != RESUBMITTING) {
@@ -272,11 +229,6 @@ public record ChainTransfer(
                 .build();
     }
 
-    /**
-     * Completes a previously claimed resubmission with the new transaction hash.
-     * Transitions RESUBMITTING -> SUBMITTED without incrementing attempt count
-     * (already incremented by {@link #claimResubmission()}).
-     */
     public ChainTransfer confirmResubmission(String newTxHash) {
         assertNotTerminal();
         if (newTxHash == null || newTxHash.isBlank()) {
@@ -290,9 +242,6 @@ public record ChainTransfer(
                 .build();
     }
 
-    /**
-     * Fails the transfer. Can be triggered from multiple non-terminal states.
-     */
     public ChainTransfer fail(String reason, String code) {
         var nextState = STATE_MACHINE.transition(status, FAIL);
         return toBuilder()
@@ -305,16 +254,10 @@ public record ChainTransfer(
 
     // -- Query Methods --------------------------------------------------
 
-    /**
-     * Returns true if this transfer is in a terminal state (CONFIRMED or FAILED).
-     */
     public boolean isTerminal() {
         return TERMINAL_STATES.contains(status);
     }
 
-    /**
-     * Returns true if a given trigger can be applied from the current status.
-     */
     public boolean canApply(TransferTrigger trigger) {
         return STATE_MACHINE.canTransition(status, trigger);
     }

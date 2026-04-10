@@ -15,9 +15,6 @@ import java.math.BigDecimal;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Test fixtures for transfer monitor and balance sync tests.
- */
 public final class TransferMonitorFixtures {
 
     private TransferMonitorFixtures() {}
@@ -45,9 +42,6 @@ public final class TransferMonitorFixtures {
             "solana", 1
     );
 
-    /**
-     * Default transfer monitor properties: 120s resubmit timeout, 3 max attempts, 300s confirming timeout.
-     */
     public static TransferMonitorProperties defaultMonitorProperties() {
         return new TransferMonitorProperties() {
             @Override
@@ -67,10 +61,6 @@ public final class TransferMonitorFixtures {
         };
     }
 
-    /**
-     * Default chain confirmation properties with Base (1), Ethereum (32), Solana (1).
-     * Throws IllegalStateException for unknown chains (fail-fast).
-     */
     public static ChainConfirmationProperties defaultChainConfirmationProperties() {
         return chainId -> {
             var confirmations = CHAIN_CONFIRMATIONS.get(chainId);
@@ -81,16 +71,10 @@ public final class TransferMonitorFixtures {
         };
     }
 
-    /**
-     * Default token contract resolver mapping USDC to test contract addresses.
-     */
     public static TokenContractResolver defaultTokenContractResolver() {
         return (chainId, stablecoin) -> USDC_BASE_CONTRACT;
     }
 
-    /**
-     * A SUBMITTED transfer on Base chain (ready for monitoring).
-     */
     public static ChainTransfer aSubmittedTransferOnBase() {
         return ChainTransfer.initiate(
                 PAYMENT_ID, CORRELATION_ID, TransferType.FORWARD, null,
@@ -98,9 +82,6 @@ public final class TransferMonitorFixtures {
         ).selectChain(CHAIN_BASE).startSigning(42L).submit(TX_HASH);
     }
 
-    /**
-     * A SUBMITTED transfer on Ethereum chain (requires 32 confirmations).
-     */
     public static ChainTransfer aSubmittedTransferOnEthereum() {
         return ChainTransfer.initiate(
                 PAYMENT_ID, CORRELATION_ID, TransferType.FORWARD, null,
@@ -108,23 +89,14 @@ public final class TransferMonitorFixtures {
         ).selectChain(CHAIN_ETHEREUM).startSigning(42L).submit(TX_HASH);
     }
 
-    /**
-     * A CONFIRMING transfer on Base chain.
-     */
     public static ChainTransfer aConfirmingTransferOnBase() {
         return aSubmittedTransferOnBase().startConfirming();
     }
 
-    /**
-     * A RESUBMITTING transfer on Base chain (attempt 1).
-     */
     public static ChainTransfer aResubmittingTransfer() {
         return aSubmittedTransferOnBase().markForResubmission();
     }
 
-    /**
-     * A RESUBMITTING transfer that has reached max attempts (3).
-     */
     public static ChainTransfer aMaxAttemptsResubmittingTransfer() {
         var transfer = aSubmittedTransferOnBase(); // attempt 1
         transfer = transfer.markForResubmission();
@@ -135,30 +107,18 @@ public final class TransferMonitorFixtures {
         return transfer;
     }
 
-    /**
-     * A successful transaction receipt.
-     */
     public static TransactionReceipt aSuccessfulReceipt() {
         return new TransactionReceipt(TX_HASH, RECEIPT_BLOCK, true, GAS_USED, GAS_PRICE, 10);
     }
 
-    /**
-     * A failed (reverted) transaction receipt.
-     */
     public static TransactionReceipt aFailedReceipt() {
         return new TransactionReceipt(TX_HASH, RECEIPT_BLOCK, false, GAS_USED, GAS_PRICE, 10);
     }
 
-    /**
-     * A sign result for resubmission.
-     */
     public static SignResult aResubmitSignResult() {
         return new SignResult(RESUBMIT_TX_HASH, "custody-tx-resubmit");
     }
 
-    /**
-     * A wallet balance with reserved funds (suitable for confirmDebit).
-     */
     public static WalletBalance aBalanceWithReserved() {
         var balance = WalletBalance.initialize(FROM_WALLET_ID, CHAIN_BASE, USDC);
         var synced = balance.syncFromChain(new BigDecimal("5000.00"), 50L);

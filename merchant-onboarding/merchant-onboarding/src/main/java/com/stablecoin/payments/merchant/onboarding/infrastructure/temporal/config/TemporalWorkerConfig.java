@@ -10,10 +10,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * Configures the Temporal worker that processes onboarding workflows and activities. Only activated when
- * {@code spring.temporal.namespace} is set — skipped in tests where Temporal auto-configuration is excluded.
- */
 @Configuration
 @RequiredArgsConstructor
 @ConditionalOnProperty(name = "spring.temporal.workers.enabled", havingValue = "true", matchIfMissing = true)

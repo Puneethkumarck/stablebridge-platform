@@ -15,10 +15,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Immutable, append-only entity — no @Version, no update methods.
- * Partitioned by created_at (composite PK: entry_id + created_at).
- */
 @Entity
 @Table(name = "journal_entries")
 @IdClass(JournalEntryId.class)

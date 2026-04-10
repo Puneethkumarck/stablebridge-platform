@@ -13,9 +13,6 @@ import lombok.Setter;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Immutable, append-only entity — no @Version, no update methods.
- */
 @Entity
 @Table(name = "ledger_transactions")
 @Getter

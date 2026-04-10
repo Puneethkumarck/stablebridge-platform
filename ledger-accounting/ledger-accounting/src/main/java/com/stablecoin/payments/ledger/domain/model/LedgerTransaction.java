@@ -8,11 +8,6 @@ import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-/**
- * Aggregate root for the three-object model.
- * Groups balanced journal entry pairs — entries only created through transactions.
- * Immutable once created.
- */
 public record LedgerTransaction(
         UUID transactionId,
         UUID paymentId,

@@ -4,9 +4,6 @@ import com.stablecoin.payments.onramp.domain.model.Money;
 
 import java.util.UUID;
 
-/**
- * Thrown when the requested refund amount exceeds the collected amount.
- */
 public class RefundAmountExceededException extends RuntimeException {
 
     public static final String ERROR_CODE = "OR-2003";

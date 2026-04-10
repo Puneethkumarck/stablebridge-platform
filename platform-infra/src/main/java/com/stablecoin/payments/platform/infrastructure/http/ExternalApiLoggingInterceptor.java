@@ -17,13 +17,6 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
 
-/**
- * Logs external API request/response details for debugging and sandbox testing.
- * <p>
- * Activated via {@code app.external-api.logging.enabled=true} (disabled by default).
- * Redacts sensitive headers (Authorization, X-API-KEY) to prevent credential leaks.
- * Response body is buffered so downstream consumers can still read it.
- */
 public class ExternalApiLoggingInterceptor implements ClientHttpRequestInterceptor {
 
     private static final Logger log = LoggerFactory.getLogger(ExternalApiLoggingInterceptor.class);
@@ -39,10 +32,6 @@ public class ExternalApiLoggingInterceptor implements ClientHttpRequestIntercept
         this.maxBodyLength = maxBodyLength;
     }
 
-    /**
-     * Applies this interceptor to a {@link RestClient.Builder} if the interceptor is non-null.
-     * Call this in adapter constructors: {@code ExternalApiLoggingInterceptor.applyTo(builder, interceptor)}
-     */
     public static RestClient.Builder applyTo(RestClient.Builder builder,
                                               @Nullable ExternalApiLoggingInterceptor interceptor) {
         if (interceptor != null) {
@@ -110,10 +99,6 @@ public class ExternalApiLoggingInterceptor implements ClientHttpRequestIntercept
         return value.substring(0, REDACT_VISIBLE_CHARS) + "***";
     }
 
-    /**
-     * Wraps a response to buffer its body so it can be read multiple times
-     * (once for logging, once for the actual consumer).
-     */
     private static final class BufferedResponse implements ClientHttpResponse {
 
         private final ClientHttpResponse delegate;

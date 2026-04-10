@@ -39,10 +39,6 @@ public class FxRateLockApplicationService {
     private final EventPublisher<Object> eventPublisher;
     private final FxResponseMapper responseMapper;
 
-    /**
-     * Result of a lock-rate operation, indicating whether the lock was newly created
-     * or returned from an existing idempotent match.
-     */
     public record LockRateResult(FxRateLockResponse response, boolean created) {}
 
     @Transactional

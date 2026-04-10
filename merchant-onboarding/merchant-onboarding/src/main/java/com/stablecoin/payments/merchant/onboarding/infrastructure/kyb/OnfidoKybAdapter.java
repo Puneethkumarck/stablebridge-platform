@@ -25,17 +25,6 @@ import java.util.UUID;
 
 import static com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor.applyTo;
 
-/**
- * Onfido sandbox/production KYB adapter.
- * <p>
- * Uses Onfido REST API v3.6 to create applicants and submit checks. In sandbox mode, results are deterministic:
- * <ul>
- * <li>{@code last_name = "Consider"} → consider (maps to MANUAL_REVIEW)</li>
- * <li>Any other last_name → clear (maps to PASSED)</li>
- * </ul>
- * <p>
- * Webhook callback completes the async flow via {@code handleWebhook()}.
- */
 @Slf4j
 @Component
 @ConditionalOnProperty(name = "app.kyb.provider", havingValue = "onfido")

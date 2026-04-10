@@ -3,10 +3,6 @@ package com.stablecoin.payments.ledger.domain.service;
 import java.math.BigDecimal;
 import java.util.Objects;
 
-/**
- * Value object representing the result of a balance computation.
- * Contains the new balance_after and account_version for a journal entry.
- */
 public record BalanceUpdate(
         BigDecimal balanceAfter,
         long accountVersion

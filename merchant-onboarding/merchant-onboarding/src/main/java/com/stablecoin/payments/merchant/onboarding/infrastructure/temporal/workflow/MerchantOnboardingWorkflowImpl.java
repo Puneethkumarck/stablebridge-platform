@@ -15,21 +15,6 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Temporal workflow orchestrating the merchant KYB onboarding flow.
- * <p>
- * Flow:
- * <ol>
- * <li>Verify company against official registry (Companies House / SEC EDGAR)</li>
- * <li>Submit KYB check to provider (activity)</li>
- * <li>Wait for KYB result signal (7-day timeout)</li>
- * <li>If MANUAL_REVIEW — notify ops, wait for review decision (5-day timeout + escalation)</li>
- * <li>If PASSED — calculate risk tier, mark merchant as KYB passed</li>
- * <li>Publish domain events to Kafka</li>
- * </ol>
- * <p>
- * Workflow ID convention: {@code onboarding-<merchantId>}
- */
 public class MerchantOnboardingWorkflowImpl implements MerchantOnboardingWorkflow {
 
   private static final Duration KYB_TIMEOUT = Duration.ofDays(7);

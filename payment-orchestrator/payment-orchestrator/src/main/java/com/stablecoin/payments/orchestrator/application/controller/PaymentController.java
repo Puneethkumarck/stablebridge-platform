@@ -17,11 +17,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
-/**
- * REST controller for payment lifecycle management.
- * <p>
- * Thin HTTP handler that delegates all business logic to {@link PaymentCommandHandler}.
- */
 @Slf4j
 @RestController
 @RequestMapping("/v1/payments")
@@ -30,12 +25,6 @@ public class PaymentController {
 
     private final PaymentCommandHandler commandHandler;
 
-    /**
-     * Initiates a new cross-border payment.
-     * <p>
-     * Idempotent: returns 200 with existing payment if the same Idempotency-Key is reused.
-     * Returns 201 on first creation.
-     */
     @PostMapping
     public ResponseEntity<PaymentResponse> initiatePayment(
             @NotBlank(message = "Idempotency-Key header is required")
@@ -61,19 +50,12 @@ public class PaymentController {
         return ResponseEntity.status(status).body(response);
     }
 
-    /**
-     * Retrieves a payment by its ID.
-     */
     @GetMapping("/{paymentId}")
     public PaymentResponse getPayment(@PathVariable UUID paymentId) {
         log.info("GET /v1/payments/{}", paymentId);
         return PaymentResponse.from(commandHandler.getPayment(paymentId));
     }
 
-    /**
-     * Cancels a payment by sending a cancel signal to the workflow.
-     * Returns 200 if accepted, 409 if the payment is in a terminal state.
-     */
     @PostMapping("/{paymentId}/cancel")
     public PaymentResponse cancelPayment(
             @PathVariable UUID paymentId,

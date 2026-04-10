@@ -31,9 +31,6 @@ public record StablecoinTicker(String ticker, String issuer, int decimals) {
         }
     }
 
-    /**
-     * Factory that auto-fills issuer and decimals from the ticker.
-     */
     public static StablecoinTicker of(String ticker) {
         return new StablecoinTicker(ticker, null, 0);
     }

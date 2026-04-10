@@ -15,14 +15,6 @@ import java.util.Map;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
-/**
- * Validates Onfido webhook HMAC-SHA256 signatures.
- * <p>
- * Onfido sends the signature in the {@code X-SHA2-Signature} header. The signature is computed as
- * HMAC-SHA256(webhook_secret, raw_body).
- * <p>
- * In sandbox mode with a placeholder secret, validation is skipped.
- */
 @Slf4j
 @Component
 public class OnfidoWebhookValidator {

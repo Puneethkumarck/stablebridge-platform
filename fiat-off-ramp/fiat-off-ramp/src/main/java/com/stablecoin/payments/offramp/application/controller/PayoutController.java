@@ -27,11 +27,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
-/**
- * REST controller for payout order lifecycle management.
- * <p>
- * Thin HTTP handler that delegates all business logic to {@link PayoutCommandHandler}.
- */
 @Slf4j
 @RestController
 @RequestMapping("/v1/payouts")
@@ -40,12 +35,6 @@ public class PayoutController {
 
     private final PayoutCommandHandler payoutCommandHandler;
 
-    /**
-     * Initiates a new payout order.
-     * <p>
-     * Idempotent: returns 200 OK with the existing order if the same paymentId
-     * is submitted again. Returns 202 ACCEPTED on first creation.
-     */
     @PostMapping
     public ResponseEntity<PayoutResponse> initiatePayout(
             @Valid @RequestBody PayoutRequest request) {
@@ -80,18 +69,12 @@ public class PayoutController {
         return ResponseEntity.status(status).body(response);
     }
 
-    /**
-     * Retrieves a payout order by its ID.
-     */
     @GetMapping("/{payoutId}")
     public PayoutResponse getPayout(@PathVariable UUID payoutId) {
         log.info("GET /v1/payouts/{}", payoutId);
         return toPayoutResponse(payoutCommandHandler.getPayout(payoutId));
     }
 
-    /**
-     * Retrieves a payout order by its associated payment ID.
-     */
     @GetMapping
     public PayoutResponse getPayoutByPaymentId(@RequestParam UUID paymentId) {
         log.info("GET /v1/payouts?paymentId={}", paymentId);

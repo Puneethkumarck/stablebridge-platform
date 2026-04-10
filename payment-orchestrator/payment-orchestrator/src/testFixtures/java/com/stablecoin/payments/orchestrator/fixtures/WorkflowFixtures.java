@@ -19,9 +19,6 @@ import static com.stablecoin.payments.orchestrator.fixtures.PaymentFixtures.IDEM
 import static com.stablecoin.payments.orchestrator.fixtures.PaymentFixtures.RECIPIENT_ID;
 import static com.stablecoin.payments.orchestrator.fixtures.PaymentFixtures.SENDER_ID;
 
-/**
- * Test fixture factory methods for Temporal workflow and activity DTOs.
- */
 public final class WorkflowFixtures {
 
     public static final UUID PAYMENT_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");

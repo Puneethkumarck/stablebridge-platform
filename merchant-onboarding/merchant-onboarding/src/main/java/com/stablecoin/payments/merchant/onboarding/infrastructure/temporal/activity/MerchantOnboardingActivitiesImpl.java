@@ -112,18 +112,15 @@ public class MerchantOnboardingActivitiesImpl implements MerchantOnboardingActiv
   @Override
   public void notifyOpsTeam(UUID merchantId) {
     log.info("[ACTIVITY] Notifying ops team for manual review merchantId={}", merchantId);
-    // TODO: integrate with S9 Notifications service
   }
 
   @Override
   public void sendDocumentReminder(UUID merchantId, List<String> missingDocumentTypes) {
     log.info("[ACTIVITY] Sending document reminder merchantId={} missing={}", merchantId, missingDocumentTypes);
-    // TODO: integrate with S9 Notifications service
   }
 
   @Override
   public void escalateReview(UUID merchantId) {
     log.info("[ACTIVITY] Escalating manual review merchantId={}", merchantId);
-    // TODO: integrate with S9 Notifications service
   }
 }

@@ -15,11 +15,6 @@ import java.util.UUID;
 @Mapper
 public interface RoleEntityMapper {
 
-    /**
-     * Maps a Role domain object to a RoleEntity.
-     * The permissions collection is deliberately ignored here;
-     * the repository adapter populates permissions separately after saving.
-     */
     @Mapping(target = "permissions", ignore = true)
     RoleEntity toEntityWithoutPermissions(Role role);
 

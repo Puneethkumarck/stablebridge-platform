@@ -10,10 +10,6 @@ import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.HexFormat;
 
-/**
- * Generates cryptographically secure invitation tokens and computes their SHA-256 hashes.
- * The plaintext token is sent to the invitee; only the hash is stored in the database.
- */
 @Slf4j
 @Component
 public class InvitationTokenGenerator {

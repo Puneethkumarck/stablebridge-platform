@@ -11,12 +11,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Test fixture factory methods for {@link Payment} and related value objects.
- * <p>
- * Each method creates a Payment at the named state by walking through the state machine
- * from INITIATED. This guarantees that every fixture is reachable via valid transitions.
- */
 public final class PaymentFixtures {
 
     public static final Money SOURCE_AMOUNT = new Money(new BigDecimal("1000.00"), "USD");
@@ -35,16 +29,10 @@ public final class PaymentFixtures {
 
     private PaymentFixtures() {}
 
-    /**
-     * Creates an {@link PaymentCommandHandler.InitiateResult} representing a new payment.
-     */
     public static PaymentCommandHandler.InitiateResult anInitiateResult() {
         return new PaymentCommandHandler.InitiateResult(anInitiatedPayment(), false);
     }
 
-    /**
-     * Creates an {@link PaymentCommandHandler.InitiateResult} representing an idempotent replay.
-     */
     public static PaymentCommandHandler.InitiateResult anIdempotentReplayResult() {
         return new PaymentCommandHandler.InitiateResult(anInitiatedPayment(), true);
     }

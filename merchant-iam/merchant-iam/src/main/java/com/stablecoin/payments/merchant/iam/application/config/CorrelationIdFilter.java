@@ -13,10 +13,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.UUID;
 
-/**
- * Extracts {@code X-Correlation-Id} from inbound requests (or generates one),
- * stores it in MDC for log correlation, and echoes it back in the response.
- */
 @Slf4j
 @Component
 @Order(1)

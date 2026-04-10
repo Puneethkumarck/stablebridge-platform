@@ -22,12 +22,6 @@ import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.Map;
 
-/**
- * Thin HTTP handler for off-ramp partner webhook callbacks.
- * <p>
- * Validates the HMAC signature, parses the partner event JSON,
- * and delegates to {@link WebhookCommandHandler}.
- */
 @Slf4j
 @RestController
 @RequestMapping("/internal/webhooks/partner")

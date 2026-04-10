@@ -13,16 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 
-/**
- * Temporal activity that syncs the workflow terminal state back to the
- * Payment aggregate in PostgreSQL.
- * <p>
- * Called at the end of every workflow execution path. Uses the domain
- * aggregate's state machine methods to ensure valid transitions.
- * <p>
- * Idempotent: if the payment is already in a terminal state, the update
- * is silently skipped (workflow replay or retry scenario).
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor

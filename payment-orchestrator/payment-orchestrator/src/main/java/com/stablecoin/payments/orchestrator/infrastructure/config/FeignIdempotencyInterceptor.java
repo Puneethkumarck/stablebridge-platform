@@ -6,10 +6,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
-/**
- * Feign interceptor that adds an Idempotency-Key header to all outgoing requests.
- * Required by S2 Compliance Service which rejects POST requests without this header.
- */
 @Component
 public class FeignIdempotencyInterceptor implements RequestInterceptor {
 

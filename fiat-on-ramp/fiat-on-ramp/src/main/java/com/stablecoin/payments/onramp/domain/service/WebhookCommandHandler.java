@@ -17,12 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 
-/**
- * Domain command handler that processes PSP webhook notifications.
- * <p>
- * Orchestrates: lookup order by pspReference -> check idempotency ->
- * transition state -> record PspTransaction -> publish event via outbox.
- */
 @Slf4j
 @Service
 @Transactional
@@ -37,15 +31,6 @@ public class WebhookCommandHandler {
     private final PspTransactionRepository pspTransactionRepository;
     private final CollectionEventPublisher eventPublisher;
 
-    /**
-     * Processes a webhook command from a PSP notification.
-     * <p>
-     * Idempotent: if the collection order is already in a terminal or
-     * completed state for the given event type, the webhook is skipped.
-     *
-     * @param command the parsed webhook command
-     * @return the updated collection order
-     */
     public CollectionOrder handleWebhook(WebhookCommand command) {
         log.info("Processing webhook eventId={} type={} pspRef={}",
                 command.eventId(), command.eventType(), command.pspReference());

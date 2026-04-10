@@ -4,11 +4,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Value object representing a locked FX rate quote.
- * <p>
- * Invariant: rate must be positive, expiresAt must be after lockedAt.
- */
 public record FxRate(
         UUID quoteId,
         String from,
@@ -46,9 +41,6 @@ public record FxRate(
         }
     }
 
-    /**
-     * Returns true if this rate has expired relative to the given instant.
-     */
     public boolean isExpired(Instant at) {
         return at.isAfter(expiresAt);
     }

@@ -13,13 +13,6 @@ import java.time.Instant;
 
 import static com.stablecoin.payments.onramp.domain.model.CollectionStatus.AWAITING_CONFIRMATION;
 
-/**
- * Scheduled job that expires collection orders that have been in
- * AWAITING_CONFIRMATION state past their {@code expiresAt} timestamp.
- * <p>
- * Thin delegator — all business logic (state transition, save, event publish)
- * is handled by {@link CollectionCommandHandler#expireCollection}.
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor

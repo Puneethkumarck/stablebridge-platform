@@ -19,9 +19,6 @@ public final class WalletFixtures {
     public static final String VAULT_ACCOUNT_ID = "vault-001";
     public static final StablecoinTicker USDC = StablecoinTicker.of("USDC");
 
-    /**
-     * An active wallet with default values.
-     */
     public static Wallet anActiveWallet() {
         return Wallet.create(
                 CHAIN_BASE, ADDRESS, ADDRESS_CHECKSUM,
@@ -30,9 +27,6 @@ public final class WalletFixtures {
         );
     }
 
-    /**
-     * A deactivated wallet.
-     */
     public static Wallet aDeactivatedWallet() {
         return anActiveWallet().deactivate();
     }

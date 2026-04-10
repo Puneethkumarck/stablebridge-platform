@@ -7,10 +7,6 @@ public record Permission(String namespace, String action) {
 
     public static final String WILDCARD = "*";
 
-    /**
-     * Allowed permission namespaces per spec Section 2.
-     * Wildcard is permitted for ADMIN roles only.
-     */
     public static final Set<String> ALLOWED_NAMESPACES = Set.of(
             "*", "payments", "transactions", "webhooks", "api_keys",
             "team", "roles", "settings", "exports", "compliance"

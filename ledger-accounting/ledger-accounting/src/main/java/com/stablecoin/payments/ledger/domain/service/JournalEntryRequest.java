@@ -5,10 +5,6 @@ import com.stablecoin.payments.ledger.domain.model.EntryType;
 import java.math.BigDecimal;
 import java.util.Objects;
 
-/**
- * Value object representing a single debit or credit entry to be posted.
- * Used by {@link AccountingRules} to define the journal entry template for each event.
- */
 public record JournalEntryRequest(
         EntryType entryType,
         String accountCode,

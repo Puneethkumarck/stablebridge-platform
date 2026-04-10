@@ -8,10 +8,6 @@ import javax.xml.stream.XMLStreamConstants;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
-/**
- * Parses OFAC SDN XML into {@link SdnEntry} records using StAX streaming parser
- * for memory-efficient processing of large XML files.
- */
 final class SdnXmlParser {
 
     private SdnXmlParser() {

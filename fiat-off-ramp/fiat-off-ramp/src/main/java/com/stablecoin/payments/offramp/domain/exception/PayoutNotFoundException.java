@@ -2,9 +2,6 @@ package com.stablecoin.payments.offramp.domain.exception;
 
 import java.util.UUID;
 
-/**
- * Thrown when a payout order cannot be found by the given identifier.
- */
 public class PayoutNotFoundException extends RuntimeException {
 
     public static final String ERROR_CODE = "FR-1003";

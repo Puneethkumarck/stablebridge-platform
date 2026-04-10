@@ -5,11 +5,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.Map;
 
-/**
- * Domain service: maps KYB provider risk signals to internal RiskTier.
- * Score > 50 = HIGH risk (disqualifies activation).
- * Score 25–50 = MEDIUM, below 25 = LOW.
- */
 @Service
 public class RiskTierCalculator {
 

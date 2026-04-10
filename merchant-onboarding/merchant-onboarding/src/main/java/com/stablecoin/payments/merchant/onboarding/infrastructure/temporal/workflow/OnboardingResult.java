@@ -3,9 +3,6 @@ package com.stablecoin.payments.merchant.onboarding.infrastructure.temporal.work
 import java.io.Serializable;
 import java.util.UUID;
 
-/**
- * Result returned by {@link MerchantOnboardingWorkflow#runOnboarding(UUID)}.
- */
 public record OnboardingResult(String status, UUID merchantId, String riskTier,
     String failureReason) implements Serializable {
 

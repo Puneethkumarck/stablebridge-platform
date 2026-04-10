@@ -16,13 +16,6 @@ import org.springframework.stereotype.Component;
 import static com.stablecoin.payments.orchestrator.domain.workflow.activity.FxLockResult.FxLockStatus.FAILED;
 import static com.stablecoin.payments.orchestrator.domain.workflow.activity.FxLockResult.FxLockStatus.LOCKED;
 
-/**
- * Temporal activity implementation that calls S6 FX &amp; Liquidity Engine via REST.
- * <p>
- * Flow: GET quote → POST lock rate. Compensation releases the lock.
- * <p>
- * Idempotency key: {@code {paymentId}:fx-lock}
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor

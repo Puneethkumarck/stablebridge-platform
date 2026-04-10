@@ -14,10 +14,6 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * JdbcTemplate-based persistence adapter for the chain_selection_log table.
- * Uses Jackson 3 for JSONB serialization of candidate evaluations.
- */
 @Slf4j
 @Repository
 @RequiredArgsConstructor

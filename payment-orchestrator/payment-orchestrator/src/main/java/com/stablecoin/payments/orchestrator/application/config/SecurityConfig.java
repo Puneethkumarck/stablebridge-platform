@@ -1,4 +1,4 @@
-package com.stablecoin.payments.ledger.application.security;
+package com.stablecoin.payments.orchestrator.application.config;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;

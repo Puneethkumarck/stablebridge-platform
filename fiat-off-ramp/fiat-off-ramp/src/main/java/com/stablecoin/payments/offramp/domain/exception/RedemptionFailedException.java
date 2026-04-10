@@ -2,9 +2,6 @@ package com.stablecoin.payments.offramp.domain.exception;
 
 import java.util.UUID;
 
-/**
- * Thrown when stablecoin redemption fails.
- */
 public class RedemptionFailedException extends RuntimeException {
 
     public static final String ERROR_CODE = "FR-2002";

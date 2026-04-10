@@ -19,23 +19,14 @@ public final class NonceFixtures {
     public static final ChainId CHAIN_SOLANA = new ChainId("solana");
     public static final ChainId CHAIN_POLYGON = new ChainId("polygon");
 
-    /**
-     * A nonce assignment for a fresh EVM nonce (incremented).
-     */
     public static NonceAssignment anIncrementedAssignment(long nonce) {
         return new NonceAssignment(nonce, INCREMENTED);
     }
 
-    /**
-     * A nonce assignment for a resubmitted transaction (reused nonce).
-     */
     public static NonceAssignment aReusedAssignment(long nonce) {
         return new NonceAssignment(nonce, REUSED);
     }
 
-    /**
-     * A nonce assignment for a non-nonce chain (e.g. Solana).
-     */
     public static NonceAssignment aNotApplicableAssignment() {
         return new NonceAssignment(null, NOT_APPLICABLE);
     }

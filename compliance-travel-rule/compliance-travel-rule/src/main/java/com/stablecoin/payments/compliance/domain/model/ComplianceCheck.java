@@ -34,15 +34,6 @@ import static com.stablecoin.payments.compliance.domain.model.ComplianceCheckTri
 import static com.stablecoin.payments.compliance.domain.model.ComplianceCheckTrigger.TRAVEL_RULE_COMPLETE;
 import static com.stablecoin.payments.compliance.domain.model.ComplianceCheckTrigger.TRAVEL_RULE_FAILED;
 
-/**
- * Aggregate root for a compliance check on a payment.
- * <p>
- * Enforces the compliance check pipeline via an internal state machine:
- * {@code PENDING -> KYC_IN_PROGRESS -> SANCTIONS_SCREENING -> AML_SCREENING ->
- * RISK_SCORING -> TRAVEL_RULE_PACKAGING -> PASSED}.
- * <p>
- * Immutable record — all state transitions return new instances via {@code toBuilder()}.
- */
 @Builder(toBuilder = true, access = AccessLevel.PACKAGE)
 public record ComplianceCheck(
         UUID checkId,
@@ -94,9 +85,6 @@ public record ComplianceCheck(
 
     // ── Factory Method ──────────────────────────────────────────────
 
-    /**
-     * Creates a new compliance check in PENDING status.
-     */
     public static ComplianceCheck initiate(UUID paymentId, UUID senderId, UUID recipientId,
                                            Money sourceAmount, String sourceCountry,
                                            String targetCountry, String targetCurrency) {
@@ -142,9 +130,6 @@ public record ComplianceCheck(
 
     // ── State Transition Methods ────────────────────────────────────
 
-    /**
-     * Starts KYC verification. Transitions PENDING -> KYC_IN_PROGRESS.
-     */
     public ComplianceCheck startKyc() {
         assertNotTerminal();
         var nextStatus = STATE_MACHINE.transition(status, START_KYC);
@@ -153,9 +138,6 @@ public record ComplianceCheck(
                 .build();
     }
 
-    /**
-     * Records a passing KYC result. Transitions KYC_IN_PROGRESS -> SANCTIONS_SCREENING.
-     */
     public ComplianceCheck passKyc(KycResult result) {
         assertNotTerminal();
         if (result == null) {
@@ -168,9 +150,6 @@ public record ComplianceCheck(
                 .build();
     }
 
-    /**
-     * Records a failing KYC result. Transitions KYC_IN_PROGRESS -> FAILED.
-     */
     public ComplianceCheck failKyc(KycResult result) {
         assertNotTerminal();
         if (result == null) {
@@ -187,9 +166,6 @@ public record ComplianceCheck(
                 .build();
     }
 
-    /**
-     * Records a clear sanctions screening result. Transitions SANCTIONS_SCREENING -> AML_SCREENING.
-     */
     public ComplianceCheck sanctionsClear(SanctionsResult result) {
         assertNotTerminal();
         if (result == null) {
@@ -202,9 +178,6 @@ public record ComplianceCheck(
                 .build();
     }
 
-    /**
-     * Records a sanctions hit. Transitions SANCTIONS_SCREENING -> SANCTIONS_HIT.
-     */
     public ComplianceCheck sanctionsHitDetected(SanctionsResult result) {
         assertNotTerminal();
         if (result == null) {
@@ -221,9 +194,6 @@ public record ComplianceCheck(
                 .build();
     }
 
-    /**
-     * Records a clear AML screening result. Transitions AML_SCREENING -> RISK_SCORING.
-     */
     public ComplianceCheck amlClear(AmlResult result) {
         assertNotTerminal();
         if (result == null) {
@@ -236,9 +206,6 @@ public record ComplianceCheck(
                 .build();
     }
 
-    /**
-     * Records an AML flag. Transitions AML_SCREENING -> MANUAL_REVIEW.
-     */
     public ComplianceCheck amlFlagged(AmlResult result) {
         assertNotTerminal();
         if (result == null) {
@@ -255,9 +222,6 @@ public record ComplianceCheck(
                 .build();
     }
 
-    /**
-     * Records the risk score. Transitions RISK_SCORING -> TRAVEL_RULE_PACKAGING.
-     */
     public ComplianceCheck riskScored(RiskScore score) {
         assertNotTerminal();
         if (score == null) {
@@ -270,10 +234,6 @@ public record ComplianceCheck(
                 .build();
     }
 
-    /**
-     * Records a CRITICAL risk score. Transitions RISK_SCORING -> MANUAL_REVIEW.
-     * CRITICAL scores block payment and require manual review to override.
-     */
     public ComplianceCheck riskCritical(RiskScore score) {
         assertNotTerminal();
         if (score == null) {
@@ -290,10 +250,6 @@ public record ComplianceCheck(
                 .build();
     }
 
-    /**
-     * Completes the travel rule packaging (or skips if null).
-     * Transitions TRAVEL_RULE_PACKAGING -> PASSED.
-     */
     public ComplianceCheck completeTravelRule(TravelRulePackage travelRule) {
         assertNotTerminal();
         var nextStatus = STATE_MACHINE.transition(status, TRAVEL_RULE_COMPLETE);
@@ -305,9 +261,6 @@ public record ComplianceCheck(
                 .build();
     }
 
-    /**
-     * Fails travel rule transmission. Transitions TRAVEL_RULE_PACKAGING -> FAILED.
-     */
     public ComplianceCheck failTravelRule(String reason) {
         assertNotTerminal();
         var nextStatus = STATE_MACHINE.transition(status, TRAVEL_RULE_FAILED);
@@ -320,9 +273,6 @@ public record ComplianceCheck(
                 .build();
     }
 
-    /**
-     * Escalates a sanctions hit to manual review. Transitions SANCTIONS_HIT -> MANUAL_REVIEW.
-     */
     public ComplianceCheck escalateToManualReview() {
         var nextStatus = STATE_MACHINE.transition(status, ESCALATE_MANUAL_REVIEW);
         return toBuilder()
@@ -333,24 +283,14 @@ public record ComplianceCheck(
 
     // ── Query Methods ───────────────────────────────────────────────
 
-    /**
-     * Returns true if this check is in a terminal state (PASSED, FAILED, SANCTIONS_HIT, MANUAL_REVIEW).
-     */
     public boolean isTerminal() {
         return TERMINAL_STATES.contains(status);
     }
 
-    /**
-     * Returns true if a given trigger can be applied from the current state.
-     */
     public boolean canApply(ComplianceCheckTrigger trigger) {
         return STATE_MACHINE.canTransition(status, trigger);
     }
 
-    /**
-     * Returns true if all sub-checks have passed (KYC, sanctions, AML, risk score).
-     * Does not include travel rule — that may be skipped for low-value payments.
-     */
     public boolean allSubChecksPassed() {
         return kycResult != null
                 && kycResult.senderStatus() == KycStatus.VERIFIED

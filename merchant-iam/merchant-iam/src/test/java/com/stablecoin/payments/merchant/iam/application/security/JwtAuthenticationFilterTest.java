@@ -20,10 +20,9 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class JwtAuthenticationFilterTest {
@@ -58,7 +57,7 @@ class JwtAuthenticationFilterTest {
         void shouldPassThroughWithoutAuthHeader() throws ServletException, IOException {
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(filterChain).doFilter(request, response);
+            then(filterChain).should().doFilter(request, response);
             assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
         }
 
@@ -68,8 +67,8 @@ class JwtAuthenticationFilterTest {
 
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(filterChain).doFilter(request, response);
-            verify(jwtTokenIssuer, never()).parseAndVerify(anyString());
+            then(filterChain).should().doFilter(request, response);
+            then(jwtTokenIssuer).shouldHaveNoInteractions();
         }
     }
 
@@ -86,13 +85,13 @@ class JwtAuthenticationFilterTest {
             var token = "valid.jwt.token";
             request.addHeader("Authorization", "Bearer " + token);
 
-            when(jwtTokenIssuer.parseAndVerify(token)).thenReturn(
+            given(jwtTokenIssuer.parseAndVerify(token)).willReturn(
                     new ParsedAccessToken(jti, userId, merchantId, roleId,
                             "ADMIN", List.of("payments:read", "team:manage"), true, 9999999999L));
 
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(filterChain).doFilter(request, response);
+            then(filterChain).should().doFilter(request, response);
             var auth = SecurityContextHolder.getContext().getAuthentication();
             assertThat(auth).isInstanceOf(UserAuthentication.class);
             var userAuth = (UserAuthentication) auth;
@@ -111,12 +110,12 @@ class JwtAuthenticationFilterTest {
         @Test
         void shouldRejectExpiredToken() throws ServletException, IOException {
             request.addHeader("Authorization", "Bearer expired.jwt.token");
-            when(jwtTokenIssuer.parseAndVerify("expired.jwt.token"))
-                    .thenThrow(new IllegalArgumentException("JWT has expired"));
+            given(jwtTokenIssuer.parseAndVerify("expired.jwt.token"))
+                    .willThrow(new IllegalArgumentException("JWT has expired"));
 
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(filterChain, never()).doFilter(request, response);
+            then(filterChain).should(never()).doFilter(request, response);
             assertThat(response.getStatus()).isEqualTo(401);
             assertThat(response.getContentAsString()).contains("IAM-4010");
         }
@@ -124,12 +123,12 @@ class JwtAuthenticationFilterTest {
         @Test
         void shouldRejectMalformedToken() throws ServletException, IOException {
             request.addHeader("Authorization", "Bearer not-a-jwt");
-            when(jwtTokenIssuer.parseAndVerify("not-a-jwt"))
-                    .thenThrow(new IllegalArgumentException("Invalid JWT"));
+            given(jwtTokenIssuer.parseAndVerify("not-a-jwt"))
+                    .willThrow(new IllegalArgumentException("Invalid JWT"));
 
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(filterChain, never()).doFilter(request, response);
+            then(filterChain).should(never()).doFilter(request, response);
             assertThat(response.getStatus()).isEqualTo(401);
         }
     }
@@ -143,7 +142,7 @@ class JwtAuthenticationFilterTest {
 
         filter.doFilterInternal(request, response, filterChain);
 
-        verify(filterChain).doFilter(request, response);
-        verify(jwtTokenIssuer, never()).parseAndVerify(anyString());
+        then(filterChain).should().doFilter(request, response);
+        then(jwtTokenIssuer).shouldHaveNoInteractions();
     }
 }

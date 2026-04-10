@@ -137,9 +137,6 @@ public final class ComplianceCheckFixtures {
                 .build();
     }
 
-    /**
-     * Walks a check to RISK_SCORING status with configurable KYC tier, amount, countries, and AML result.
-     */
     public static ComplianceCheck aCheckInRiskScoringStatus(KycTier kycTier, BigDecimal amount,
                                                              String sourceCurrency,
                                                              String sourceCountry, String targetCountry,
@@ -185,9 +182,6 @@ public final class ComplianceCheckFixtures {
                 .amlClear(amlResult);
     }
 
-    /**
-     * Creates a RiskScoringContext with the given check, optional profile, and transaction count.
-     */
     public static RiskScoringContext aRiskScoringContext(ComplianceCheck check,
                                                          CustomerRiskProfile profile,
                                                          int recentTransactionCount) {

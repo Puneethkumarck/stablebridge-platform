@@ -4,10 +4,6 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
-/**
- * Append-only audit event for the ledger service.
- * Immutable once created — no updates or deletes at domain or DB level.
- */
 public record AuditEvent(
         UUID auditId,
         UUID correlationId,

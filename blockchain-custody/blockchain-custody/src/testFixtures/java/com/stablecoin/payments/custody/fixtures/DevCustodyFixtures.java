@@ -19,9 +19,6 @@ public final class DevCustodyFixtures {
     public static final String SOL_FROM_ADDRESS = "FbGeZS8LiPCZiFpFwdUUeF2yxXtSsdfJoHTsVMvM8STh";
     public static final String SOL_TO_ADDRESS = "9WzDXwBbmPg2WjM1CdGUgJb4Mqp7TAUKM3MEPQDwKrSM";
 
-    /**
-     * A sign request for Base USDC transfer via dev custody.
-     */
     public static SignRequest aDevSignRequest() {
         return new SignRequest(
                 DEV_TRANSFER_ID,
@@ -35,9 +32,6 @@ public final class DevCustodyFixtures {
         );
     }
 
-    /**
-     * A sign request for Ethereum USDC transfer via dev custody.
-     */
     public static SignRequest aDevEthereumSignRequest() {
         return new SignRequest(
                 DEV_TRANSFER_ID,
@@ -51,9 +45,6 @@ public final class DevCustodyFixtures {
         );
     }
 
-    /**
-     * A sign request for Solana USDC transfer via dev custody.
-     */
     public static SignRequest aDevSolanaSignRequest() {
         return new SignRequest(
                 DEV_TRANSFER_ID,
@@ -67,9 +58,6 @@ public final class DevCustodyFixtures {
         );
     }
 
-    /**
-     * A sign request for an unsupported chain (stellar) — used for error path testing.
-     */
     public static SignRequest aDevUnsupportedChainSignRequest() {
         return new SignRequest(
                 DEV_TRANSFER_ID,

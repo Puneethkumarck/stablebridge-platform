@@ -13,11 +13,6 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 import java.util.UUID;
 
-/**
- * Temporal-backed adapter that starts the merchant onboarding workflow asynchronously.
- * <p>
- * Workflow ID convention: {@code onboarding-<merchantId>}, task queue: {@code onboarding-workflow}.
- */
 @Slf4j
 @Component
 @ConditionalOnProperty(name = "app.fallback-adapters.enabled", havingValue = "false", matchIfMissing = true)

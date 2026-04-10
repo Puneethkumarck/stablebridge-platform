@@ -29,12 +29,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
-/**
- * REST controller for collection order lifecycle management.
- * <p>
- * Thin HTTP handler that delegates all business logic to
- * {@link CollectionCommandHandler} and {@link RefundCommandHandler}.
- */
 @Slf4j
 @RestController
 @RequestMapping("/v1/collections")
@@ -44,12 +38,6 @@ public class CollectionController {
     private final CollectionCommandHandler collectionCommandHandler;
     private final RefundCommandHandler refundCommandHandler;
 
-    /**
-     * Initiates a new collection order.
-     * <p>
-     * Idempotent: returns 200 OK with the existing order if the same paymentId
-     * is submitted again. Returns 201 CREATED on first creation.
-     */
     @PostMapping
     public ResponseEntity<CollectionResponse> initiateCollection(
             @Valid @RequestBody CollectionRequest request) {
@@ -81,27 +69,18 @@ public class CollectionController {
         return ResponseEntity.status(status).body(response);
     }
 
-    /**
-     * Retrieves a collection order by its ID.
-     */
     @GetMapping("/{collectionId}")
     public CollectionResponse getCollection(@PathVariable UUID collectionId) {
         log.info("GET /v1/collections/{}", collectionId);
         return toCollectionResponse(collectionCommandHandler.getCollection(collectionId));
     }
 
-    /**
-     * Retrieves a collection order by its associated payment ID.
-     */
     @GetMapping
     public CollectionResponse getCollectionByPaymentId(@RequestParam UUID paymentId) {
         log.info("GET /v1/collections?paymentId={}", paymentId);
         return toCollectionResponse(collectionCommandHandler.getCollectionByPaymentId(paymentId));
     }
 
-    /**
-     * Initiates a refund for a collected order.
-     */
     @PostMapping("/{collectionId}/refunds")
     public ResponseEntity<RefundResponse> initiateRefund(
             @PathVariable UUID collectionId,

@@ -9,10 +9,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 
-/**
- * Marks PENDING invitations whose {@code expires_at} has passed as EXPIRED.
- * Runs every 15 minutes.
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor

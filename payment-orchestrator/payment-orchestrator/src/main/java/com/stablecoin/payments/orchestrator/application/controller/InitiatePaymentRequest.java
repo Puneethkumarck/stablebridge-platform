@@ -7,9 +7,6 @@ import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-/**
- * Request DTO for initiating a cross-border payment.
- */
 public record InitiatePaymentRequest(
         @NotNull(message = "senderId is required")
         UUID senderId,

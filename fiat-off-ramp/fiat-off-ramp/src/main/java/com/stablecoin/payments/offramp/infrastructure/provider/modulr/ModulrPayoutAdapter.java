@@ -25,13 +25,6 @@ import java.time.Duration;
 
 import static com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor.applyTo;
 
-/**
- * Modulr implementation of {@link PayoutPartnerGateway} for SEPA Credit transfers.
- * <p>
- * Calls: {@code POST /api-sandbox-token/payments}
- * Auth: Bearer API key (sandbox token mode)
- * Scheme: SEPA_CREDIT with IBAN destination
- */
 @Slf4j
 @Component
 @ConditionalOnProperty(name = "app.payout.provider", havingValue = "modulr")

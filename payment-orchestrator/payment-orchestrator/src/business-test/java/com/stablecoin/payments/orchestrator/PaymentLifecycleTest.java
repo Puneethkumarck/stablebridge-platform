@@ -57,8 +57,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import static com.stablecoin.payments.orchestrator.application.config.TemporalConfig.TASK_QUEUE;
 import static com.stablecoin.payments.orchestrator.application.filter.IdempotencyKeyFilter.IDEMPOTENCY_KEY_HEADER;
+import static com.stablecoin.payments.orchestrator.domain.service.PaymentCommandHandler.TASK_QUEUE;
 import static com.stablecoin.payments.orchestrator.domain.workflow.dto.PaymentResult.PaymentResultStatus.COMPLETED;
 import static com.stablecoin.payments.orchestrator.domain.workflow.dto.PaymentResult.PaymentResultStatus.FAILED;
 import static org.assertj.core.api.Assertions.assertThat;

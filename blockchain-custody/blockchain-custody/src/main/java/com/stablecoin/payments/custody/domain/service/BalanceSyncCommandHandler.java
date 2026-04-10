@@ -8,14 +8,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-/**
- * Domain service responsible for syncing wallet balances from on-chain data.
- * <p>
- * Queries all wallet balances and updates them with the latest on-chain balance
- * from the RPC provider. No class-level transaction — each balance save runs in
- * its own transaction via the repository adapter, keeping RPC calls outside
- * any database transaction.
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -26,13 +18,6 @@ public class BalanceSyncCommandHandler {
     private final ChainRpcProvider chainRpcProvider;
     private final TokenContractResolver tokenContractResolver;
 
-    /**
-     * Syncs all wallet balances from on-chain data.
-     * <p>
-     * For each balance record, fetches the current on-chain balance and latest block number,
-     * then updates via {@code WalletBalance.syncFromChain()}.
-     * Failures for individual balances are logged and skipped.
-     */
     public void syncAllBalances() {
         var balances = walletBalanceRepository.findAll();
 

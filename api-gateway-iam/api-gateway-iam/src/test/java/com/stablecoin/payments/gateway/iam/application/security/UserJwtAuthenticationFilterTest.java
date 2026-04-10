@@ -33,9 +33,9 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class UserJwtAuthenticationFilterTest {
@@ -113,7 +113,7 @@ class UserJwtAuthenticationFilterTest {
         void shouldPassThroughWithoutAuthHeader() throws ServletException, IOException {
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(filterChain).doFilter(request, response);
+            then(filterChain).should().doFilter(request, response);
             assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
         }
 
@@ -123,7 +123,7 @@ class UserJwtAuthenticationFilterTest {
 
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(filterChain).doFilter(request, response);
+            then(filterChain).should().doFilter(request, response);
         }
     }
 
@@ -139,7 +139,7 @@ class UserJwtAuthenticationFilterTest {
 
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(filterChain).doFilter(request, response);
+            then(filterChain).should().doFilter(request, response);
             assertThat(SecurityContextHolder.getContext().getAuthentication())
                     .isInstanceOf(MerchantAuthentication.class);
         }
@@ -155,11 +155,11 @@ class UserJwtAuthenticationFilterTest {
             var token = buildToken(S13_ISSUER, AUDIENCE,
                     Instant.now().plusSeconds(3600), userId, merchantId);
             request.addHeader("Authorization", "Bearer " + token);
-            when(userJwksProvider.fetchJwks()).thenReturn(jwksJson);
+            given(userJwksProvider.fetchJwks()).willReturn(jwksJson);
 
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(filterChain).doFilter(request, response);
+            then(filterChain).should().doFilter(request, response);
             var auth = SecurityContextHolder.getContext().getAuthentication();
             assertThat(auth).isInstanceOf(UserAuthentication.class);
             var userAuth = (UserAuthentication) auth;
@@ -182,7 +182,7 @@ class UserJwtAuthenticationFilterTest {
 
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(filterChain).doFilter(request, response);
+            then(filterChain).should().doFilter(request, response);
             assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
         }
     }
@@ -198,7 +198,7 @@ class UserJwtAuthenticationFilterTest {
 
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(filterChain, never()).doFilter(request, response);
+            then(filterChain).should(never()).doFilter(request, response);
             assertThat(response.getStatus()).isEqualTo(401);
         }
 
@@ -210,7 +210,7 @@ class UserJwtAuthenticationFilterTest {
 
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(filterChain, never()).doFilter(request, response);
+            then(filterChain).should(never()).doFilter(request, response);
             assertThat(response.getStatus()).isEqualTo(401);
         }
 
@@ -240,11 +240,11 @@ class UserJwtAuthenticationFilterTest {
             jwt.sign(new ECDSASigner(otherKey));
 
             request.addHeader("Authorization", "Bearer " + jwt.serialize());
-            when(userJwksProvider.fetchJwks()).thenReturn(jwksJson);
+            given(userJwksProvider.fetchJwks()).willReturn(jwksJson);
 
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(filterChain, never()).doFilter(request, response);
+            then(filterChain).should(never()).doFilter(request, response);
             assertThat(response.getStatus()).isEqualTo(401);
         }
 
@@ -254,7 +254,7 @@ class UserJwtAuthenticationFilterTest {
 
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(filterChain, never()).doFilter(request, response);
+            then(filterChain).should(never()).doFilter(request, response);
             assertThat(response.getStatus()).isEqualTo(401);
         }
     }
@@ -267,12 +267,12 @@ class UserJwtAuthenticationFilterTest {
             var token = buildToken(S13_ISSUER, AUDIENCE,
                     Instant.now().plusSeconds(3600), UUID.randomUUID(), UUID.randomUUID());
             request.addHeader("Authorization", "Bearer " + token);
-            when(userJwksProvider.fetchJwks())
-                    .thenThrow(new UserJwksUnavailableException("S13 down", new RuntimeException()));
+            given(userJwksProvider.fetchJwks())
+                    .willThrow(new UserJwksUnavailableException("S13 down", new RuntimeException()));
 
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(filterChain, never()).doFilter(request, response);
+            then(filterChain).should(never()).doFilter(request, response);
             assertThat(response.getStatus()).isEqualTo(503);
             assertThat(response.getContentAsString()).contains("GW-5001");
         }

@@ -1,4 +1,4 @@
-package com.stablecoin.payments.onramp.config;
+package com.stablecoin.payments.onramp.infrastructure.config;
 
 import com.stablecoin.payments.onramp.domain.port.PspGateway;
 import com.stablecoin.payments.onramp.domain.port.PspPaymentResult;
@@ -13,12 +13,6 @@ import org.springframework.context.annotation.Configuration;
 import java.time.Clock;
 import java.util.UUID;
 
-/**
- * Provides fallback (dev/test) implementations of outbound ports.
- * Activated only when {@code app.fallback-adapters.enabled=true}.
- * Real adapters are registered by provider-specific configurations
- * under {@code infrastructure/provider/<name>/}.
- */
 @Slf4j
 @Configuration
 @ConditionalOnProperty(name = "app.fallback-adapters.enabled", havingValue = "true")

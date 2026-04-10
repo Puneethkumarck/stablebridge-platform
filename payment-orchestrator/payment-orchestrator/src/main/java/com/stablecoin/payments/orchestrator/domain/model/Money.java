@@ -2,11 +2,6 @@ package com.stablecoin.payments.orchestrator.domain.model;
 
 import java.math.BigDecimal;
 
-/**
- * Value object representing a monetary amount with currency.
- * <p>
- * Invariant: amount must be positive, currency must not be blank.
- */
 public record Money(BigDecimal amount, String currency) {
 
     public Money {

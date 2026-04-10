@@ -7,16 +7,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Tracks the balance of a specific stablecoin in a wallet.
- * <p>
- * Maintains three balance views:
- * <ul>
- *   <li>{@code availableBalance} — funds available for new transfers</li>
- *   <li>{@code reservedBalance} — funds locked for in-flight transfers</li>
- *   <li>{@code blockchainBalance} — last indexed on-chain balance</li>
- * </ul>
- */
 @Builder(toBuilder = true, access = AccessLevel.PACKAGE)
 public record WalletBalance(
         UUID balanceId,
@@ -45,9 +35,6 @@ public record WalletBalance(
 
     // -- Factory Method -------------------------------------------------
 
-    /**
-     * Initializes a new wallet balance with zero balances.
-     */
     public static WalletBalance initialize(UUID walletId, ChainId chainId,
                                            StablecoinTicker stablecoin) {
         if (walletId == null) {
@@ -76,10 +63,6 @@ public record WalletBalance(
 
     // -- Domain Methods -------------------------------------------------
 
-    /**
-     * Reserves an amount for an in-flight transfer.
-     * Moves funds from available to reserved.
-     */
     public WalletBalance reserve(BigDecimal amount) {
         validatePositiveAmount(amount);
         if (availableBalance.compareTo(amount) < 0) {
@@ -94,9 +77,6 @@ public record WalletBalance(
                 .build();
     }
 
-    /**
-     * Releases a previously reserved amount back to available.
-     */
     public WalletBalance release(BigDecimal amount) {
         validatePositiveAmount(amount);
         if (reservedBalance.compareTo(amount) < 0) {
@@ -111,9 +91,6 @@ public record WalletBalance(
                 .build();
     }
 
-    /**
-     * Confirms a debit after chain confirmation. Reduces reserved balance.
-     */
     public WalletBalance confirmDebit(BigDecimal amount) {
         validatePositiveAmount(amount);
         if (reservedBalance.compareTo(amount) < 0) {
@@ -127,9 +104,6 @@ public record WalletBalance(
                 .build();
     }
 
-    /**
-     * Syncs the balance from on-chain data. Updates blockchain balance and recalculates available.
-     */
     public WalletBalance syncFromChain(BigDecimal onChainBalance, long blockNumber) {
         if (onChainBalance == null || onChainBalance.compareTo(BigDecimal.ZERO) < 0) {
             throw new IllegalArgumentException("On-chain balance must be non-negative");
@@ -153,9 +127,6 @@ public record WalletBalance(
 
     // -- Query Methods --------------------------------------------------
 
-    /**
-     * Returns true if the wallet has sufficient available balance for the given amount.
-     */
     public boolean hasSufficientBalance(BigDecimal amount) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             return false;

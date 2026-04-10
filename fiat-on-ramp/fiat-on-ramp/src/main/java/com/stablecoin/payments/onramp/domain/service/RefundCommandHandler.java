@@ -22,12 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Domain command handler for refund operations.
- * <p>
- * Orchestrates: validate collection state -> check idempotency ->
- * create refund -> call PSP -> transition collection order -> publish event.
- */
 @Slf4j
 @Service
 @Transactional
@@ -39,17 +33,6 @@ public class RefundCommandHandler {
     private final PspGateway pspGateway;
     private final CollectionEventPublisher eventPublisher;
 
-    /**
-     * Initiates a refund for a collected order.
-     * <p>
-     * Idempotent: if a refund already exists for this collection in a
-     * non-failed state (PENDING, PROCESSING, COMPLETED), returns the existing one.
-     *
-     * @param collectionId the collection order to refund
-     * @param refundAmount the amount to refund
-     * @param reason       the reason for the refund
-     * @return the created or existing refund
-     */
     public Refund initiateRefund(UUID collectionId, Money refundAmount, String reason) {
         // 1. Find collection order
         var order = collectionOrderRepository.findById(collectionId)
@@ -118,13 +101,6 @@ public class RefundCommandHandler {
         return refund;
     }
 
-    /**
-     * Retrieves a refund by its ID.
-     *
-     * @param refundId the refund identifier
-     * @return the refund
-     * @throws RefundNotFoundException if the refund is not found
-     */
     public Refund getRefund(UUID refundId) {
         return refundRepository.findById(refundId)
                 .orElseThrow(() -> new RefundNotFoundException(refundId));

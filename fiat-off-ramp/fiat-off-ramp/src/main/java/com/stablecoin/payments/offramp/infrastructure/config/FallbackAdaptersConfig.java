@@ -1,4 +1,4 @@
-package com.stablecoin.payments.offramp.config;
+package com.stablecoin.payments.offramp.infrastructure.config;
 
 import com.stablecoin.payments.offramp.domain.port.PayoutPartnerGateway;
 import com.stablecoin.payments.offramp.domain.port.PayoutResult;
@@ -15,12 +15,6 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.util.UUID;
 
-/**
- * Provides fallback (dev/test) implementations of outbound ports.
- * Activated only when {@code app.fallback-adapters.enabled=true}.
- * Real adapters are registered by provider-specific configurations
- * under {@code infrastructure/provider/<name>/}.
- */
 @Slf4j
 @Configuration
 @ConditionalOnProperty(name = "app.fallback-adapters.enabled", havingValue = "true")

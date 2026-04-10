@@ -24,9 +24,6 @@ public final class ChainTransferFixtures {
     public static final StablecoinTicker USDC = StablecoinTicker.of("USDC");
     public static final BigDecimal AMOUNT = new BigDecimal("1000.00");
 
-    /**
-     * JSON body for a FORWARD transfer request on Base chain.
-     */
     public static String aTransferRequestJson() {
         return """
                 {
@@ -41,9 +38,6 @@ public final class ChainTransferFixtures {
                 """.formatted(PAYMENT_ID, CORRELATION_ID, TO_ADDRESS);
     }
 
-    /**
-     * A fresh PENDING transfer (FORWARD type, no parent).
-     */
     public static ChainTransfer aPendingTransfer() {
         return ChainTransfer.initiate(
                 PAYMENT_ID, CORRELATION_ID, TransferType.FORWARD, null,
@@ -51,9 +45,6 @@ public final class ChainTransferFixtures {
         );
     }
 
-    /**
-     * A PENDING RETURN transfer with parentTransferId.
-     */
     public static ChainTransfer aPendingReturnTransfer() {
         return ChainTransfer.initiate(
                 PAYMENT_ID, CORRELATION_ID, TransferType.RETURN, PARENT_TRANSFER_ID,
@@ -61,53 +52,32 @@ public final class ChainTransferFixtures {
         );
     }
 
-    /**
-     * A transfer in CHAIN_SELECTED state.
-     */
     public static ChainTransfer aChainSelectedTransfer() {
         return aPendingTransfer().selectChain(CHAIN_BASE);
     }
 
-    /**
-     * A transfer in SIGNING state.
-     */
     public static ChainTransfer aSigningTransfer() {
         return aChainSelectedTransfer().startSigning(42L);
     }
 
-    /**
-     * A transfer in SUBMITTED state (attemptCount = 1).
-     */
     public static ChainTransfer aSubmittedTransfer() {
         return aSigningTransfer().submit(TX_HASH);
     }
 
-    /**
-     * A transfer in CONFIRMING state.
-     */
     public static ChainTransfer aConfirmingTransfer() {
         return aSubmittedTransfer().startConfirming();
     }
 
-    /**
-     * A transfer in CONFIRMED (terminal) state.
-     */
     public static ChainTransfer aConfirmedTransfer() {
         return aConfirmingTransfer().confirm(
                 12345L, 15, new BigDecimal("0.002100"), new BigDecimal("25.5")
         );
     }
 
-    /**
-     * A transfer in RESUBMITTING state.
-     */
     public static ChainTransfer aResubmittingTransfer() {
         return aSubmittedTransfer().markForResubmission();
     }
 
-    /**
-     * A transfer in FAILED (terminal) state.
-     */
     public static ChainTransfer aFailedTransfer() {
         return aChainSelectedTransfer().fail("Insufficient gas", "GAS_LIMIT_EXCEEDED");
     }

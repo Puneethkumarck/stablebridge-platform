@@ -1,6 +1,6 @@
 package com.stablecoin.payments.custody.application.controller;
 
-import com.stablecoin.payments.custody.config.SecurityConfig;
+import com.stablecoin.payments.custody.application.config.SecurityConfig;
 import com.stablecoin.payments.custody.domain.exception.ChainUnavailableException;
 import com.stablecoin.payments.custody.domain.exception.CustodySigningException;
 import com.stablecoin.payments.custody.domain.exception.InsufficientBalanceException;

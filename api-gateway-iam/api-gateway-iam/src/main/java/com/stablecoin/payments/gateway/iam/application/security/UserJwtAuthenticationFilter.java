@@ -21,15 +21,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Validates S13-issued user JWTs at the S10 gateway.
- * Fetches S13's JWKS to verify ES256 signatures, then extracts user claims
- * into a {@link UserAuthentication} principal.
- *
- * <p>Runs after the S10 merchant JWT filter. If the token's issuer doesn't match
- * the S13 issuer, this filter passes through (the token may be an S10 merchant JWT
- * that was already handled or will be rejected upstream).</p>
- */
 @Slf4j
 @RequiredArgsConstructor
 public class UserJwtAuthenticationFilter extends OncePerRequestFilter {

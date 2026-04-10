@@ -9,13 +9,6 @@ import org.springframework.stereotype.Component;
 import java.time.Duration;
 import java.util.Objects;
 
-/**
- * Redis-backed brute-force protection.
- * Key: {@code login:fail:{emailHash}}
- * Value: failure count as string
- * TTL: 15 minutes, reset on each failure (sliding window)
- * Threshold: 5 failures triggers lockout
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor

@@ -6,12 +6,6 @@ import lombok.Builder;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Immutable event log recording PSP interactions.
- * <p>
- * Each PSP webhook or API call response is captured as a {@code PspTransaction}.
- * No state transitions — this is an append-only audit record.
- */
 @Builder(toBuilder = true, access = AccessLevel.PACKAGE)
 public record PspTransaction(
         UUID pspTxnId,
@@ -28,9 +22,6 @@ public record PspTransaction(
 
     // -- Factory Method ---------------------------------------------------
 
-    /**
-     * Creates a new PSP transaction record.
-     */
     public static PspTransaction create(UUID collectionId, String pspName,
                                         String pspReference, PspTransactionDirection direction,
                                         String eventType, Money amount,

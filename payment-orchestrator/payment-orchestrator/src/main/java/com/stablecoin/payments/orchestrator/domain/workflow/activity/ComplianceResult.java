@@ -2,12 +2,6 @@ package com.stablecoin.payments.orchestrator.domain.workflow.activity;
 
 import java.util.UUID;
 
-/**
- * Result DTO from the compliance check activity.
- * <p>
- * Contains the compliance check outcome and any screening reference
- * for audit trail purposes.
- */
 public record ComplianceResult(
         UUID checkId,
         ComplianceStatus status,

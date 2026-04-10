@@ -47,10 +47,6 @@ public class AuthController {
 
     // ── Login ─────────────────────────────────────────────────────────────────
 
-    /**
-     * POST /v1/merchants/{merchantId}/auth/login
-     * Returns LoginResponse on success, or MfaChallengeResponse if MFA is enabled.
-     */
     @PostMapping("/merchants/{merchantId}/auth/login")
     public DataResponse<?> login(
             @PathVariable UUID merchantId,
@@ -67,11 +63,6 @@ public class AuthController {
         }
     }
 
-    /**
-     * POST /v1/merchants/{merchantId}/auth/mfa/verify
-     * Verifies TOTP code against the stored challenge; returns tokens on success.
-     * The {@code mfaChallengeId} from the login MFA challenge response is passed as {@code totpCode}.
-     */
     @PostMapping("/merchants/{merchantId}/auth/mfa/verify")
     public DataResponse<LoginResponse> verifyMfa(
             @PathVariable UUID merchantId,
@@ -83,11 +74,6 @@ public class AuthController {
 
     // ── Refresh token ────────────────────────────────────────────────────────
 
-    /**
-     * POST /v1/auth/refresh
-     * Exchanges a valid refresh token for a new access token.
-     * No authentication required — the refresh token itself serves as the credential.
-     */
     @PostMapping("/auth/refresh")
     public DataResponse<RefreshTokenResponse> refresh(
             @Valid @RequestBody RefreshTokenRequest request) {
@@ -98,11 +84,6 @@ public class AuthController {
 
     // ── MFA setup ──────────────────────────────────────────────────────────
 
-    /**
-     * POST /v1/merchants/{merchantId}/users/{userId}/mfa/setup
-     * Generates a TOTP secret and provisioning URI for MFA enrollment.
-     * Requires authentication — caller must be the target user or have team:manage permission.
-     */
     @PostMapping("/merchants/{merchantId}/users/{userId}/mfa/setup")
     public DataResponse<MfaSetupResponse> setupMfa(
             @PathVariable UUID merchantId,
@@ -116,10 +97,6 @@ public class AuthController {
         return DataResponse.of(new MfaSetupResponse(result.secret(), result.provisioningUri()));
     }
 
-    /**
-     * POST /v1/merchants/{merchantId}/users/{userId}/mfa/activate
-     * Verifies the TOTP code against the provided secret and enables MFA for the user.
-     */
     @PostMapping("/merchants/{merchantId}/users/{userId}/mfa/activate")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void activateMfa(
@@ -136,10 +113,6 @@ public class AuthController {
 
     // ── Invitation acceptance ─────────────────────────────────────────────────
 
-    /**
-     * POST /v1/invitations/{token}/accept
-     * No auth required — invitation token in URL serves as credential.
-     */
     @PostMapping("/invitations/{token}/accept")
     public DataResponse<UserResponse> acceptInvitation(
             @PathVariable String token,
@@ -153,10 +126,6 @@ public class AuthController {
 
     // ── Logout ────────────────────────────────────────────────────────────────
 
-    /**
-     * POST /v1/auth/logout
-     * Revokes all sessions for the authenticated user.
-     */
     @PostMapping("/auth/logout")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void logout() {
@@ -171,10 +140,6 @@ public class AuthController {
 
     // ── JWKS ──────────────────────────────────────────────────────────────────
 
-    /**
-     * GET /v1/.well-known/jwks.json
-     * Publishes S13's ES256 public key. S10 (API Gateway) fetches this to validate tokens.
-     */
     @GetMapping(value = "/.well-known/jwks.json", produces = MediaType.APPLICATION_JSON_VALUE)
     public String jwks() {
         return authService.jwksJson();

@@ -22,12 +22,6 @@ import java.math.RoundingMode;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Thin HTTP handler for Stripe webhook callbacks.
- * <p>
- * Validates the HMAC signature, parses the Stripe event JSON,
- * and delegates to {@link WebhookCommandHandler}.
- */
 @Slf4j
 @RestController
 @RequestMapping("/internal/webhooks/psp/stripe")

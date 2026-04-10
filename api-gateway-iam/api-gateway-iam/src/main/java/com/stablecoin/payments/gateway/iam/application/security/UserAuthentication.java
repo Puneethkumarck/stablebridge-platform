@@ -7,10 +7,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
-/**
- * Spring Security principal for S13-authenticated users accessing S10 gateway.
- * Distinct from {@link MerchantAuthentication} which represents merchant/client-level auth.
- */
 public class UserAuthentication extends AbstractAuthenticationToken {
 
     private final UUID userId;

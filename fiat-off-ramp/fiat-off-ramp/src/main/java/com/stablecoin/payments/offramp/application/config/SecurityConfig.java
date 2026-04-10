@@ -1,4 +1,4 @@
-package com.stablecoin.payments.compliance.application.security;
+package com.stablecoin.payments.offramp.application.config;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -22,6 +22,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        .requestMatchers("/internal/webhooks/**").permitAll()
                         .anyRequest().authenticated()
                 )
                 .build();

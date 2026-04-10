@@ -6,10 +6,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Spring Security principal for S13 authenticated users.
- * Extracted from JWT claims after signature verification.
- */
 public class UserAuthentication extends AbstractAuthenticationToken {
 
     private final UUID userId;

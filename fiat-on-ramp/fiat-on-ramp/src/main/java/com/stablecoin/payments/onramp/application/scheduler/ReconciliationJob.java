@@ -11,12 +11,6 @@ import org.springframework.stereotype.Component;
 
 import static com.stablecoin.payments.onramp.domain.model.CollectionStatus.COLLECTED;
 
-/**
- * Scheduled job that runs daily reconciliation for collected orders.
- * <p>
- * Finds all COLLECTED orders that have not yet been reconciled,
- * then delegates to {@link ReconciliationCommandHandler} for each.
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor

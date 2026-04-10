@@ -5,10 +5,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.List;
 
-/**
- * ACL DTO for the Companies House {@code GET /company/{companyNumber}} response. Only maps fields needed by the domain
- * — remaining fields are ignored.
- */
 @JsonIgnoreProperties(ignoreUnknown = true)
 record CompaniesHouseCompanyResponse(
     @JsonProperty("company_name") String companyName,
