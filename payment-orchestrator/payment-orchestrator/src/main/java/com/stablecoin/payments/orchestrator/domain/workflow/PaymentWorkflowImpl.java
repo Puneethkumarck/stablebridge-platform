@@ -150,7 +150,6 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
         log = Workflow.getLogger(PaymentWorkflowImpl.class);
         log.info("Starting payment workflow for paymentId={}", request.paymentId());
 
-        // ── Step 1: Compliance Check ────────────────────────────────────
         currentState = "COMPLIANCE_CHECK";
         log.info("Step 1: Running compliance check for paymentId={}", request.paymentId());
 
@@ -194,7 +193,6 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
             return handleCancellation(request);
         }
 
-        // ── Step 2: FX Rate Lock ────────────────────────────────────────
         currentState = "FX_LOCKING";
         log.info("Step 2: Locking FX rate for paymentId={}", request.paymentId());
 
@@ -240,7 +238,6 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
             return handleCancellation(request);
         }
 
-        // ── Step 3: Fiat Collection (S3 — async) ────────────────────────
         currentState = "FIAT_COLLECTION_PENDING";
         log.info("Step 3: Initiating fiat collection for paymentId={}", request.paymentId());
 
@@ -298,7 +295,6 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
             return handleCancellation(request);
         }
 
-        // ── Step 4: Chain Transfer (S4 — async) ─────────────────────────
         currentState = "ON_CHAIN_SUBMITTED";
         log.info("Step 4: Submitting chain transfer for paymentId={}", request.paymentId());
 
@@ -357,7 +353,6 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
             return handleCancellation(request);
         }
 
-        // ── Step 5: Off-Ramp Payout (S5) ────────────────────────────────
         currentState = "OFF_RAMP_INITIATED";
         log.info("Step 5: Initiating off-ramp payout for paymentId={}", request.paymentId());
 
@@ -392,7 +387,6 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
             return handleFailureWithCompensation(request, reason);
         }
 
-        // ── Settlement Complete ─────────────────────────────────────────
         currentState = "SETTLED";
         log.info("Off-ramp payout initiated for paymentId={}, payoutId={}",
                 request.paymentId(), offRampResult.payoutId());

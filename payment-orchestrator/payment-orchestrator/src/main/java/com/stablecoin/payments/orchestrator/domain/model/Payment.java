@@ -57,7 +57,6 @@ public record Payment(
 
     private static final StateMachine<PaymentState, PaymentTrigger> STATE_MACHINE =
             new StateMachine<>(List.of(
-                    // ── Happy path ──────────────────────────────────────────────
                     new StateTransition<>(INITIATED, START_COMPLIANCE, COMPLIANCE_CHECK),
                     new StateTransition<>(COMPLIANCE_CHECK, COMPLIANCE_PASSED, PaymentState.FX_LOCKED),
                     new StateTransition<>(PaymentState.FX_LOCKED, LOCK_FX, PaymentState.FIAT_COLLECTION_PENDING),
@@ -69,30 +68,25 @@ public record Payment(
                     new StateTransition<>(PaymentState.OFF_RAMP_INITIATED, SETTLE, PaymentState.SETTLED),
                     new StateTransition<>(PaymentState.SETTLED, COMPLETE, COMPLETED),
 
-                    // ── Workflow terminal sync (Temporal → DB) ──────────────────
                     // The Temporal workflow is the saga authority. When it completes,
                     // the WORKFLOW_COMPLETED trigger allows direct INITIATED → COMPLETED
                     // since all intermediate steps were validated by the workflow.
                     new StateTransition<>(INITIATED, WORKFLOW_COMPLETED, COMPLETED),
 
-                    // ── Failure from any active state ───────────────────────────
                     new StateTransition<>(INITIATED, FAIL, FAILED),
                     new StateTransition<>(COMPLIANCE_CHECK, FAIL, FAILED),
                     new StateTransition<>(PaymentState.FX_LOCKED, FAIL, FAILED),
                     new StateTransition<>(PaymentState.FIAT_COLLECTION_PENDING, FAIL, FAILED),
 
-                    // ── Compensation paths ──────────────────────────────────────
                     new StateTransition<>(PaymentState.FIAT_COLLECTED, START_COMPENSATION, COMPENSATING_FIAT_REFUND),
                     new StateTransition<>(PaymentState.ON_CHAIN_SUBMITTED, START_COMPENSATION, COMPENSATING_STABLECOIN_RETURN),
                     new StateTransition<>(PaymentState.ON_CHAIN_CONFIRMED, START_COMPENSATION, COMPENSATING_STABLECOIN_RETURN),
                     new StateTransition<>(PaymentState.OFF_RAMP_INITIATED, START_COMPENSATION, COMPENSATING_STABLECOIN_RETURN),
 
-                    // ── Compensation terminal ───────────────────────────────────
                     new StateTransition<>(COMPENSATING_FIAT_REFUND, FAIL, FAILED),
                     new StateTransition<>(COMPENSATING_STABLECOIN_RETURN, FAIL, FAILED)
             ));
 
-    // ── Factory Method ──────────────────────────────────────────────
 
     public static Payment initiate(String idempotencyKey, UUID correlationId,
                                    UUID senderId, UUID recipientId,
@@ -143,7 +137,6 @@ public record Payment(
                 .build();
     }
 
-    // ── State Transition Methods ────────────────────────────────────
 
     public Payment startComplianceCheck() {
         assertNotTerminal();
@@ -275,7 +268,6 @@ public record Payment(
                 .build();
     }
 
-    // ── Query Methods ───────────────────────────────────────────────
 
     public boolean isTerminal() {
         return TERMINAL_STATES.contains(state);
@@ -289,7 +281,6 @@ public record Payment(
         return state == COMPENSATING_FIAT_REFUND || state == COMPENSATING_STABLECOIN_RETURN;
     }
 
-    // ── Invariant Guards ────────────────────────────────────────────
 
     private void assertNotTerminal() {
         if (isTerminal()) {

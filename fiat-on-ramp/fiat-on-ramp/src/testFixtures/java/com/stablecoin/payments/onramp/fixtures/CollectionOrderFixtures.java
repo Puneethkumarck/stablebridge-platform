@@ -16,7 +16,6 @@ public final class CollectionOrderFixtures {
 
     private CollectionOrderFixtures() {}
 
-    // -- Constants --------------------------------------------------------
 
     public static final UUID PAYMENT_ID = UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567890");
     public static final UUID CORRELATION_ID = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
@@ -25,7 +24,6 @@ public final class CollectionOrderFixtures {
     public static final String FAILURE_REASON = "Payment timeout exceeded";
     public static final String ERROR_CODE = "TIMEOUT_001";
 
-    // -- Value Object Factories -------------------------------------------
 
     public static Money aMoney() {
         return new Money(new BigDecimal("1000.00"), "USD");
@@ -56,7 +54,6 @@ public final class CollectionOrderFixtures {
         return new PspIdentifier("stripe_001", "Stripe");
     }
 
-    // -- CollectionOrder State Factories ----------------------------------
 
     public static CollectionOrder aPendingOrder() {
         return CollectionOrder.initiate(
@@ -105,7 +102,6 @@ public final class CollectionOrderFixtures {
         return aRefundProcessingOrder().completeRefund();
     }
 
-    // -- API Request Factories --------------------------------------------
 
     public static CollectionRequest aCollectionRequest() {
         return new CollectionRequest(

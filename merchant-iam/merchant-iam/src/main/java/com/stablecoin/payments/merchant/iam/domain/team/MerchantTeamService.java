@@ -38,7 +38,6 @@ public class MerchantTeamService {
     private final EmailHasher emailHasher;
     private final PasswordHasher passwordHasher;
 
-    // ── User management ─────────────────────────────────────────────────────
 
     @Transactional
     public InviteResult inviteUser(UUID merchantId, String email, String fullName,
@@ -175,7 +174,6 @@ public class MerchantTeamService {
 
     public record InviteResultWithRole(InviteResult inviteResult, String roleName) {}
 
-    // ── Role management ─────────────────────────────────────────────────────
 
     @Transactional
     public Role createRole(UUID merchantId, String roleName, String description,
@@ -233,7 +231,6 @@ public class MerchantTeamService {
                 .orElseThrow(() -> RoleNotFoundException.withId(roleId));
     }
 
-    // ── Merchant lifecycle (driven by Kafka events from S11) ─────────────────
 
     @Transactional
     public MerchantUser seedRolesAndFirstAdmin(UUID merchantId, String email,
@@ -284,7 +281,6 @@ public class MerchantTeamService {
         log.info("Deactivated {} users for merchantId={}", users.size(), merchantId);
     }
 
-    // ── Internal helpers ────────────────────────────────────────────────────
 
     private MerchantTeam loadTeam(UUID merchantId) {
         var roles = roleRepository.findByMerchantId(merchantId);

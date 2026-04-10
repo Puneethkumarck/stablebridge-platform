@@ -45,7 +45,6 @@ public class AuthController {
     private final MerchantTeamService merchantTeamService;
     private final IamResponseMapper mapper;
 
-    // ── Login ─────────────────────────────────────────────────────────────────
 
     @PostMapping("/merchants/{merchantId}/auth/login")
     public DataResponse<?> login(
@@ -72,7 +71,6 @@ public class AuthController {
         return DataResponse.of(buildLoginResponse(result));
     }
 
-    // ── Refresh token ────────────────────────────────────────────────────────
 
     @PostMapping("/auth/refresh")
     public DataResponse<RefreshTokenResponse> refresh(
@@ -82,7 +80,6 @@ public class AuthController {
         return DataResponse.of(new RefreshTokenResponse(result.accessToken(), result.expiresIn()));
     }
 
-    // ── MFA setup ──────────────────────────────────────────────────────────
 
     @PostMapping("/merchants/{merchantId}/users/{userId}/mfa/setup")
     public DataResponse<MfaSetupResponse> setupMfa(
@@ -111,7 +108,6 @@ public class AuthController {
         log.info("MFA activated userId={}", userId);
     }
 
-    // ── Invitation acceptance ─────────────────────────────────────────────────
 
     @PostMapping("/invitations/{token}/accept")
     public DataResponse<UserResponse> acceptInvitation(
@@ -124,7 +120,6 @@ public class AuthController {
         return DataResponse.of(mapper.toUserResponse(activated, role));
     }
 
-    // ── Logout ────────────────────────────────────────────────────────────────
 
     @PostMapping("/auth/logout")
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -138,14 +133,12 @@ public class AuthController {
         }
     }
 
-    // ── JWKS ──────────────────────────────────────────────────────────────────
 
     @GetMapping(value = "/.well-known/jwks.json", produces = MediaType.APPLICATION_JSON_VALUE)
     public String jwks() {
         return authService.jwksJson();
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private void validateMfaAccess(UserAuthentication userAuth, UUID merchantId, UUID userId) {
         if (!userAuth.merchantId().equals(merchantId)) {

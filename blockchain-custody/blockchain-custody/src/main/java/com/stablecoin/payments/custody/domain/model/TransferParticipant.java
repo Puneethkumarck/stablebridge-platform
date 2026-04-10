@@ -17,7 +17,6 @@ public record TransferParticipant(
         String assetCode
 ) {
 
-    // -- Factory Method -------------------------------------------------
 
     public static TransferParticipant create(UUID transferId, ParticipantType participantType,
                                              String address, UUID walletId,

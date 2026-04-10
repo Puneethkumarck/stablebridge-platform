@@ -35,7 +35,6 @@ public class LedgerEventConsumer {
     private final ReconciliationCommandHandler reconciliationCommandHandler;
     private final LedgerTransactionRepository transactionRepository;
 
-    // --- payment.initiated ---
 
     @KafkaListener(topics = "payment.initiated", groupId = "ledger-payment")
     @Transactional
@@ -52,7 +51,6 @@ public class LedgerEventConsumer {
         reconciliationCommandHandler.createRecord(event.paymentId());
     }
 
-    // --- fx.rate.locked ---
 
     @KafkaListener(topics = "fx.rate.locked", groupId = "ledger-fx")
     @Transactional
@@ -68,7 +66,6 @@ public class LedgerEventConsumer {
                 feeAmount, event.fromCurrency(), event.lockId());
     }
 
-    // --- fiat.collected ---
 
     @KafkaListener(topics = "fiat.collected", groupId = "ledger-onramp")
     @Transactional
@@ -86,7 +83,6 @@ public class LedgerEventConsumer {
                 event.settledAmount(), event.currency(), event.eventId());
     }
 
-    // --- chain.transfer.submitted ---
 
     @KafkaListener(topics = "chain.transfer.submitted", groupId = "ledger-chain-submit")
     @Transactional
@@ -105,7 +101,6 @@ public class LedgerEventConsumer {
                 amount, event.stablecoin(), event.eventId());
     }
 
-    // --- chain.transfer.confirmed ---
 
     @KafkaListener(topics = "chain.transfer.confirmed", groupId = "ledger-chain-confirm")
     @Transactional
@@ -134,7 +129,6 @@ public class LedgerEventConsumer {
                 submittedEntry.amount(), submittedEntry.currency(), event.eventId());
     }
 
-    // --- stablecoin.redeemed ---
 
     @KafkaListener(topics = "stablecoin.redeemed", groupId = "ledger-redeem")
     @Transactional
@@ -152,7 +146,6 @@ public class LedgerEventConsumer {
                 event.redeemedAmount(), event.stablecoin(), event.eventId());
     }
 
-    // --- fiat.payout.completed ---
 
     @KafkaListener(topics = "fiat.payout.completed", groupId = "ledger-offramp")
     @Transactional
@@ -170,7 +163,6 @@ public class LedgerEventConsumer {
                 event.fiatAmount(), event.targetCurrency(), event.eventId());
     }
 
-    // --- payment.completed ---
 
     @KafkaListener(topics = "payment.completed", groupId = "ledger-complete")
     @Transactional
@@ -212,7 +204,6 @@ public class LedgerEventConsumer {
         reconciliationCommandHandler.finalizeReconciliation(event.paymentId());
     }
 
-    // --- payment.failed ---
 
     @KafkaListener(topics = "payment.failed", groupId = "ledger-failed")
     @Transactional
@@ -241,7 +232,6 @@ public class LedgerEventConsumer {
         reconciliationCommandHandler.markDiscrepancy(event.paymentId());
     }
 
-    // --- ACL Event DTOs (package-private) ---
 
     record PaymentInitiatedEvent(UUID paymentId, UUID correlationId,
                                  Money sourceAmount, Instant initiatedAt) {}
@@ -276,7 +266,6 @@ public class LedgerEventConsumer {
     record FxRateInfo(UUID quoteId, String from, String to, BigDecimal rate,
                       Instant lockedAt, Instant expiresAt, String provider) {}
 
-    // --- Helpers ---
 
     private <T> T parseEvent(String message, Class<T> type) {
         try {

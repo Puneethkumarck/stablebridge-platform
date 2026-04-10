@@ -56,25 +56,21 @@ public record CollectionOrder(
 
     private static final StateMachine<CollectionStatus, CollectionTrigger> STATE_MACHINE =
             new StateMachine<>(List.of(
-                    // -- Happy path -----------------------------------------------
                     new StateTransition<>(PENDING, INITIATE_PAYMENT, PAYMENT_INITIATED),
                     new StateTransition<>(PAYMENT_INITIATED, PSP_SESSION_CREATED, AWAITING_CONFIRMATION),
                     new StateTransition<>(AWAITING_CONFIRMATION, PAYMENT_CONFIRMED, COLLECTED),
 
-                    // -- Failure paths --------------------------------------------
                     new StateTransition<>(AWAITING_CONFIRMATION, PAYMENT_TIMEOUT, COLLECTION_FAILED),
                     new StateTransition<>(AWAITING_CONFIRMATION, AMOUNT_MISMATCH_DETECTED, AMOUNT_MISMATCH),
                     new StateTransition<>(AMOUNT_MISMATCH, ESCALATE_MANUAL_REVIEW, MANUAL_REVIEW),
                     new StateTransition<>(PENDING, FAIL, COLLECTION_FAILED),
                     new StateTransition<>(PAYMENT_INITIATED, FAIL, COLLECTION_FAILED),
 
-                    // -- Refund paths (compensation) ------------------------------
                     new StateTransition<>(COLLECTED, START_REFUND, REFUND_INITIATED),
                     new StateTransition<>(REFUND_INITIATED, REFUND_PROCESSING_STARTED, REFUND_PROCESSING),
                     new StateTransition<>(REFUND_PROCESSING, REFUND_COMPLETED, REFUNDED)
             ));
 
-    // -- Factory Method ---------------------------------------------------
 
     public static CollectionOrder initiate(UUID paymentId, UUID correlationId,
                                            Money amount, PaymentRail paymentRail,
@@ -114,7 +110,6 @@ public record CollectionOrder(
                 .build();
     }
 
-    // -- State Transition Methods -----------------------------------------
 
     public CollectionOrder initiatePayment() {
         assertNotTerminal();
@@ -217,7 +212,6 @@ public record CollectionOrder(
                 .build();
     }
 
-    // -- Query Methods ----------------------------------------------------
 
     public boolean isTerminal() {
         return TERMINAL_STATES.contains(status);
@@ -227,7 +221,6 @@ public record CollectionOrder(
         return STATE_MACHINE.canTransition(status, trigger);
     }
 
-    // -- Invariant Guards -------------------------------------------------
 
     private void assertNotTerminal() {
         if (isTerminal()) {

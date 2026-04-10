@@ -20,7 +20,6 @@ public record PspTransaction(
         Instant receivedAt
 ) {
 
-    // -- Factory Method ---------------------------------------------------
 
     public static PspTransaction create(UUID collectionId, String pspName,
                                         String pspReference, PspTransactionDirection direction,

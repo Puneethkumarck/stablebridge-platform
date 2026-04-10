@@ -83,28 +83,24 @@ public class ComplianceCheckCommandHandler {
     }
 
     private ComplianceCheck runPipeline(ComplianceCheck check) {
-        // Step 1: KYC verification
         var kycResult = kycProvider.verify(check.senderId(), check.recipientId());
         check = complianceCheckService.recordKycResult(check, kycResult);
         if (check.isTerminal()) {
             return check;
         }
 
-        // Step 2: Sanctions screening
         var sanctionsResult = sanctionsProvider.screen(check.senderId(), check.recipientId());
         check = complianceCheckService.recordSanctionsResult(check, sanctionsResult);
         if (check.isTerminal()) {
             return check;
         }
 
-        // Step 3: AML analysis
         var amlResult = amlProvider.analyze(check.senderId(), check.recipientId());
         check = complianceCheckService.recordAmlResult(check, amlResult);
         if (check.isTerminal()) {
             return check;
         }
 
-        // Step 4: Risk scoring
         var profile = profileRepository.findByCustomerId(check.senderId()).orElse(null);
         var context = RiskScoringContext.builder()
                 .check(check)
@@ -117,7 +113,6 @@ public class ComplianceCheckCommandHandler {
             return check;
         }
 
-        // Step 5: Travel rule packaging
         if (complianceCheckService.requiresTravelRule(check)) {
             check = handleTravelRule(check);
         } else {

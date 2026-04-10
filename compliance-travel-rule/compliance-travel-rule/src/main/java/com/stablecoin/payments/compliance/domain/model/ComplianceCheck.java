@@ -83,7 +83,6 @@ public record ComplianceCheck(
                     new StateTransition<>(SANCTIONS_HIT, ESCALATE_MANUAL_REVIEW, MANUAL_REVIEW)
             ));
 
-    // ── Factory Method ──────────────────────────────────────────────
 
     public static ComplianceCheck initiate(UUID paymentId, UUID senderId, UUID recipientId,
                                            Money sourceAmount, String sourceCountry,
@@ -128,7 +127,6 @@ public record ComplianceCheck(
                 .build();
     }
 
-    // ── State Transition Methods ────────────────────────────────────
 
     public ComplianceCheck startKyc() {
         assertNotTerminal();
@@ -281,7 +279,6 @@ public record ComplianceCheck(
                 .build();
     }
 
-    // ── Query Methods ───────────────────────────────────────────────
 
     public boolean isTerminal() {
         return TERMINAL_STATES.contains(status);
@@ -302,7 +299,6 @@ public record ComplianceCheck(
                 && riskScore != null;
     }
 
-    // ── Invariant Guards ────────────────────────────────────────────
 
     private void assertNotTerminal() {
         if (isTerminal()) {

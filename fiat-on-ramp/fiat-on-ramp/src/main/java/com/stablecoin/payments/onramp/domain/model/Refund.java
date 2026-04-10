@@ -25,7 +25,6 @@ public record Refund(
         String failureReason
 ) {
 
-    // -- Factory Method ---------------------------------------------------
 
     public static Refund initiate(UUID collectionId, UUID paymentId,
                                   Money refundAmount, String reason) {
@@ -53,7 +52,6 @@ public record Refund(
                 .build();
     }
 
-    // -- State Transition Methods -----------------------------------------
 
     public Refund startProcessing() {
         if (status != PENDING) {

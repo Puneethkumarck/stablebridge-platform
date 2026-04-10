@@ -60,19 +60,16 @@ public record ChainTransfer(
 
     private static final StateMachine<TransferStatus, TransferTrigger> STATE_MACHINE =
             new StateMachine<>(List.of(
-                    // -- Happy path -------------------------------------------------
                     new StateTransition<>(PENDING, SELECT_CHAIN, CHAIN_SELECTED),
                     new StateTransition<>(CHAIN_SELECTED, START_SIGNING, SIGNING),
                     new StateTransition<>(SIGNING, SUBMIT, SUBMITTED),
                     new StateTransition<>(SUBMITTED, START_CONFIRMING, CONFIRMING),
                     new StateTransition<>(CONFIRMING, CONFIRM, CONFIRMED),
 
-                    // -- Resubmission path ------------------------------------------
                     new StateTransition<>(SUBMITTED, RESUBMIT, RESUBMITTING),
                     new StateTransition<>(CONFIRMING, RESUBMIT, RESUBMITTING),
                     new StateTransition<>(RESUBMITTING, CONFIRM_SUBMISSION, SUBMITTED),
 
-                    // -- Failure from multiple states --------------------------------
                     new StateTransition<>(CHAIN_SELECTED, FAIL, FAILED),
                     new StateTransition<>(SIGNING, FAIL, FAILED),
                     new StateTransition<>(SUBMITTED, FAIL, FAILED),
@@ -80,7 +77,6 @@ public record ChainTransfer(
                     new StateTransition<>(CONFIRMING, FAIL, FAILED)
             ));
 
-    // -- Factory Method -------------------------------------------------
 
     public static ChainTransfer initiate(UUID paymentId, UUID correlationId,
                                          TransferType transferType, UUID parentTransferId,
@@ -131,7 +127,6 @@ public record ChainTransfer(
                 .build();
     }
 
-    // -- State Transition Methods ---------------------------------------
 
     public ChainTransfer selectChain(ChainId selectedChainId) {
         assertNotTerminal();
@@ -252,7 +247,6 @@ public record ChainTransfer(
                 .build();
     }
 
-    // -- Query Methods --------------------------------------------------
 
     public boolean isTerminal() {
         return TERMINAL_STATES.contains(status);
@@ -262,7 +256,6 @@ public record ChainTransfer(
         return STATE_MACHINE.canTransition(status, trigger);
     }
 
-    // -- Invariant Guards -----------------------------------------------
 
     private void assertNotTerminal() {
         if (isTerminal()) {

@@ -66,28 +66,23 @@ public record PayoutOrder(
 
     private static final StateMachine<PayoutStatus, PayoutTrigger> STATE_MACHINE =
             new StateMachine<>(List.of(
-                    // -- Fiat happy path ------------------------------------------
                     new StateTransition<>(PENDING, START_REDEMPTION, REDEEMING),
                     new StateTransition<>(REDEEMING, COMPLETE_REDEMPTION, REDEEMED),
                     new StateTransition<>(REDEEMED, INITIATE_PAYOUT, PAYOUT_INITIATED),
                     new StateTransition<>(PAYOUT_INITIATED, MARK_PAYOUT_PROCESSING, PAYOUT_PROCESSING),
                     new StateTransition<>(PAYOUT_PROCESSING, COMPLETE_PAYOUT, COMPLETED),
 
-                    // -- Redemption failure ----------------------------------------
                     new StateTransition<>(REDEEMING, FAIL_REDEMPTION, REDEMPTION_FAILED),
                     new StateTransition<>(REDEMPTION_FAILED, ESCALATE_MANUAL_REVIEW, MANUAL_REVIEW),
 
-                    // -- Payout failure --------------------------------------------
                     new StateTransition<>(PAYOUT_INITIATED, FAIL_PAYOUT, PAYOUT_FAILED),
                     new StateTransition<>(PAYOUT_PROCESSING, FAIL_PAYOUT, PAYOUT_FAILED),
                     new StateTransition<>(PAYOUT_FAILED, ESCALATE_MANUAL_REVIEW, MANUAL_REVIEW),
 
-                    // -- Hold stablecoin path --------------------------------------
                     new StateTransition<>(PENDING, HOLD_STABLECOIN, STABLECOIN_HELD),
                     new StateTransition<>(STABLECOIN_HELD, COMPLETE_HOLD, COMPLETED)
             ));
 
-    // -- Factory Method ---------------------------------------------------
 
     public static PayoutOrder create(UUID paymentId, UUID correlationId, UUID transferId,
                                      PayoutType payoutType, StablecoinTicker stablecoin,
@@ -159,7 +154,6 @@ public record PayoutOrder(
                 .build();
     }
 
-    // -- State Transition Methods -----------------------------------------
 
     public PayoutOrder startRedemption() {
         assertNotTerminal();
@@ -271,7 +265,6 @@ public record PayoutOrder(
                 .build();
     }
 
-    // -- Query Methods ----------------------------------------------------
 
     public boolean isTerminal() {
         return TERMINAL_STATES.contains(status);
@@ -281,7 +274,6 @@ public record PayoutOrder(
         return STATE_MACHINE.canTransition(status, trigger);
     }
 
-    // -- Invariant Guards -------------------------------------------------
 
     private void assertNotTerminal() {
         if (isTerminal()) {

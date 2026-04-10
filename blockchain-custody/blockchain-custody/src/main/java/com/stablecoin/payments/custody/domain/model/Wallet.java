@@ -22,7 +22,6 @@ public record Wallet(
         Instant deactivatedAt
 ) {
 
-    // -- Factory Method -------------------------------------------------
 
     public static Wallet create(ChainId chainId, String address, String addressChecksum,
                                 WalletTier tier, WalletPurpose purpose,
@@ -69,7 +68,6 @@ public record Wallet(
                 .build();
     }
 
-    // -- Domain Methods -------------------------------------------------
 
     public Wallet deactivate() {
         if (!active) {
@@ -82,7 +80,6 @@ public record Wallet(
                 .build();
     }
 
-    // -- Query Methods --------------------------------------------------
 
     public boolean isActive() {
         return active;

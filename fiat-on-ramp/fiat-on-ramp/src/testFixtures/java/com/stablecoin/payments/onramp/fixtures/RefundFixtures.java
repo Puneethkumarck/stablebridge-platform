@@ -14,13 +14,11 @@ public final class RefundFixtures {
 
     private RefundFixtures() {}
 
-    // -- Constants --------------------------------------------------------
 
     public static final UUID COLLECTION_ID = UUID.fromString("c3d4e5f6-a7b8-9012-cdef-123456789012");
     public static final String REFUND_REASON = "Customer requested refund";
     public static final String FAILURE_REASON = "PSP rejected refund request";
 
-    // -- Refund State Factories -------------------------------------------
 
     public static Money aRefundAmount() {
         return new Money(new BigDecimal("1000.00"), "USD");
@@ -47,7 +45,6 @@ public final class RefundFixtures {
         return aProcessingRefund().fail(FAILURE_REASON);
     }
 
-    // -- API Request Factories --------------------------------------------
 
     public static RefundRequest aRefundRequest() {
         return new RefundRequest(new BigDecimal("1000.00"), "USD", REFUND_REASON);

@@ -52,7 +52,6 @@ public class MerchantTeam {
         return new MerchantTeam(merchantId, new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
     }
 
-    // ── Queries ─────────────────────────────────────────────
 
     public UUID getMerchantId() {
         return merchantId;
@@ -70,7 +69,6 @@ public class MerchantTeam {
         return List.copyOf(invitations);
     }
 
-    // ── Commands ────────────────────────────────────────────
 
     public List<Role> seedBuiltInRoles() {
         var seeded = new ArrayList<Role>();
@@ -412,7 +410,6 @@ public class MerchantTeam {
         return event;
     }
 
-    // ── Domain Events ───────────────────────────────────────
 
     public List<Object> domainEvents() {
         return List.copyOf(domainEvents);
@@ -422,7 +419,6 @@ public class MerchantTeam {
         domainEvents.clear();
     }
 
-    // ── Internal helpers ────────────────────────────────────
 
     private int findUserIndex(UUID userId) {
         for (int i = 0; i < users.size(); i++) {

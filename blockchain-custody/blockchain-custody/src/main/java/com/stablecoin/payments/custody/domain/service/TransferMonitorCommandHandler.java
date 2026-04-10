@@ -102,7 +102,6 @@ public class TransferMonitorCommandHandler {
             return;
         }
 
-        // No receipt yet — check if stuck
         var stuckThreshold = Instant.now(clock).minusSeconds(transferMonitorProperties.resubmitTimeoutS());
         if (stuckThreshold.isAfter(transfer.updatedAt())) {
             var resubmitting = transfer.markForResubmission();
@@ -174,7 +173,6 @@ public class TransferMonitorCommandHandler {
             return;
         }
 
-        // Step 1: Claim resubmission (increment attempt count) and persist BEFORE calling custody.
         // If crash occurs after custody call but before final persist, next poll will see
         // the incremented attempt count and re-attempt with the same nonce (idempotent on-chain).
         var claimed = transfer.claimResubmission();
@@ -182,7 +180,6 @@ public class TransferMonitorCommandHandler {
         lifecycleEventRepository.save(
                 TransferLifecycleEvent.record(claimed.transferId(), "RESUBMISSION_CLAIMED"));
 
-        // Step 2: Call custody engine
         var signRequest = new SignRequest(
                 transfer.transferId(),
                 transfer.chainId(),
@@ -195,7 +192,6 @@ public class TransferMonitorCommandHandler {
         );
         var signResult = custodyEngine.signAndSubmit(signRequest);
 
-        // Step 3: Complete resubmission with actual tx hash
         var resubmitted = claimed.confirmResubmission(signResult.txHash());
         chainTransferRepository.save(resubmitted);
         lifecycleEventRepository.save(

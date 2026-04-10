@@ -39,7 +39,6 @@ public class AuthService {
 
     public record MfaSetupResult(String secret, String provisioningUri) {}
 
-    // ── Login ─────────────────────────────────────────────────────────────────
 
     @Transactional
     public LoginResult login(UUID merchantId, String email, String password) {
@@ -98,7 +97,6 @@ public class AuthService {
         return issueTokens(user, true);
     }
 
-    // ── Refresh token ────────────────────────────────────────────────────────
 
     public record RefreshResult(String accessToken, int expiresIn) {}
 
@@ -129,7 +127,6 @@ public class AuthService {
         return new RefreshResult(accessToken, 3600);
     }
 
-    // ── MFA setup ─────────────────────────────────────────────────────────────
 
     @Transactional
     public MfaSetupResult setupMfa(UUID userId, String email) {
@@ -152,7 +149,6 @@ public class AuthService {
         return saved;
     }
 
-    // ── Utilities ─────────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
     public Role findRoleForUser(UUID roleId) {
@@ -170,7 +166,6 @@ public class AuthService {
         log.info("Logged out userId={}", userId);
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private LoginResult issueTokens(MerchantUser user, boolean mfaVerified) {
         var role = roleRepository.findById(user.roleId())

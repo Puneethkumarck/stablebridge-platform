@@ -13,14 +13,12 @@ public final class ReconciliationFixtures {
 
     private ReconciliationFixtures() {}
 
-    // -- Constants --------------------------------------------------------
 
     public static final UUID RECONCILIATION_ID = UUID.fromString("c3d4e5f6-a7b8-9012-cdef-123456789012");
     public static final UUID COLLECTION_ID = UUID.fromString("d4e5f6a7-b8c9-0123-defa-234567890123");
     public static final String PSP_NAME = "Stripe";
     public static final String PSP_REF = "psp_ref_stripe_12345";
 
-    // -- ReconciliationRecord Factories -----------------------------------
 
     public static ReconciliationRecord aMatchedReconciliation() {
         return ReconciliationRecord.reconcile(
@@ -55,7 +53,6 @@ public final class ReconciliationFixtures {
         );
     }
 
-    // -- CollectionOrder for Reconciliation Tests -------------------------
 
     public static CollectionOrder aCollectedOrderForReconciliation() {
         return aCollectedOrder();
@@ -89,7 +86,6 @@ public final class ReconciliationFixtures {
         return awaiting.confirmCollection(new Money(new BigDecimal("999.995"), "USD"));
     }
 
-    // -- CollectionOrder for Expiry Tests ---------------------------------
 
     public static CollectionOrder anExpiredAwaitingConfirmationOrder() {
         var pending = CollectionOrder.initiate(

@@ -33,7 +33,6 @@ public record WalletBalance(
         }
     }
 
-    // -- Factory Method -------------------------------------------------
 
     public static WalletBalance initialize(UUID walletId, ChainId chainId,
                                            StablecoinTicker stablecoin) {
@@ -61,7 +60,6 @@ public record WalletBalance(
                 .build();
     }
 
-    // -- Domain Methods -------------------------------------------------
 
     public WalletBalance reserve(BigDecimal amount) {
         validatePositiveAmount(amount);
@@ -125,7 +123,6 @@ public record WalletBalance(
                 .build();
     }
 
-    // -- Query Methods --------------------------------------------------
 
     public boolean hasSufficientBalance(BigDecimal amount) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
@@ -134,7 +131,6 @@ public record WalletBalance(
         return availableBalance.compareTo(amount) >= 0;
     }
 
-    // -- Validation Helpers ---------------------------------------------
 
     private static void validatePositiveAmount(BigDecimal amount) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {

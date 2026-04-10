@@ -16,7 +16,6 @@ public record TransferLifecycleEvent(
         Instant occurredAt
 ) {
 
-    // -- Factory Methods ------------------------------------------------
 
     public static TransferLifecycleEvent record(UUID transferId, String state) {
         if (transferId == null) {
