@@ -19,8 +19,8 @@ app:
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/s11_merchant_onboarding
-    username: sp_user
-    password: sp_pass
+    username: dev
+    password: dev
 
   cloud:
     stream:

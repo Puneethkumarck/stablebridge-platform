@@ -18,8 +18,8 @@ app:
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5433/fx_rates
-    username: sp_user
-    password: sp_pass
+    username: dev
+    password: dev
 
   cloud:
     vault:

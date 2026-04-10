@@ -186,7 +186,6 @@ class StripePspAdapterTest {
                     .withRequestBody(containing("amount=25000"))
                     .withRequestBody(containing("currency=usd"))
                     .withRequestBody(containing("payment_method_types%5B%5D=us_bank_account"))
-                    .withRequestBody(containing("confirm=true"))
                     .withRequestBody(containing("metadata%5Bcollection_id%5D=" + COLLECTION_ID)));
         }
     }

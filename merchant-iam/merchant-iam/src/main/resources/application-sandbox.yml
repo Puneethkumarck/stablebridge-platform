@@ -24,8 +24,8 @@ merchant-iam:
 spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/s13_merchant_iam
-    username: sp_user
-    password: sp_pass
+    username: dev
+    password: dev
 
   cloud:
     vault:

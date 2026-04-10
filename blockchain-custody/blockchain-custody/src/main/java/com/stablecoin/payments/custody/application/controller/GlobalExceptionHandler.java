@@ -62,7 +62,7 @@ public class GlobalExceptionHandler extends BaseGlobalExceptionHandler {
     @ResponseStatus(INTERNAL_SERVER_ERROR)
     @ExceptionHandler(CustodySigningException.class)
     public ApiError handleCustodySigning(CustodySigningException ex) {
-        log.error("Custody signing error: {}", ex.getClass().getSimpleName());
+        log.error("Custody signing error: {}", ex.getMessage());
         return ApiError.of(CustodySigningException.ERROR_CODE,
                 INTERNAL_SERVER_ERROR.getReasonPhrase(), "Custody signing failed");
     }

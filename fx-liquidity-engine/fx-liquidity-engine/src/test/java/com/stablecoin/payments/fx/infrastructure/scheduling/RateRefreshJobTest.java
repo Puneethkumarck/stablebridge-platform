@@ -1,11 +1,14 @@
 package com.stablecoin.payments.fx.infrastructure.scheduling;
 
 import com.stablecoin.payments.fx.domain.model.CorridorRate;
+import com.stablecoin.payments.fx.domain.model.LiquidityPool;
 import com.stablecoin.payments.fx.domain.model.RateSnapshot;
 import com.stablecoin.payments.fx.domain.model.RateSourceType;
+import com.stablecoin.payments.fx.domain.port.LiquidityPoolRepository;
 import com.stablecoin.payments.fx.domain.port.RateCache;
 import com.stablecoin.payments.fx.domain.port.RateHistoryRepository;
 import com.stablecoin.payments.fx.domain.port.RateProvider;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,6 +16,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 import static com.stablecoin.payments.fx.fixtures.CorridorRateFixtures.aUsdEurRate;
@@ -33,8 +38,23 @@ class RateRefreshJobTest {
     @Mock
     private RateHistoryRepository rateHistoryRepository;
 
+    @Mock
+    private LiquidityPoolRepository liquidityPoolRepository;
+
     @InjectMocks
     private RateRefreshJob rateRefreshJob;
+
+    @BeforeEach
+    void setUp() {
+        given(liquidityPoolRepository.findAll()).willReturn(List.of(
+                aPool("USD", "EUR"),
+                aPool("EUR", "USD")
+        ));
+    }
+
+    private static LiquidityPool aPool(String from, String to) {
+        return LiquidityPool.create(from, to, new BigDecimal("1000000"), new BigDecimal("100000"), new BigDecimal("5000000"));
+    }
 
     @Test
     @DisplayName("should refresh rates and record to cache and history for available corridors")

@@ -3,6 +3,7 @@ package com.stablecoin.payments.fx.infrastructure.scheduling;
 import com.stablecoin.payments.fx.domain.model.Corridor;
 import com.stablecoin.payments.fx.domain.model.RateSnapshot;
 import com.stablecoin.payments.fx.domain.model.RateSourceType;
+import com.stablecoin.payments.fx.domain.port.LiquidityPoolRepository;
 import com.stablecoin.payments.fx.domain.port.RateCache;
 import com.stablecoin.payments.fx.domain.port.RateHistoryRepository;
 import com.stablecoin.payments.fx.domain.port.RateProvider;
@@ -12,29 +13,27 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
 @Slf4j
 @Component
 @RequiredArgsConstructor
 @ConditionalOnProperty(name = "app.fx.rate-refresh.enabled", havingValue = "true", matchIfMissing = true)
 public class RateRefreshJob {
 
-    static final List<Corridor> SUPPORTED_CORRIDORS = List.of(
-            new Corridor("USD", "EUR"),
-            new Corridor("EUR", "USD")
-    );
-
     private final RateProvider rateProvider;
     private final RateCache rateCache;
     private final RateHistoryRepository rateHistoryRepository;
+    private final LiquidityPoolRepository liquidityPoolRepository;
 
     @Scheduled(fixedDelayString = "${app.fx.rate-refresh.interval-ms:5000}")
     public void refreshRates() {
-        log.debug("Starting rate refresh for {} corridors", SUPPORTED_CORRIDORS.size());
+        var corridors = liquidityPoolRepository.findAll().stream()
+                .map(pool -> new Corridor(pool.fromCurrency(), pool.toCurrency()))
+                .toList();
+
+        log.debug("Starting rate refresh for {} corridors", corridors.size());
         int refreshed = 0;
 
-        for (var corridor : SUPPORTED_CORRIDORS) {
+        for (var corridor : corridors) {
             try {
                 var rateOpt = rateProvider.getRate(corridor.fromCurrency(), corridor.toCurrency());
                 if (rateOpt.isPresent()) {
@@ -52,6 +51,6 @@ public class RateRefreshJob {
             }
         }
 
-        log.debug("Rate refresh complete: {}/{} corridors updated", refreshed, SUPPORTED_CORRIDORS.size());
+        log.debug("Rate refresh complete: {}/{} corridors updated", refreshed, corridors.size());
     }
 }

@@ -4,7 +4,9 @@
        run-% db-reset db-psql topics \
        deps outdated \
        assemble sonar fresh ci \
-       e2e-up e2e-down e2e-destroy e2e-status e2e-build e2e-test e2e
+       e2e-up e2e-down e2e-destroy e2e-status e2e-build e2e-test e2e \
+       sandbox-up sandbox-down sandbox-status sandbox-run-% sandbox-test \
+       sandbox-tunnel sandbox-env-check
 
 # ─────────────────────────────────────────────
 # Variables
@@ -170,3 +172,83 @@ e2e-test: ## Run Phase 3 E2E tests (stack must be running)
 	PHASE3_TESTS_ENABLED=true $(GRADLE) :phase3-integration-tests:test --rerun
 
 e2e: e2e-build e2e-up e2e-test ## Build images, start stack, run E2E tests
+
+# ─────────────────────────────────────────────
+# Sandbox Testing (real external APIs)
+# ─────────────────────────────────────────────
+# Requires: .env.sandbox with real API keys (copy from .env.sandbox.template)
+# Infra: Docker Compose for Postgres, Kafka, Redis, Temporal
+# Tunnel: cloudflared for Stripe webhooks
+
+SANDBOX_SERVICES := compliance-travel-rule fx-liquidity-engine fiat-on-ramp \
+                    blockchain-custody fiat-off-ramp ledger-accounting payment-orchestrator
+
+sandbox-env-check: ## Verify .env.sandbox exists and key vars are set
+	@test -f .env.sandbox || (echo "ERROR: .env.sandbox not found. Run: cp .env.sandbox.template .env.sandbox" && exit 1)
+	@. ./.env.sandbox && test -n "$$STRIPE_TEST_SECRET_KEY" || (echo "ERROR: STRIPE_TEST_SECRET_KEY not set in .env.sandbox" && exit 1)
+	@. ./.env.sandbox && test -n "$$ALCHEMY_API_KEY" || (echo "ERROR: ALCHEMY_API_KEY not set in .env.sandbox" && exit 1)
+	@echo "✓ .env.sandbox loaded — keys present"
+
+SANDBOX_COMPOSE := docker compose --env-file .env.sandbox -f docker-compose.sandbox.yml
+
+sandbox-up: sandbox-env-check sandbox-build ## Build images, start infra + all 7 services with real sandbox APIs
+	$(SANDBOX_COMPOSE) up -d
+	@echo ""
+	@echo "✓ Sandbox stack launching (7 services + infra)"
+	@echo "  Run: make sandbox-status   to check health"
+	@echo "  Run: make sandbox-logs     to tail all logs"
+	@echo "  Run: make sandbox-test     to run adapter tests"
+
+sandbox-down: ## Stop all sandbox containers
+	$(SANDBOX_COMPOSE) down
+	@echo "✓ Sandbox stopped"
+
+sandbox-destroy: ## Stop sandbox and remove volumes (full reset)
+	$(SANDBOX_COMPOSE) down -v
+	@echo "✓ Sandbox destroyed"
+
+sandbox-build: ## Build all service Docker images for sandbox
+	$(GRADLE) $(foreach s,$(SERVICES),:$(s):$(s):jibDockerBuild) --parallel
+	@echo "✓ All Docker images built"
+
+sandbox-logs: ## Tail all sandbox service logs
+	$(SANDBOX_COMPOSE) logs -f --tail=50
+
+sandbox-tunnel: ## Start cloudflared tunnel for Stripe webhooks (runs in foreground)
+	@echo "Starting Cloudflare tunnel → localhost:8085 (S3 Fiat On-Ramp)"
+	@echo "Copy the https://xxx.trycloudflare.com URL to Stripe webhook dashboard"
+	@echo "Endpoint path: /on-ramp/internal/webhooks/psp/stripe"
+	@echo ""
+	cloudflared tunnel --url http://localhost:8085
+
+sandbox-run-%: sandbox-env-check ## Run a service in sandbox mode (e.g., make sandbox-run-fiat-on-ramp)
+	set -a && . ./.env.sandbox && set +a && \
+	$(GRADLE) :$*:$*:bootRun --args='--spring.profiles.active=sandbox'
+
+sandbox-test: sandbox-env-check ## Run all sandbox adapter tests against real APIs
+	set -a && . ./.env.sandbox && set +a && \
+	$(GRADLE) \
+		:fiat-on-ramp:fiat-on-ramp:test --tests '*StripeAdapterSandboxTest*' \
+		:blockchain-custody:blockchain-custody:test --tests '*EvmRpcAdapterSandboxTest*' --tests '*SolanaRpcAdapterSandboxTest*' --tests '*FireblocksCustodyAdapterSandboxTest*' \
+		:fiat-off-ramp:fiat-off-ramp:test --tests '*CircleRedemptionAdapterSandboxTest*' --tests '*ModulrPayoutAdapterSandboxTest*' \
+		:fx-liquidity-engine:fx-liquidity-engine:test --tests '*FrankfurterRateAdapterSandboxTest*' \
+		:merchant-onboarding:merchant-onboarding:test --tests '*CompaniesHouseAdapterSandboxTest*'
+
+sandbox-test-%: sandbox-env-check ## Run sandbox tests for a service (e.g., make sandbox-test-fiat-on-ramp)
+	set -a && . ./.env.sandbox && set +a && \
+	$(GRADLE) :$*:$*:test --tests '*SandboxTest*'
+
+sandbox-status: ## Show infra status + sandbox env summary
+	@$(SANDBOX_COMPOSE) ps --format "table {{.Name}}\t{{.Status}}\t{{.Ports}}" 2>/dev/null || $(SANDBOX_COMPOSE) ps
+	@echo ""
+	@echo "--- Sandbox API Keys ---"
+	@test -f .env.sandbox && . ./.env.sandbox && \
+		echo "Stripe:          $${STRIPE_TEST_SECRET_KEY:+set}" && \
+		echo "Alchemy:         $${ALCHEMY_API_KEY:+set}" && \
+		echo "Persona:         $${PERSONA_SANDBOX_API_KEY:+set}" && \
+		echo "Companies House: $${COMPANIES_HOUSE_API_KEY:+set}" && \
+		echo "Circle:          $${CIRCLE_SANDBOX_API_KEY:+set}" && \
+		echo "Modulr:          $${MODULR_SANDBOX_API_KEY:+set}" && \
+		echo "Fireblocks:      $${FIREBLOCKS_SANDBOX_API_KEY:+set}" && \
+		echo "JWT Key:         $${JWT_PRIVATE_KEY_BASE64:+set}" \
+	|| echo "No .env.sandbox found"
