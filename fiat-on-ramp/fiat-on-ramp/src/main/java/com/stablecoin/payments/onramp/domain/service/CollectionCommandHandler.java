@@ -37,7 +37,6 @@ public class CollectionCommandHandler {
     public CollectionResult initiateCollection(UUID paymentId, UUID correlationId,
                                                Money amount, PaymentRail paymentRail,
                                                PspIdentifier psp, BankAccount senderAccount) {
-        // 1. Idempotency: check if collection order already exists for this paymentId
         var existing = collectionOrderRepository.findByPaymentId(paymentId);
         if (existing.isPresent()) {
             log.info("Collection order already exists for paymentId={} collectionId={} status={}",
@@ -45,22 +44,17 @@ public class CollectionCommandHandler {
             return new CollectionResult(existing.get(), false);
         }
 
-        // 2. Create new collection order in PENDING state
         var order = CollectionOrder.initiate(paymentId, correlationId, amount, paymentRail, psp, senderAccount);
 
-        // 3. Call PSP to initiate payment (collectionId as idempotency key for safe retries)
         var pspResult = pspGateway.initiatePayment(new PspPaymentRequest(
                 order.collectionId(), amount, paymentRail, senderAccount, psp.pspName(),
                 order.collectionId().toString()));
 
-        // 4. Transition: PENDING -> PAYMENT_INITIATED -> AWAITING_CONFIRMATION
         order = order.initiatePayment();
         order = order.awaitConfirmation(pspResult.pspReference());
 
-        // 5. Save collection order first (PspTransaction FK depends on it)
         order = collectionOrderRepository.save(order);
 
-        // 6. Record PspTransaction
         var pspTransaction = PspTransaction.create(
                 order.collectionId(),
                 psp.pspName(),
@@ -72,7 +66,6 @@ public class CollectionCommandHandler {
                 null);
         pspTransactionRepository.save(pspTransaction);
 
-        // 7. Publish CollectionInitiatedEvent via outbox
         eventPublisher.publish(new CollectionInitiatedEvent(
                 order.collectionId(),
                 paymentId,

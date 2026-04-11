@@ -382,8 +382,8 @@ class JournalCommandHandlerTest {
             given(transactionRepository.existsBySourceEventId(request.sourceEventId())).willReturn(false);
             given(entryRepository.countByPaymentId(request.paymentId())).willReturn(0);
 
-            Map<String, BalanceUpdate> balanceMap = new java.util.LinkedHashMap<>();
-            for (JournalEntryRequest entry : request.entries()) {
+            var balanceMap = new java.util.LinkedHashMap<String, BalanceUpdate>();
+            for (var entry : request.entries()) {
                 balanceMap.put(
                         BalanceCalculator.balanceKey(entry.accountCode(), entry.currency()),
                         new BalanceUpdate(entry.amount(), 1L)

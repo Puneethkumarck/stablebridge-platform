@@ -28,8 +28,7 @@ import static com.stablecoin.payments.orchestrator.fixtures.PaymentFixtures.anIn
 import static com.stablecoin.payments.orchestrator.fixtures.PaymentFixtures.anInitiatedPayment;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
@@ -41,6 +40,20 @@ class PaymentControllerTest {
 
     @InjectMocks
     private PaymentController controller;
+
+    private void stubInitiatePayment(PaymentCommandHandler.InitiateResult result) {
+        given(commandHandler.initiatePayment(
+                argThat((String k) -> IDEMPOTENCY_KEY.equals(k)),
+                argThat((UUID id) -> id != null),
+                argThat((UUID id) -> SENDER_ID.equals(id)),
+                argThat((UUID id) -> RECIPIENT_ID.equals(id)),
+                argThat(amt -> SOURCE_AMOUNT_VALUE.compareTo(amt) == 0),
+                argThat((String c) -> SOURCE_CURRENCY.equals(c)),
+                argThat((String c) -> TARGET_CURRENCY.equals(c)),
+                argThat((String c) -> SOURCE_COUNTRY.equals(c)),
+                argThat((String c) -> TARGET_COUNTRY.equals(c))))
+                .willReturn(result);
+    }
 
     @Nested
     @DisplayName("POST /v1/payments")
@@ -56,13 +69,7 @@ class PaymentControllerTest {
                     SOURCE_COUNTRY, TARGET_COUNTRY
             );
             var initiateResult = anInitiateResult();
-
-            given(commandHandler.initiatePayment(
-                    eq(IDEMPOTENCY_KEY), any(UUID.class),
-                    eq(SENDER_ID), eq(RECIPIENT_ID), eq(SOURCE_AMOUNT_VALUE),
-                    eq(SOURCE_CURRENCY), eq(TARGET_CURRENCY),
-                    eq(SOURCE_COUNTRY), eq(TARGET_COUNTRY)))
-                    .willReturn(initiateResult);
+            stubInitiatePayment(initiateResult);
 
             // when
             var response = controller.initiatePayment(IDEMPOTENCY_KEY, request);
@@ -86,13 +93,7 @@ class PaymentControllerTest {
                     SOURCE_COUNTRY, TARGET_COUNTRY
             );
             var replayResult = anIdempotentReplayResult();
-
-            given(commandHandler.initiatePayment(
-                    eq(IDEMPOTENCY_KEY), any(UUID.class),
-                    eq(SENDER_ID), eq(RECIPIENT_ID), eq(SOURCE_AMOUNT_VALUE),
-                    eq(SOURCE_CURRENCY), eq(TARGET_CURRENCY),
-                    eq(SOURCE_COUNTRY), eq(TARGET_COUNTRY)))
-                    .willReturn(replayResult);
+            stubInitiatePayment(replayResult);
 
             // when
             var response = controller.initiatePayment(IDEMPOTENCY_KEY, request);

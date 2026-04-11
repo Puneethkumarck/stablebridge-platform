@@ -13,7 +13,7 @@ class PermissionTest {
 
         @Test
         void parses_valid_permission_string() {
-            Permission permission = Permission.parse("payments:write");
+            var permission = Permission.parse("payments:write");
 
             assertThat(permission.namespace()).isEqualTo("payments");
             assertThat(permission.action()).isEqualTo("write");
@@ -21,7 +21,7 @@ class PermissionTest {
 
         @Test
         void parses_wildcard_permission() {
-            Permission permission = Permission.parse("*:*");
+            var permission = Permission.parse("*:*");
 
             assertThat(permission.namespace()).isEqualTo("*");
             assertThat(permission.action()).isEqualTo("*");
@@ -29,7 +29,7 @@ class PermissionTest {
 
         @Test
         void parses_namespace_wildcard() {
-            Permission permission = Permission.parse("payments:*");
+            var permission = Permission.parse("payments:*");
 
             assertThat(permission.namespace()).isEqualTo("payments");
             assertThat(permission.action()).isEqualTo("*");
@@ -54,15 +54,15 @@ class PermissionTest {
 
         @Test
         void full_wildcard_implies_any_permission() {
-            Permission wildcard = Permission.of("*", "*");
-            Permission specific = Permission.of("payments", "write");
+            var wildcard = Permission.of("*", "*");
+            var specific = Permission.of("payments", "write");
 
             assertThat(wildcard.implies(specific)).isTrue();
         }
 
         @Test
         void namespace_wildcard_implies_same_namespace() {
-            Permission namespaceWildcard = Permission.of("payments", "*");
+            var namespaceWildcard = Permission.of("payments", "*");
 
             assertThat(namespaceWildcard.implies(Permission.of("payments", "read"))).isTrue();
             assertThat(namespaceWildcard.implies(Permission.of("payments", "write"))).isTrue();
@@ -71,36 +71,36 @@ class PermissionTest {
 
         @Test
         void namespace_wildcard_does_not_imply_different_namespace() {
-            Permission namespaceWildcard = Permission.of("payments", "*");
+            var namespaceWildcard = Permission.of("payments", "*");
 
             assertThat(namespaceWildcard.implies(Permission.of("team", "read"))).isFalse();
         }
 
         @Test
         void exact_match_implies_same_permission() {
-            Permission exact = Permission.of("payments", "read");
+            var exact = Permission.of("payments", "read");
 
             assertThat(exact.implies(Permission.of("payments", "read"))).isTrue();
         }
 
         @Test
         void exact_match_does_not_imply_different_action() {
-            Permission exact = Permission.of("payments", "read");
+            var exact = Permission.of("payments", "read");
 
             assertThat(exact.implies(Permission.of("payments", "write"))).isFalse();
         }
 
         @Test
         void exact_match_does_not_imply_different_namespace() {
-            Permission exact = Permission.of("payments", "read");
+            var exact = Permission.of("payments", "read");
 
             assertThat(exact.implies(Permission.of("transactions", "read"))).isFalse();
         }
 
         @Test
         void specific_permission_does_not_imply_wildcard() {
-            Permission specific = Permission.of("payments", "read");
-            Permission wildcard = Permission.of("*", "*");
+            var specific = Permission.of("payments", "read");
+            var wildcard = Permission.of("*", "*");
 
             assertThat(specific.implies(wildcard)).isFalse();
         }

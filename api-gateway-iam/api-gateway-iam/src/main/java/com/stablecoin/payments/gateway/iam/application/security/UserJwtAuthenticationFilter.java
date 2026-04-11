@@ -53,27 +53,23 @@ public class UserJwtAuthenticationFilter extends OncePerRequestFilter {
             var jwt = SignedJWT.parse(token);
             var claims = jwt.getJWTClaimsSet();
 
-            // Only handle tokens issued by S13
             if (!merchantIamProperties.issuer().equals(claims.getIssuer())) {
                 chain.doFilter(request, response);
                 return;
             }
 
-            // Validate audience
             if (claims.getAudience() == null
                     || !claims.getAudience().contains(merchantIamProperties.audience())) {
                 sendUnauthorized(response, "JWT audience mismatch");
                 return;
             }
 
-            // Validate expiration
             if (claims.getExpirationTime() == null
                     || claims.getExpirationTime().before(new Date())) {
                 sendUnauthorized(response, "JWT has expired");
                 return;
             }
 
-            // Verify signature against S13 JWKS
             var jwksJson = userJwksProvider.fetchJwks();
             var jwkSet = JWKSet.parse(jwksJson);
             var kid = jwt.getHeader().getKeyID();
@@ -90,7 +86,6 @@ public class UserJwtAuthenticationFilter extends OncePerRequestFilter {
                 return;
             }
 
-            // Extract claims
             var userId = UUID.fromString(claims.getStringClaim("user_id"));
             var merchantId = UUID.fromString(claims.getStringClaim("merchant_id"));
             var roleId = UUID.fromString(claims.getStringClaim("role_id"));

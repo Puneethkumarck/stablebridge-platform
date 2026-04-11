@@ -7,7 +7,6 @@ import static lombok.AccessLevel.PRIVATE;
 @NoArgsConstructor(access = PRIVATE)
 public final class ErrorCodes {
 
-    // 4xx — client errors
     public static final String BAD_REQUEST_CODE           = iamCode(1);
     public static final String USER_NOT_FOUND_CODE        = iamCode(2);
     public static final String ROLE_NOT_FOUND_CODE        = iamCode(3);
@@ -21,7 +20,6 @@ public final class ErrorCodes {
     public static final String INVALID_USER_STATE_CODE    = iamCode(11);
     public static final String MFA_REQUIRED_CODE          = iamCode(12);
 
-    // 5xx — server errors
     public static final String INTERNAL_ERROR_CODE        = iamCode(50);
 
     static String iamCode(int code) {

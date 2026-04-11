@@ -18,11 +18,11 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.mockito.ArgumentMatchers.any;
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoring;
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoringTimestamps;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 
 class PaymentEventConsumerTest {
 
@@ -83,14 +83,24 @@ class PaymentEventConsumerTest {
 
             given(lockRepository.findByPaymentId(paymentId)).willReturn(Optional.of(lock));
             given(poolRepository.findByCorridor("USD", "EUR")).willReturn(Optional.of(pool));
-            given(lockRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
-            given(poolRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
 
             consumer.onPaymentCompleted(paymentEvent(paymentId));
 
-            then(lockRepository).should().save(any(FxRateLock.class));
-            then(poolRepository).should().save(any(LiquidityPool.class));
-            then(eventPublisher).should(never()).publish(any());
+            var expectedConsumedLock = new FxRateLock(
+                    lock.lockId(), lock.quoteId(), lock.paymentId(), lock.correlationId(),
+                    lock.fromCurrency(), lock.toCurrency(),
+                    lock.sourceAmount(), lock.targetAmount(), lock.lockedRate(),
+                    lock.feeBps(), lock.feeAmount(),
+                    lock.sourceCountry(), lock.targetCountry(),
+                    FxRateLockStatus.CONSUMED,
+                    lock.lockedAt(), lock.expiresAt(), Instant.now());
+            then(lockRepository).should().save(eqIgnoring(expectedConsumedLock, "consumedAt"));
+            var expectedPool = new LiquidityPool(
+                    pool.poolId(), pool.fromCurrency(), pool.toCurrency(),
+                    pool.availableBalance(), pool.reservedBalance().subtract(lock.targetAmount()),
+                    pool.minimumThreshold(), pool.maximumCapacity(), pool.updatedAt());
+            then(poolRepository).should().save(eqIgnoringTimestamps(expectedPool));
+            then(eventPublisher).shouldHaveNoInteractions();
         }
 
         @Test
@@ -98,17 +108,18 @@ class PaymentEventConsumerTest {
         void publishesThresholdEvent() {
             var paymentId = UUID.randomUUID();
             var lock = anActiveLock(paymentId);
-            // Pool available=1000 after consuming 920 reservation stays at 1000, threshold=50000 — breach
             var pool = aPool(new BigDecimal("1000.00"), new BigDecimal("920.00"), new BigDecimal("50000.00"));
 
             given(lockRepository.findByPaymentId(paymentId)).willReturn(Optional.of(lock));
             given(poolRepository.findByCorridor("USD", "EUR")).willReturn(Optional.of(pool));
-            given(lockRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
-            given(poolRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
 
             consumer.onPaymentCompleted(paymentEvent(paymentId));
 
-            then(eventPublisher).should().publish(any(LiquidityThresholdBreached.class));
+            var expectedEvent = new LiquidityThresholdBreached(
+                    pool.poolId(), "USD", "EUR",
+                    new BigDecimal("1000.00"), new BigDecimal("50000.00"),
+                    Instant.now());
+            then(eventPublisher).should().publish(eqIgnoringTimestamps(expectedEvent));
         }
 
         @Test
@@ -129,8 +140,10 @@ class PaymentEventConsumerTest {
 
             consumer.onPaymentCompleted(paymentEvent(paymentId));
 
-            then(lockRepository).should(never()).save(any());
-            then(poolRepository).should(never()).save(any());
+            then(lockRepository).should().findByPaymentId(paymentId);
+            then(lockRepository).shouldHaveNoMoreInteractions();
+            then(poolRepository).shouldHaveNoInteractions();
+            then(eventPublisher).shouldHaveNoInteractions();
         }
 
         @Test
@@ -141,8 +154,10 @@ class PaymentEventConsumerTest {
 
             consumer.onPaymentCompleted(paymentEvent(paymentId));
 
-            then(lockRepository).should(never()).save(any());
-            then(poolRepository).should(never()).findByCorridor(any(), any());
+            then(lockRepository).should().findByPaymentId(paymentId);
+            then(lockRepository).shouldHaveNoMoreInteractions();
+            then(poolRepository).shouldHaveNoInteractions();
+            then(eventPublisher).shouldHaveNoInteractions();
         }
     }
 
@@ -159,13 +174,24 @@ class PaymentEventConsumerTest {
 
             given(lockRepository.findByPaymentId(paymentId)).willReturn(Optional.of(lock));
             given(poolRepository.findByCorridor("USD", "EUR")).willReturn(Optional.of(pool));
-            given(lockRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
-            given(poolRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
 
             consumer.onPaymentFailed(paymentEvent(paymentId));
 
-            then(lockRepository).should().save(any(FxRateLock.class));
-            then(poolRepository).should().save(any(LiquidityPool.class));
+            var expectedExpiredLock = new FxRateLock(
+                    lock.lockId(), lock.quoteId(), lock.paymentId(), lock.correlationId(),
+                    lock.fromCurrency(), lock.toCurrency(),
+                    lock.sourceAmount(), lock.targetAmount(), lock.lockedRate(),
+                    lock.feeBps(), lock.feeAmount(),
+                    lock.sourceCountry(), lock.targetCountry(),
+                    FxRateLockStatus.EXPIRED,
+                    lock.lockedAt(), lock.expiresAt(), null);
+            then(lockRepository).should().save(expectedExpiredLock);
+            var expectedPool = new LiquidityPool(
+                    pool.poolId(), pool.fromCurrency(), pool.toCurrency(),
+                    pool.availableBalance().add(lock.targetAmount()),
+                    pool.reservedBalance().subtract(lock.targetAmount()),
+                    pool.minimumThreshold(), pool.maximumCapacity(), pool.updatedAt());
+            then(poolRepository).should().save(eqIgnoringTimestamps(expectedPool));
         }
 
         @Test
@@ -186,8 +212,10 @@ class PaymentEventConsumerTest {
 
             consumer.onPaymentFailed(paymentEvent(paymentId));
 
-            then(lockRepository).should(never()).save(any());
-            then(poolRepository).should(never()).save(any());
+            then(lockRepository).should().findByPaymentId(paymentId);
+            then(lockRepository).shouldHaveNoMoreInteractions();
+            then(poolRepository).shouldHaveNoInteractions();
+            then(eventPublisher).shouldHaveNoInteractions();
         }
 
         @Test
@@ -198,7 +226,10 @@ class PaymentEventConsumerTest {
 
             consumer.onPaymentFailed(paymentEvent(paymentId));
 
-            then(lockRepository).should(never()).save(any());
+            then(lockRepository).should().findByPaymentId(paymentId);
+            then(lockRepository).shouldHaveNoMoreInteractions();
+            then(poolRepository).shouldHaveNoInteractions();
+            then(eventPublisher).shouldHaveNoInteractions();
         }
     }
 }

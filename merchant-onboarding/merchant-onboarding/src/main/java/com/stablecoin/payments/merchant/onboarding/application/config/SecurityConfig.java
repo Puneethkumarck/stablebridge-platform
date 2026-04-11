@@ -22,9 +22,7 @@ public class SecurityConfig {
     http.csrf(csrf -> csrf.disable()).authorizeHttpRequests(auth -> auth
         // Webhook endpoints use HMAC validation, not JWT
         .requestMatchers("/api/internal/webhooks/**").permitAll()
-        // Actuator health/readiness
         .requestMatchers("/actuator/**").permitAll()
-        // OpenAPI / Swagger UI
         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
         .anyRequest().authenticated());
     return http.build();

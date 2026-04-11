@@ -9,7 +9,6 @@ import static com.stablecoin.payments.ledger.domain.model.EntryType.DEBIT;
 
 public final class AccountingRules {
 
-    // Chart of accounts codes
     public static final String FIAT_RECEIVABLE = "1000";
     public static final String FIAT_CASH = "1001";
     public static final String STABLECOIN_INVENTORY = "1010";

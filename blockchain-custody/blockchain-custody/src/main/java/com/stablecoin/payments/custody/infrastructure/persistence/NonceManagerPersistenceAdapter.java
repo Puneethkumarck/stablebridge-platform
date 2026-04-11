@@ -22,15 +22,13 @@ public class NonceManagerPersistenceAdapter implements NonceRepository {
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public long assignNextNonce(UUID walletId, ChainId chainId) {
-        // Acquire blocking transaction-scoped advisory lock (waits if held, auto-released at tx commit)
         jdbcTemplate.query(
                 "SELECT pg_advisory_xact_lock(hashtext(?))",
-                rs -> { /* void function -- result set ignored */ },
+                rs -> { },
                 walletId.toString());
 
         log.debug("Advisory lock acquired for wallet={}", walletId);
 
-        // Upsert: ensure the row exists
         jdbcTemplate.update(
                 """
                 INSERT INTO wallet_nonces (wallet_id, chain_id, current_nonce, updated_at)
@@ -40,8 +38,7 @@ public class NonceManagerPersistenceAdapter implements NonceRepository {
                 walletId,
                 chainId.value());
 
-        // Atomically read current value and increment, returning the pre-increment value
-        Long nonce = jdbcTemplate.queryForObject(
+        var nonce = jdbcTemplate.queryForObject(
                 """
                 UPDATE wallet_nonces
                 SET current_nonce = current_nonce + 1,

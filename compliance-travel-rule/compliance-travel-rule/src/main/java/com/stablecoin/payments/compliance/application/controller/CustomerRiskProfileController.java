@@ -1,7 +1,8 @@
 package com.stablecoin.payments.compliance.application.controller;
 
 import com.stablecoin.payments.compliance.api.response.CustomerRiskProfileResponse;
-import com.stablecoin.payments.compliance.application.service.ComplianceCheckApplicationService;
+import com.stablecoin.payments.compliance.application.mapper.ComplianceCheckResponseMapper;
+import com.stablecoin.payments.compliance.domain.service.ComplianceCheckCommandHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,11 +18,12 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class CustomerRiskProfileController {
 
-    private final ComplianceCheckApplicationService complianceCheckApplicationService;
+    private final ComplianceCheckCommandHandler commandHandler;
+    private final ComplianceCheckResponseMapper responseMapper;
 
     @GetMapping("/{customerId}/risk-profile")
     public CustomerRiskProfileResponse getRiskProfile(@PathVariable UUID customerId) {
         log.info("GET /v1/customers/{}/risk-profile", customerId);
-        return complianceCheckApplicationService.getCustomerRiskProfile(customerId);
+        return responseMapper.toResponse(commandHandler.getCustomerRiskProfile(customerId));
     }
 }

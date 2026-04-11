@@ -1,10 +1,8 @@
-package com.stablecoin.payments.fx.application.service;
+package com.stablecoin.payments.fx.domain.service;
 
-import com.stablecoin.payments.fx.api.request.FxRateLockRequest;
-import com.stablecoin.payments.fx.api.response.FxRateLockResponse;
-import com.stablecoin.payments.fx.application.mapper.FxResponseMapper;
 import com.stablecoin.payments.fx.domain.event.FxRateLocked;
 import com.stablecoin.payments.fx.domain.exception.InsufficientLiquidityException;
+import com.stablecoin.payments.fx.domain.exception.LockNotFoundException;
 import com.stablecoin.payments.fx.domain.exception.PoolNotFoundException;
 import com.stablecoin.payments.fx.domain.exception.QuoteAlreadyLockedException;
 import com.stablecoin.payments.fx.domain.exception.QuoteExpiredException;
@@ -13,7 +11,6 @@ import com.stablecoin.payments.fx.domain.port.EventPublisher;
 import com.stablecoin.payments.fx.domain.port.FxQuoteRepository;
 import com.stablecoin.payments.fx.domain.port.FxRateLockRepository;
 import com.stablecoin.payments.fx.domain.port.LiquidityPoolRepository;
-import com.stablecoin.payments.fx.domain.service.LockService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -35,16 +32,15 @@ import static com.stablecoin.payments.fx.fixtures.FxRateLockFixtures.TARGET_COUN
 import static com.stablecoin.payments.fx.fixtures.FxRateLockFixtures.anActiveLock;
 import static com.stablecoin.payments.fx.fixtures.LiquidityPoolFixtures.aPoolWithLowBalance;
 import static com.stablecoin.payments.fx.fixtures.LiquidityPoolFixtures.aUsdEurPool;
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoring;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
-import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("FxRateLockApplicationService")
-class FxRateLockApplicationServiceTest {
+@DisplayName("FxRateLockCommandHandler")
+class FxRateLockCommandHandlerTest {
 
     @Mock
     private FxQuoteRepository quoteRepository;
@@ -59,13 +55,13 @@ class FxRateLockApplicationServiceTest {
     private LockService lockService;
 
     @Mock
-    private EventPublisher<Object> eventPublisher;
+    private LiquidityService liquidityService;
 
     @Mock
-    private FxResponseMapper responseMapper;
+    private EventPublisher<Object> eventPublisher;
 
     @InjectMocks
-    private FxRateLockApplicationService service;
+    private FxRateLockCommandHandler handler;
 
     @Nested
     @DisplayName("lockRate")
@@ -73,23 +69,14 @@ class FxRateLockApplicationServiceTest {
 
         @Test
         void shouldLockRateSuccessfully() {
-            // given
             var quote = anActiveQuote();
             var quoteId = quote.quoteId();
             var pool = aUsdEurPool();
-            var request = new FxRateLockRequest(PAYMENT_ID, CORRELATION_ID,
-                    SOURCE_COUNTRY, TARGET_COUNTRY);
 
             var lockedQuote = aLockedQuote();
             var lock = anActiveLock(quoteId, PAYMENT_ID);
             var updatedPool = aUsdEurPool();
             var lockResult = new LockService.LockResult(lockedQuote, lock, updatedPool);
-
-            var expectedResponse = new FxRateLockResponse(
-                    lock.lockId(), lock.quoteId(), lock.paymentId(),
-                    lock.fromCurrency(), lock.toCurrency(),
-                    lock.sourceAmount(), lock.targetAmount(), lock.lockedRate(),
-                    lock.feeBps(), lock.feeAmount(), lock.lockedAt(), lock.expiresAt());
 
             given(lockRepository.findByPaymentId(PAYMENT_ID)).willReturn(Optional.empty());
             given(quoteRepository.findById(quoteId)).willReturn(Optional.of(quote));
@@ -99,148 +86,205 @@ class FxRateLockApplicationServiceTest {
             given(quoteRepository.save(lockedQuote)).willReturn(lockedQuote);
             given(lockRepository.save(lock)).willReturn(lock);
             given(poolRepository.save(updatedPool)).willReturn(updatedPool);
-            given(responseMapper.toResponse(lock)).willReturn(expectedResponse);
 
-            // when
-            var result = service.lockRate(quoteId, request);
+            var result = handler.lockRate(quoteId, PAYMENT_ID, CORRELATION_ID,
+                    SOURCE_COUNTRY, TARGET_COUNTRY);
 
-            // then
-            var expected = new FxRateLockApplicationService.LockRateResult(expectedResponse, true);
+            var expected = new FxRateLockCommandHandler.LockRateResult(lock, true);
             assertThat(result)
                     .usingRecursiveComparison()
                     .isEqualTo(expected);
 
-            then(eventPublisher).should().publish(any(FxRateLocked.class));
+            var expectedEvent = new FxRateLocked(
+                    lock.lockId(), lock.quoteId(), lock.paymentId(), CORRELATION_ID,
+                    lock.fromCurrency(), lock.toCurrency(),
+                    lock.sourceAmount(), lock.targetAmount(), lock.lockedRate(),
+                    lock.feeBps(), lock.lockedAt(), lock.expiresAt());
+            then(eventPublisher).should().publish(eqIgnoring(expectedEvent));
         }
 
         @Test
         void shouldReturnExistingLockForSamePaymentId() {
-            // given
             var quoteId = UUID.randomUUID();
             var existingLock = anActiveLock(quoteId, PAYMENT_ID);
-            var request = new FxRateLockRequest(PAYMENT_ID, CORRELATION_ID,
-                    SOURCE_COUNTRY, TARGET_COUNTRY);
-
-            var expectedResponse = new FxRateLockResponse(
-                    existingLock.lockId(), existingLock.quoteId(), existingLock.paymentId(),
-                    existingLock.fromCurrency(), existingLock.toCurrency(),
-                    existingLock.sourceAmount(), existingLock.targetAmount(),
-                    existingLock.lockedRate(), existingLock.feeBps(), existingLock.feeAmount(),
-                    existingLock.lockedAt(), existingLock.expiresAt());
 
             given(lockRepository.findByPaymentId(PAYMENT_ID)).willReturn(Optional.of(existingLock));
-            given(responseMapper.toResponse(existingLock)).willReturn(expectedResponse);
 
-            // when
-            var result = service.lockRate(quoteId, request);
+            var result = handler.lockRate(quoteId, PAYMENT_ID, CORRELATION_ID,
+                    SOURCE_COUNTRY, TARGET_COUNTRY);
 
-            // then
-            var expected = new FxRateLockApplicationService.LockRateResult(expectedResponse, false);
+            var expected = new FxRateLockCommandHandler.LockRateResult(existingLock, false);
             assertThat(result)
                     .usingRecursiveComparison()
                     .isEqualTo(expected);
 
-            then(quoteRepository).should(never()).findById(any());
-            then(lockService).should(never()).lockRate(any(), any(), any(), any(), any(), any());
-            then(lockRepository).should(never()).save(any());
-            then(eventPublisher).should(never()).publish(any());
+            then(quoteRepository).shouldHaveNoInteractions();
+            then(lockService).shouldHaveNoInteractions();
+            then(lockRepository).should().findByPaymentId(PAYMENT_ID);
+            then(lockRepository).shouldHaveNoMoreInteractions();
+            then(eventPublisher).shouldHaveNoInteractions();
         }
 
         @Test
         void shouldThrowWhenQuoteNotFound() {
-            // given
             var quoteId = UUID.randomUUID();
-            var request = new FxRateLockRequest(PAYMENT_ID, CORRELATION_ID,
-                    SOURCE_COUNTRY, TARGET_COUNTRY);
             given(lockRepository.findByPaymentId(PAYMENT_ID)).willReturn(Optional.empty());
             given(quoteRepository.findById(quoteId)).willReturn(Optional.empty());
 
-            // when/then
-            assertThatThrownBy(() -> service.lockRate(quoteId, request))
+            assertThatThrownBy(() -> handler.lockRate(quoteId, PAYMENT_ID, CORRELATION_ID,
+                    SOURCE_COUNTRY, TARGET_COUNTRY))
                     .isInstanceOf(QuoteNotFoundException.class)
                     .hasMessageContaining(quoteId.toString());
 
-            then(lockRepository).should(never()).save(any());
-            then(eventPublisher).should(never()).publish(any());
+            then(lockRepository).should().findByPaymentId(PAYMENT_ID);
+            then(lockRepository).shouldHaveNoMoreInteractions();
+            then(eventPublisher).shouldHaveNoInteractions();
         }
 
         @Test
         void shouldThrowWhenQuoteExpired() {
-            // given
             var expiredQuote = anExpiredQuote();
             var quoteId = expiredQuote.quoteId();
-            var request = new FxRateLockRequest(PAYMENT_ID, CORRELATION_ID,
-                    SOURCE_COUNTRY, TARGET_COUNTRY);
             given(lockRepository.findByPaymentId(PAYMENT_ID)).willReturn(Optional.empty());
             given(quoteRepository.findById(quoteId)).willReturn(Optional.of(expiredQuote));
 
-            // when/then
-            assertThatThrownBy(() -> service.lockRate(quoteId, request))
+            assertThatThrownBy(() -> handler.lockRate(quoteId, PAYMENT_ID, CORRELATION_ID,
+                    SOURCE_COUNTRY, TARGET_COUNTRY))
                     .isInstanceOf(QuoteExpiredException.class)
                     .hasMessageContaining(quoteId.toString());
 
-            then(lockRepository).should(never()).save(any());
-            then(eventPublisher).should(never()).publish(any());
+            then(lockRepository).should().findByPaymentId(PAYMENT_ID);
+            then(lockRepository).shouldHaveNoMoreInteractions();
+            then(eventPublisher).shouldHaveNoInteractions();
         }
 
         @Test
         void shouldThrowWhenQuoteAlreadyLocked() {
-            // given
             var lockedQuote = aLockedQuote();
             var quoteId = lockedQuote.quoteId();
-            var request = new FxRateLockRequest(PAYMENT_ID, CORRELATION_ID,
-                    SOURCE_COUNTRY, TARGET_COUNTRY);
             given(lockRepository.findByPaymentId(PAYMENT_ID)).willReturn(Optional.empty());
             given(quoteRepository.findById(quoteId)).willReturn(Optional.of(lockedQuote));
 
-            // when/then
-            assertThatThrownBy(() -> service.lockRate(quoteId, request))
+            assertThatThrownBy(() -> handler.lockRate(quoteId, PAYMENT_ID, CORRELATION_ID,
+                    SOURCE_COUNTRY, TARGET_COUNTRY))
                     .isInstanceOf(QuoteAlreadyLockedException.class)
                     .hasMessageContaining(quoteId.toString());
 
-            then(lockRepository).should(never()).save(any());
-            then(eventPublisher).should(never()).publish(any());
+            then(lockRepository).should().findByPaymentId(PAYMENT_ID);
+            then(lockRepository).shouldHaveNoMoreInteractions();
+            then(eventPublisher).shouldHaveNoInteractions();
         }
 
         @Test
         void shouldThrowWhenPoolNotFound() {
-            // given
             var quote = anActiveQuote();
             var quoteId = quote.quoteId();
-            var request = new FxRateLockRequest(PAYMENT_ID, CORRELATION_ID,
-                    SOURCE_COUNTRY, TARGET_COUNTRY);
             given(lockRepository.findByPaymentId(PAYMENT_ID)).willReturn(Optional.empty());
             given(quoteRepository.findById(quoteId)).willReturn(Optional.of(quote));
             given(poolRepository.findByCorridor("USD", "EUR")).willReturn(Optional.empty());
 
-            // when/then
-            assertThatThrownBy(() -> service.lockRate(quoteId, request))
+            assertThatThrownBy(() -> handler.lockRate(quoteId, PAYMENT_ID, CORRELATION_ID,
+                    SOURCE_COUNTRY, TARGET_COUNTRY))
                     .isInstanceOf(PoolNotFoundException.class)
                     .hasMessageContaining("USD:EUR");
 
-            then(lockRepository).should(never()).save(any());
-            then(eventPublisher).should(never()).publish(any());
+            then(lockRepository).should().findByPaymentId(PAYMENT_ID);
+            then(lockRepository).shouldHaveNoMoreInteractions();
+            then(eventPublisher).shouldHaveNoInteractions();
         }
 
         @Test
         void shouldThrowWhenInsufficientLiquidity() {
-            // given
             var quote = anActiveQuote();
             var quoteId = quote.quoteId();
             var lowPool = aPoolWithLowBalance();
-            var request = new FxRateLockRequest(PAYMENT_ID, CORRELATION_ID,
-                    SOURCE_COUNTRY, TARGET_COUNTRY);
             given(lockRepository.findByPaymentId(PAYMENT_ID)).willReturn(Optional.empty());
             given(quoteRepository.findById(quoteId)).willReturn(Optional.of(quote));
             given(poolRepository.findByCorridor("USD", "EUR")).willReturn(Optional.of(lowPool));
 
-            // when/then
-            assertThatThrownBy(() -> service.lockRate(quoteId, request))
+            assertThatThrownBy(() -> handler.lockRate(quoteId, PAYMENT_ID, CORRELATION_ID,
+                    SOURCE_COUNTRY, TARGET_COUNTRY))
                     .isInstanceOf(InsufficientLiquidityException.class)
                     .hasMessageContaining("USD:EUR");
 
-            then(lockRepository).should(never()).save(any());
-            then(eventPublisher).should(never()).publish(any());
+            then(lockRepository).should().findByPaymentId(PAYMENT_ID);
+            then(lockRepository).shouldHaveNoMoreInteractions();
+            then(eventPublisher).shouldHaveNoInteractions();
+        }
+    }
+
+    @Nested
+    @DisplayName("releaseLock")
+    class ReleaseLock {
+
+        @Test
+        void shouldThrowWhenLockNotFound() {
+            var lockId = UUID.randomUUID();
+            given(lockRepository.findById(lockId)).willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> handler.releaseLock(lockId))
+                    .isInstanceOf(LockNotFoundException.class)
+                    .hasMessageContaining(lockId.toString());
+
+            then(lockRepository).should().findById(lockId);
+            then(lockRepository).shouldHaveNoMoreInteractions();
+            then(poolRepository).shouldHaveNoInteractions();
+            then(liquidityService).shouldHaveNoInteractions();
+            then(eventPublisher).shouldHaveNoInteractions();
+        }
+
+        @Test
+        void shouldSkipReleaseWhenLockIsNotActive() {
+            var activeLock = anActiveLock(UUID.randomUUID());
+            var expiredLock = activeLock.expire();
+            var lockId = expiredLock.lockId();
+            given(lockRepository.findById(lockId)).willReturn(Optional.of(expiredLock));
+
+            handler.releaseLock(lockId);
+
+            then(lockRepository).should().findById(lockId);
+            then(lockRepository).shouldHaveNoMoreInteractions();
+            then(poolRepository).shouldHaveNoInteractions();
+            then(liquidityService).shouldHaveNoInteractions();
+            then(eventPublisher).shouldHaveNoInteractions();
+        }
+
+        @Test
+        void shouldReleaseActiveLockAndReturnLiquidityToPool() {
+            var activeLock = anActiveLock(UUID.randomUUID());
+            var lockId = activeLock.lockId();
+            var pool = aUsdEurPool();
+            var releasedPool = aUsdEurPool();
+
+            given(lockRepository.findById(lockId)).willReturn(Optional.of(activeLock));
+            given(poolRepository.findByCorridor("USD", "EUR")).willReturn(Optional.of(pool));
+            given(liquidityService.release(pool, activeLock.targetAmount())).willReturn(releasedPool);
+
+            handler.releaseLock(lockId);
+
+            var expectedExpiredLock = activeLock.expire();
+            then(lockRepository).should().save(eqIgnoring(expectedExpiredLock));
+            then(poolRepository).should().save(releasedPool);
+            then(liquidityService).should().release(pool, activeLock.targetAmount());
+            then(eventPublisher).shouldHaveNoInteractions();
+        }
+
+        @Test
+        void shouldReleaseActiveLockButLogWarnWhenPoolMissing() {
+            var activeLock = anActiveLock(UUID.randomUUID());
+            var lockId = activeLock.lockId();
+
+            given(lockRepository.findById(lockId)).willReturn(Optional.of(activeLock));
+            given(poolRepository.findByCorridor("USD", "EUR")).willReturn(Optional.empty());
+
+            handler.releaseLock(lockId);
+
+            var expectedExpiredLock = activeLock.expire();
+            then(lockRepository).should().save(eqIgnoring(expectedExpiredLock));
+            then(poolRepository).should().findByCorridor("USD", "EUR");
+            then(poolRepository).shouldHaveNoMoreInteractions();
+            then(liquidityService).shouldHaveNoInteractions();
+            then(eventPublisher).shouldHaveNoInteractions();
         }
     }
 }

@@ -55,20 +55,17 @@ public class TransferCommandHandler {
                                            StablecoinTicker stablecoin, BigDecimal amount,
                                            String toWalletAddress, String preferredChain) {
 
-        // 1. Idempotency check
         var existing = chainTransferRepository.findByPaymentIdAndType(paymentId, transferType);
         if (existing.isPresent()) {
             log.info("Idempotent replay for paymentId={} transferType={}", paymentId, transferType);
             return new TransferResult(existing.get(), false);
         }
 
-        // 2. Select optimal chain
         var tempTransferId = UUID.randomUUID();
         var selectionResult = chainSelectionEngine.selectChain(
                 new ChainSelectionRequest(tempTransferId, stablecoin, amount, preferredChain));
         var selectedChain = selectionResult.selectedChain();
 
-        // 3. Find source wallet
         var walletPurpose = transferType == TransferType.RETURN ? WalletPurpose.OFF_RAMP : WalletPurpose.ON_RAMP;
         var wallet = walletRepository.findByChainIdAndPurpose(selectedChain, walletPurpose)
                 .stream()
@@ -77,7 +74,6 @@ public class TransferCommandHandler {
                 .orElseThrow(() -> new WalletNotFoundException(
                         "No active %s wallet found for chain %s".formatted(walletPurpose, selectedChain.value())));
 
-        // 4. Reserve balance (with pessimistic lock)
         var balance = walletBalanceRepository.findByWalletIdAndStablecoinForUpdate(
                         wallet.walletId(), stablecoin)
                 .orElseThrow(() -> new InsufficientBalanceException(
@@ -93,17 +89,14 @@ public class TransferCommandHandler {
         var reservedBalance = balance.reserve(amount);
         walletBalanceRepository.save(reservedBalance);
 
-        // 5. Create transfer aggregate in PENDING state
         var transfer = ChainTransfer.initiate(
                 paymentId, correlationId, transferType, parentTransferId,
                 stablecoin, amount, wallet.walletId(), toWalletAddress, wallet.address());
 
-        // 6. Transition through states: PENDING → CHAIN_SELECTED → SIGNING
         transfer = transfer.selectChain(selectedChain);
         var nonceAssignment = nonceManager.assignNonce(wallet.walletId(), selectedChain, false);
         transfer = transfer.startSigning(nonceAssignment.nonce());
 
-        // 7. Sign via custody engine
         var signRequest = new SignRequest(
                 transfer.transferId(), selectedChain,
                 wallet.address(), toWalletAddress, amount, stablecoin,
@@ -114,7 +107,6 @@ public class TransferCommandHandler {
             var signResult = custodyEngine.signAndSubmit(signRequest);
             txHash = signResult.txHash();
         } catch (Exception e) {
-            // Fail the transfer and release balance
             transfer = transfer.fail("Custody signing failed: " + e.getMessage(), CustodySigningException.ERROR_CODE);
             chainTransferRepository.save(transfer);
             releaseBalance(reservedBalance, amount);
@@ -123,11 +115,9 @@ public class TransferCommandHandler {
             throw new CustodySigningException("Custody signing failed for transfer " + transfer.transferId(), e);
         }
 
-        // 8. SIGNING → SUBMITTED
         transfer = transfer.submit(txHash);
         transfer = chainTransferRepository.save(transfer);
 
-        // 9. Record participants
         transferParticipantRepository.save(TransferParticipant.create(
                 transfer.transferId(), ParticipantType.INPUT,
                 wallet.address(), wallet.walletId(), amount, stablecoin.ticker()));
@@ -135,7 +125,6 @@ public class TransferCommandHandler {
                 transfer.transferId(), ParticipantType.OUTPUT,
                 toWalletAddress, null, amount, stablecoin.ticker()));
 
-        // 10. Record lifecycle events
         lifecycleEventRepository.save(
                 TransferLifecycleEvent.record(transfer.transferId(), "BALANCE_RESERVED"));
         lifecycleEventRepository.save(
@@ -145,7 +134,6 @@ public class TransferCommandHandler {
         lifecycleEventRepository.save(
                 TransferLifecycleEvent.record(transfer.transferId(), "SUBMITTED"));
 
-        // 11. Publish outbox event
         transferEventPublisher.publish(new TransferSubmittedEvent(
                 transfer.transferId(), transfer.paymentId(), transfer.correlationId(),
                 selectedChain.value(), stablecoin.ticker(), amount,

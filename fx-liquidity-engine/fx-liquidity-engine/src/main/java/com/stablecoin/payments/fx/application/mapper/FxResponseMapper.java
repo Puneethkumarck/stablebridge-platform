@@ -8,6 +8,7 @@ import com.stablecoin.payments.fx.domain.model.CorridorRate;
 import com.stablecoin.payments.fx.domain.model.FxQuote;
 import com.stablecoin.payments.fx.domain.model.FxRateLock;
 import com.stablecoin.payments.fx.domain.model.LiquidityPool;
+import com.stablecoin.payments.fx.domain.service.LiquidityPoolQueryHandler.CorridorSnapshot;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -86,5 +87,22 @@ public class FxResponseMapper {
                 corridorRate.provider(),
                 Instant.now().minusMillis(corridorRate.ageMs())
         );
+    }
+
+    public CorridorResponse toResponse(CorridorSnapshot snapshot) {
+        var pool = snapshot.pool();
+        var rate = snapshot.rate();
+        if (rate == null) {
+            return new CorridorResponse(
+                    pool.fromCurrency(),
+                    pool.toCurrency(),
+                    null,
+                    0,
+                    0,
+                    "unavailable",
+                    null
+            );
+        }
+        return toResponse(rate);
     }
 }

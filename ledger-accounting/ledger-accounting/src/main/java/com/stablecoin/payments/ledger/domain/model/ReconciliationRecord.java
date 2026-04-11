@@ -57,10 +57,10 @@ public record ReconciliationRecord(
     public ReconciliationRecord addLeg(ReconciliationLeg leg) {
         Objects.requireNonNull(leg, "leg must not be null");
 
-        List<ReconciliationLeg> updatedLegs = new ArrayList<>(this.legs);
+        var updatedLegs = new ArrayList<>(this.legs);
         updatedLegs.add(leg);
 
-        Set<ReconciliationLegType> presentTypes = updatedLegs.stream()
+        var presentTypes = updatedLegs.stream()
                 .map(ReconciliationLeg::legType)
                 .collect(Collectors.toSet());
 
@@ -89,12 +89,12 @@ public record ReconciliationRecord(
     public ReconciliationRecord finalize(BigDecimal discrepancy) {
         Objects.requireNonNull(discrepancy, "discrepancy must not be null");
 
-        Set<ReconciliationLegType> presentTypes = this.legs.stream()
+        var presentTypes = this.legs.stream()
                 .map(ReconciliationLeg::legType)
                 .collect(Collectors.toSet());
 
-        boolean allLegsPresent = presentTypes.containsAll(REQUIRED_LEGS);
-        boolean withinTolerance = discrepancy.abs().compareTo(this.tolerance) <= 0;
+        var allLegsPresent = presentTypes.containsAll(REQUIRED_LEGS);
+        var withinTolerance = discrepancy.abs().compareTo(this.tolerance) <= 0;
 
         ReconciliationStatus newStatus;
         Instant reconciledTime;
@@ -139,7 +139,7 @@ public record ReconciliationRecord(
     }
 
     public boolean hasAllRequiredLegs() {
-        Set<ReconciliationLegType> presentTypes = this.legs.stream()
+        var presentTypes = this.legs.stream()
                 .map(ReconciliationLeg::legType)
                 .collect(Collectors.toSet());
         return presentTypes.containsAll(REQUIRED_LEGS);

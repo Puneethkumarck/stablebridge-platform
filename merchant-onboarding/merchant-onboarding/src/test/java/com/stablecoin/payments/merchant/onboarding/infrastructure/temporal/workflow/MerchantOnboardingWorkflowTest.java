@@ -18,8 +18,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.mock;
@@ -51,8 +50,8 @@ class MerchantOnboardingWorkflowTest {
 
       assertThat(result.status()).isEqualTo("REJECTED");
       assertThat(result.failureReason()).contains("not found in official registry");
-      then(onboardingActivities).should().rejectMerchant(any(), anyString());
-      then(onboardingActivities).should(never()).startKyb(any());
+      then(onboardingActivities).should().rejectMerchant(merchantId, "Company not found in official registry");
+      then(onboardingActivities).should(never()).startKyb(merchantId);
     }
 
     @Test
@@ -67,7 +66,7 @@ class MerchantOnboardingWorkflowTest {
       assertThat(result.status()).isEqualTo("REJECTED");
       assertThat(result.failureReason()).contains("not active");
       assertThat(result.failureReason()).contains("dissolved");
-      then(onboardingActivities).should(never()).startKyb(any());
+      then(onboardingActivities).should(never()).startKyb(merchantId);
     }
 
     @Test
@@ -76,7 +75,7 @@ class MerchantOnboardingWorkflowTest {
       var merchantId = UUID.randomUUID();
       given(onboardingActivities.verifyCompanyRegistry(merchantId)).willReturn("active");
       given(onboardingActivities.startKyb(merchantId)).willReturn("ref-123");
-      given(onboardingActivities.calculateRiskTier(any())).willReturn("LOW");
+      given(onboardingActivities.calculateRiskTier(argThat((Map<String, Object> m) -> m != null))).willReturn("LOW");
 
       var workflow = startWorkflow(workflowClient, worker, merchantId);
 
@@ -101,7 +100,7 @@ class MerchantOnboardingWorkflowTest {
       var merchantId = UUID.randomUUID();
       given(onboardingActivities.verifyCompanyRegistry(merchantId)).willReturn("active");
       given(onboardingActivities.startKyb(merchantId)).willReturn("provider-ref-123");
-      given(onboardingActivities.calculateRiskTier(any())).willReturn("LOW");
+      given(onboardingActivities.calculateRiskTier(argThat((Map<String, Object> m) -> m != null))).willReturn("LOW");
 
       var workflow = startWorkflow(workflowClient, worker, merchantId);
 
@@ -132,7 +131,9 @@ class MerchantOnboardingWorkflowTest {
 
       assertThat(result.status()).isEqualTo("REJECTED");
       assertThat(result.failureReason()).isEqualTo("KYB verification failed");
-      then(onboardingActivities).should().processKybResult(any(), any());
+      then(onboardingActivities).should().processKybResult(
+          argThat((UUID id) -> merchantId.equals(id)),
+          argThat((KybResultSignal s) -> "FAILED".equals(s.status())));
     }
   }
 
@@ -146,7 +147,7 @@ class MerchantOnboardingWorkflowTest {
       var merchantId = UUID.randomUUID();
       given(onboardingActivities.verifyCompanyRegistry(merchantId)).willReturn("active");
       given(onboardingActivities.startKyb(merchantId)).willReturn("provider-ref-789");
-      given(onboardingActivities.calculateRiskTier(any())).willReturn("MEDIUM");
+      given(onboardingActivities.calculateRiskTier(argThat((Map<String, Object> m) -> m != null))).willReturn("MEDIUM");
 
       var workflow = startWorkflow(workflowClient, worker, merchantId);
 

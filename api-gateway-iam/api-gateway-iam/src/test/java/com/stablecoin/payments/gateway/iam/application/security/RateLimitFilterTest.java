@@ -2,6 +2,7 @@ package com.stablecoin.payments.gateway.iam.application.security;
 
 import com.stablecoin.payments.gateway.iam.domain.model.Merchant;
 import com.stablecoin.payments.gateway.iam.domain.model.MerchantStatus;
+import com.stablecoin.payments.gateway.iam.domain.model.RateLimitEvent;
 import com.stablecoin.payments.gateway.iam.domain.model.RateLimitPolicy;
 import com.stablecoin.payments.gateway.iam.domain.model.RateLimitTier;
 import com.stablecoin.payments.gateway.iam.domain.port.MerchantRepository;
@@ -27,8 +28,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static com.stablecoin.payments.gateway.iam.fixtures.TestUtils.eqIgnoring;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
@@ -216,7 +217,15 @@ class RateLimitFilterTest {
 
             filter.doFilterInternal(request, response, filterChain);
 
-            then(rateLimitEventRepository).should().save(any());
+            var expectedEvent = RateLimitEvent.builder()
+                    .merchantId(merchantId)
+                    .endpoint(endpoint)
+                    .tier(RateLimitTier.STARTER)
+                    .requestCount(61)
+                    .limitValue(60)
+                    .breached(true)
+                    .build();
+            then(rateLimitEventRepository).should().save(eqIgnoring(expectedEvent, "eventId", "occurredAt"));
         }
     }
 }

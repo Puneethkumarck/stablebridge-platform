@@ -48,7 +48,6 @@ public record FxQuote(
         var feeBps = corridorRate.feeBps();
         var spreadBps = corridorRate.spreadBps();
 
-        // Apply spread to rate
         var spreadFactor = BigDecimal.ONE.subtract(BigDecimal.valueOf(spreadBps).movePointLeft(4));
         var effectiveRate = rate.multiply(spreadFactor);
 

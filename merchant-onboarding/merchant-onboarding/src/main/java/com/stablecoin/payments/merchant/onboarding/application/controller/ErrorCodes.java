@@ -7,13 +7,11 @@ import static lombok.AccessLevel.PRIVATE;
 @NoArgsConstructor(access = PRIVATE)
 public final class ErrorCodes {
 
-    // 4xx — client errors
     public static final String BAD_REQUEST_CODE           = moCode(1);
     public static final String MERCHANT_NOT_FOUND_CODE    = moCode(2);
     public static final String MERCHANT_ALREADY_EXISTS_CODE = moCode(3);
     public static final String INVALID_STATE_CODE         = moCode(4);
 
-    // 5xx — server errors
     public static final String INTERNAL_ERROR_CODE        = moCode(50);
 
     static String moCode(int code) {

@@ -121,7 +121,6 @@ public class OnfidoKybAdapter implements KybProvider {
       return null;
     }
 
-    // Fetch full check details
     @SuppressWarnings("unchecked")
     var checkResponse = restClient.get().uri("/checks/{checkId}", checkId).retrieve().body(Map.class);
 
@@ -159,7 +158,6 @@ public class OnfidoKybAdapter implements KybProvider {
     signals.put("onfido_result", result);
     signals.put("provider", "onfido");
 
-    // Map result to risk_score for RiskTierCalculator
     int riskScore = switch (result != null ? result : "") {
       case "clear" -> 0;
       case "consider" -> 35;

@@ -23,9 +23,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoring;
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoringTimestamps;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
@@ -86,7 +87,19 @@ class MerchantServiceTest {
         @Test
         void shouldRegisterNewMerchant() {
             var externalId = UUID.randomUUID();
-            given(merchantRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+            var expected = Merchant.builder()
+                    .externalId(externalId)
+                    .name("Test Corp")
+                    .country("US")
+                    .scopes(List.of("payments:read"))
+                    .corridors(List.of(new Corridor("US", "DE")))
+                    .status(MerchantStatus.PENDING)
+                    .kybStatus(KybStatus.PENDING)
+                    .rateLimitTier(RateLimitTier.STARTER)
+                    .version(0L)
+                    .build();
+            given(merchantRepository.save(eqIgnoring(expected, "merchantId")))
+                    .willAnswer(inv -> inv.getArgument(0));
 
             var result = merchantService.register(externalId, "Test Corp", "US",
                     List.of("payments:read"), List.of(new Corridor("US", "DE")));
@@ -94,14 +107,27 @@ class MerchantServiceTest {
             assertThat(result.getStatus()).isEqualTo(MerchantStatus.PENDING);
             assertThat(result.getKybStatus()).isEqualTo(KybStatus.PENDING);
             assertThat(result.getExternalId()).isEqualTo(externalId);
-            then(merchantRepository).should().save(any());
+            then(merchantRepository).should().save(eqIgnoring(expected, "merchantId"));
         }
 
         @Test
         void shouldHandleNullScopesAndCorridors() {
-            given(merchantRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+            var externalId = UUID.randomUUID();
+            var expected = Merchant.builder()
+                    .externalId(externalId)
+                    .name("Test Corp")
+                    .country("US")
+                    .scopes(List.of())
+                    .corridors(List.of())
+                    .status(MerchantStatus.PENDING)
+                    .kybStatus(KybStatus.PENDING)
+                    .rateLimitTier(RateLimitTier.STARTER)
+                    .version(0L)
+                    .build();
+            given(merchantRepository.save(eqIgnoring(expected, "merchantId")))
+                    .willAnswer(inv -> inv.getArgument(0));
 
-            var result = merchantService.register(UUID.randomUUID(), "Test Corp", "US", null, null);
+            var result = merchantService.register(externalId, "Test Corp", "US", null, null);
 
             assertThat(result.getScopes()).isEmpty();
             assertThat(result.getCorridors()).isEmpty();
@@ -117,7 +143,12 @@ class MerchantServiceTest {
             var externalId = UUID.randomUUID();
             var merchant = pendingMerchant(externalId);
             given(merchantRepository.findByExternalId(externalId)).willReturn(Optional.of(merchant));
-            given(merchantRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+            var expected = merchant.toBuilder()
+                    .status(MerchantStatus.ACTIVE)
+                    .kybStatus(KybStatus.VERIFIED)
+                    .build();
+            given(merchantRepository.save(eqIgnoringTimestamps(expected)))
+                    .willAnswer(inv -> inv.getArgument(0));
 
             var result = merchantService.activate(externalId);
 
@@ -144,7 +175,9 @@ class MerchantServiceTest {
             var externalId = UUID.randomUUID();
             var merchant = activeMerchant(externalId);
             given(merchantRepository.findByExternalId(externalId)).willReturn(Optional.of(merchant));
-            given(merchantRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+            var expected = merchant.toBuilder().status(MerchantStatus.SUSPENDED).build();
+            given(merchantRepository.save(eqIgnoringTimestamps(expected)))
+                    .willAnswer(inv -> inv.getArgument(0));
 
             var result = merchantService.suspend(externalId);
 
@@ -173,7 +206,9 @@ class MerchantServiceTest {
             var externalId = UUID.randomUUID();
             var merchant = activeMerchant(externalId);
             given(merchantRepository.findByExternalId(externalId)).willReturn(Optional.of(merchant));
-            given(merchantRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+            var expected = merchant.toBuilder().status(MerchantStatus.CLOSED).build();
+            given(merchantRepository.save(eqIgnoringTimestamps(expected)))
+                    .willAnswer(inv -> inv.getArgument(0));
 
             var result = merchantService.close(externalId);
 

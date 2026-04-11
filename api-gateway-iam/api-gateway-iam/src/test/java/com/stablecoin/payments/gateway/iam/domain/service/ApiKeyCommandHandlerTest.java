@@ -35,7 +35,6 @@ import java.util.UUID;
 import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoring;
 import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoringTimestamps;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
@@ -85,7 +84,6 @@ class ApiKeyCommandHandlerTest {
             given(apiKeyGenerator.generate(ApiKeyEnvironment.LIVE))
                     .willReturn(new ApiKeyGenerator.GeneratedApiKey("pk_live_abc123", "pk_live_"));
             given(apiKeyHasher.hash("pk_live_abc123")).willReturn("sha256hash");
-            given(apiKeyRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
 
             var expected = ApiKey.builder()
                     .merchantId(MERCHANT_ID)
@@ -98,6 +96,8 @@ class ApiKeyCommandHandlerTest {
                     .active(true)
                     .version(0L)
                     .build();
+            given(apiKeyRepository.save(eqIgnoring(expected, "keyId")))
+                    .willAnswer(inv -> inv.getArgument(0));
 
             apiKeyCommandHandler.create(MERCHANT_ID, "My Key", ApiKeyEnvironment.LIVE,
                     List.of("payments:read"), List.of("10.0.0.1"), null);
@@ -111,7 +111,6 @@ class ApiKeyCommandHandlerTest {
             given(apiKeyGenerator.generate(ApiKeyEnvironment.LIVE))
                     .willReturn(new ApiKeyGenerator.GeneratedApiKey("pk_live_abc123", "pk_live_"));
             given(apiKeyHasher.hash("pk_live_abc123")).willReturn("sha256hash");
-            given(apiKeyRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
 
             var expected = ApiKey.builder()
                     .merchantId(MERCHANT_ID)
@@ -124,6 +123,8 @@ class ApiKeyCommandHandlerTest {
                     .active(true)
                     .version(0L)
                     .build();
+            given(apiKeyRepository.save(eqIgnoring(expected, "keyId")))
+                    .willAnswer(inv -> inv.getArgument(0));
 
             apiKeyCommandHandler.create(MERCHANT_ID, "My Key", ApiKeyEnvironment.LIVE,
                     null, null, null);
@@ -180,16 +181,13 @@ class ApiKeyCommandHandlerTest {
                     .active(true).createdAt(Instant.now())
                     .updatedAt(Instant.now()).version(0L).build();
             given(apiKeyRepository.findById(keyId)).willReturn(Optional.of(apiKey));
-            given(apiKeyRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+            apiKeyCommandHandler.revoke(keyId);
 
             var expectedKey = apiKey.toBuilder()
                     .active(false)
                     .build();
-
             var expectedEvent = new ApiKeyRevokedEvent(keyId, MERCHANT_ID, "pk_live_", null);
-
-            apiKeyCommandHandler.revoke(keyId);
-
             then(apiKeyRepository).should().save(eqIgnoringTimestamps(expectedKey));
             then(eventPublisher).should().publish(eqIgnoringTimestamps(expectedEvent));
         }

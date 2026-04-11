@@ -34,34 +34,29 @@ public class RiskScoringService {
         var factors = new ArrayList<String>();
         int score = 0;
 
-        // Factor 1: KYC tier
         if (check.kycResult() != null
                 && check.kycResult().senderKycTier() == KycTier.KYC_TIER_1) {
             score += weights.kycTier1Penalty();
             factors.add("kyc_tier_1_sender");
         }
 
-        // Factor 2: High-value transaction
         if (check.sourceAmount() != null
                 && check.sourceAmount().compareTo(HIGH_VALUE_THRESHOLD) >= 0) {
             score += weights.highValuePenalty();
             factors.add("high_value_transaction");
         }
 
-        // Factor 3: AML flags
         if (check.amlResult() != null && check.amlResult().flagged()) {
             score += weights.amlFlagPenalty();
             factors.add("aml_flagged");
         }
 
-        // Factor 4: Cross-border
         if (check.sourceCountry() != null && check.targetCountry() != null
                 && !check.sourceCountry().equals(check.targetCountry())) {
             score += weights.crossBorderPenalty();
             factors.add("cross_border");
         }
 
-        // Factor 5: Corridor risk (configurable per country pair)
         if (check.sourceCountry() != null && check.targetCountry() != null) {
             int corridorRisk = weights.corridorRisk(check.sourceCountry(), check.targetCountry());
             if (corridorRisk > 0) {
@@ -70,22 +65,18 @@ public class RiskScoringService {
             }
         }
 
-        // Factor 6: New customer (no existing risk profile)
         if (context.customerProfile() == null) {
             score += weights.newCustomerPenalty();
             factors.add("new_customer");
         }
 
-        // Factor 7: Amount relative to tier limit
         score += amountToLimitScore(check.sourceAmount(), context.customerProfile(), factors);
 
-        // Factor 8: Transaction velocity
         if (context.recentTransactionCount() >= VELOCITY_THRESHOLD) {
             score += weights.highVelocityPenalty();
             factors.add("high_velocity");
         }
 
-        // Cap at 100
         score = Math.min(score, MAX_SCORE);
         var band = RiskScore.bandForScore(score);
 

@@ -12,10 +12,12 @@ import com.stablecoin.payments.merchant.iam.domain.team.model.core.BuiltInRole;
 import com.stablecoin.payments.merchant.iam.domain.team.model.core.InvitationStatus;
 import com.stablecoin.payments.merchant.iam.domain.team.model.core.Permission;
 import com.stablecoin.payments.merchant.iam.domain.team.model.core.UserStatus;
+import com.stablecoin.payments.merchant.iam.domain.team.model.events.MerchantUserInvitedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -30,9 +32,7 @@ import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoring;
 import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoringTimestamps;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
@@ -109,8 +109,6 @@ class MerchantTeamServiceTest {
             given(tokenGenerator.hash("plain-token")).willReturn("token-hash");
             given(emailHasher.hash("new@test.com")).willReturn("new-hash");
             given(roleRepository.findById(VIEWER_ROLE_ID)).willReturn(Optional.of(viewerRole));
-            given(userRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
-            given(invitationRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
 
             var expectedUser = MerchantUser.builder()
                     .merchantId(MERCHANT_ID)
@@ -133,9 +131,24 @@ class MerchantTeamServiceTest {
 
             then(userRepository).should().save(eqIgnoring(expectedUser, "userId"));
             then(invitationRepository).should().save(eqIgnoring(expectedInvitation, "invitationId"));
+            var expiresAtCaptor = ArgumentCaptor.forClass(Instant.class);
             then(emailSenderProvider).should().sendInvitationEmail(
-                    eq("new@test.com"), eq("New User"), eq("ACME Corp"), eq("plain-token"), any());
-            then(eventPublisher).should().publish(any());
+                    argThat((String s) -> "new@test.com".equals(s)),
+                    argThat((String s) -> "New User".equals(s)),
+                    argThat((String s) -> "ACME Corp".equals(s)),
+                    argThat((String s) -> "plain-token".equals(s)),
+                    expiresAtCaptor.capture());
+            assertThat(expiresAtCaptor.getValue()).isAfter(Instant.now());
+            var expectedEvent = MerchantUserInvitedEvent.builder()
+                    .schemaVersion(MerchantUserInvitedEvent.SCHEMA_VERSION)
+                    .eventType(MerchantUserInvitedEvent.EVENT_TYPE)
+                    .merchantId(MERCHANT_ID)
+                    .emailHash("new-hash")
+                    .roleId(VIEWER_ROLE_ID)
+                    .roleName(viewerRole.roleName())
+                    .invitedBy(adminUser.userId())
+                    .build();
+            then(eventPublisher).should().publish(eqIgnoring(expectedEvent, "eventId", "invitationId", "userId"));
         }
 
         @Test
@@ -143,7 +156,7 @@ class MerchantTeamServiceTest {
             givenEmptyTeam();
             given(tokenGenerator.generateToken()).willReturn("token");
             given(tokenGenerator.hash("token")).willReturn("hash");
-            given(emailHasher.hash(anyString())).willReturn("email-hash");
+            given(emailHasher.hash("x@test.com")).willReturn("email-hash");
 
             var unknownRoleId = UUID.randomUUID();
 
@@ -184,8 +197,8 @@ class MerchantTeamServiceTest {
             given(roleRepository.findByMerchantId(MERCHANT_ID)).willReturn(List.of(adminRole, viewerRole));
             given(userRepository.findByMerchantId(MERCHANT_ID)).willReturn(List.of(adminUser, invitedUser));
             given(invitationRepository.findByMerchantId(MERCHANT_ID)).willReturn(List.of(invitation));
-            given(userRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
-            given(invitationRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+            given(userRepository.save(argThat((MerchantUser u) -> u != null))).willAnswer(inv -> inv.getArgument(0));
+            given(invitationRepository.save(argThat((Invitation i) -> i != null))).willAnswer(inv -> inv.getArgument(0));
 
             var expectedUser = invitedUser.toBuilder()
                     .status(UserStatus.ACTIVE)
@@ -219,7 +232,7 @@ class MerchantTeamServiceTest {
             given(roleRepository.findByMerchantId(MERCHANT_ID)).willReturn(List.of(adminRole, viewerRole));
             given(userRepository.findByMerchantId(MERCHANT_ID)).willReturn(List.of(adminUser, viewer));
             given(invitationRepository.findByMerchantId(MERCHANT_ID)).willReturn(List.of());
-            given(userRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+            given(userRepository.save(argThat((MerchantUser u) -> u != null))).willAnswer(inv -> inv.getArgument(0));
 
             var expectedUser = viewer.toBuilder()
                     .status(UserStatus.SUSPENDED)
@@ -253,7 +266,7 @@ class MerchantTeamServiceTest {
             given(roleRepository.findByMerchantId(MERCHANT_ID)).willReturn(List.of(adminRole, viewerRole));
             given(userRepository.findByMerchantId(MERCHANT_ID)).willReturn(List.of(adminUser, suspended));
             given(invitationRepository.findByMerchantId(MERCHANT_ID)).willReturn(List.of());
-            given(userRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+            given(userRepository.save(argThat((MerchantUser u) -> u != null))).willAnswer(inv -> inv.getArgument(0));
 
             var expectedUser = suspended.toBuilder()
                     .status(UserStatus.ACTIVE)
@@ -286,7 +299,7 @@ class MerchantTeamServiceTest {
             given(roleRepository.findByMerchantId(MERCHANT_ID)).willReturn(List.of(adminRole, viewerRole));
             given(userRepository.findByMerchantId(MERCHANT_ID)).willReturn(List.of(adminUser, viewer));
             given(invitationRepository.findByMerchantId(MERCHANT_ID)).willReturn(List.of());
-            given(userRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+            given(userRepository.save(argThat((MerchantUser u) -> u != null))).willAnswer(inv -> inv.getArgument(0));
 
             var expectedUser = viewer.toBuilder()
                     .status(UserStatus.DEACTIVATED)
@@ -308,7 +321,7 @@ class MerchantTeamServiceTest {
         @Test
         void creates_custom_role_and_saves() {
             givenEmptyTeam();
-            given(roleRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+            given(roleRepository.save(argThat((Role r) -> r != null))).willAnswer(inv -> inv.getArgument(0));
 
             var expectedRole = Role.builder()
                     .merchantId(MERCHANT_ID)
@@ -346,7 +359,7 @@ class MerchantTeamServiceTest {
                     .willReturn(List.of(adminRole, viewerRole, customRole));
             given(userRepository.findByMerchantId(MERCHANT_ID)).willReturn(List.of(adminUser));
             given(invitationRepository.findByMerchantId(MERCHANT_ID)).willReturn(List.of());
-            given(roleRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+            given(roleRepository.save(argThat((Role r) -> r != null))).willAnswer(inv -> inv.getArgument(0));
 
             var expectedRole = customRole.toBuilder()
                     .permissions(List.of(
@@ -384,7 +397,7 @@ class MerchantTeamServiceTest {
             given(invitationRepository.findByMerchantId(MERCHANT_ID)).willReturn(List.of());
             given(roleRepository.findById(VIEWER_ROLE_ID)).willReturn(Optional.of(viewerRole));
             given(roleRepository.findById(ADMIN_ROLE_ID)).willReturn(Optional.of(adminRole));
-            given(userRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+            given(userRepository.save(argThat((MerchantUser u) -> u != null))).willAnswer(inv -> inv.getArgument(0));
 
             var expectedUser = viewer.toBuilder()
                     .roleId(ADMIN_ROLE_ID)
@@ -440,7 +453,7 @@ class MerchantTeamServiceTest {
         @Test
         void should_save_invitation_record_for_first_admin() {
             given(emailHasher.hash("admin@test.com")).willReturn("admin-hash");
-            given(userRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+            given(userRepository.save(argThat((MerchantUser u) -> u != null))).willAnswer(inv -> inv.getArgument(0));
             given(tokenGenerator.generateToken()).willReturn("invite-token");
             given(tokenGenerator.hash("invite-token")).willReturn("hashed-token");
 
@@ -454,9 +467,14 @@ class MerchantTeamServiceTest {
 
             then(invitationRepository).should().save(eqIgnoring(expectedInvitation,
                     "invitationId", "roleId", "invitedBy"));
+            var expiresAtCaptor = ArgumentCaptor.forClass(Instant.class);
             then(emailSenderProvider).should().sendInvitationEmail(
-                    eq("admin@test.com"), eq("Admin User"), eq("ACME Corp"),
-                    eq("invite-token"), any(Instant.class));
+                    argThat((String s) -> "admin@test.com".equals(s)),
+                    argThat((String s) -> "Admin User".equals(s)),
+                    argThat((String s) -> "ACME Corp".equals(s)),
+                    argThat((String s) -> "invite-token".equals(s)),
+                    expiresAtCaptor.capture());
+            assertThat(expiresAtCaptor.getValue()).isAfter(Instant.now());
         }
     }
 }

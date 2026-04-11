@@ -48,7 +48,6 @@ public class PayoutCommandHandler {
                                        String recipientAccountHash,
                                        BankAccount bankAccount, MobileMoneyAccount mobileMoneyAccount,
                                        PaymentRail paymentRail, PartnerIdentifier offRampPartner) {
-        // 1. Idempotency: check if payout order already exists for this paymentId
         var existing = payoutOrderRepository.findByPaymentId(paymentId);
         if (existing.isPresent()) {
             log.info("Payout order already exists for paymentId={} payoutId={} status={}",
@@ -56,13 +55,11 @@ public class PayoutCommandHandler {
             return new PayoutResult(existing.get(), false);
         }
 
-        // 2. Create new payout order in PENDING state
         var order = PayoutOrder.create(paymentId, correlationId, transferId,
                 payoutType, stablecoin, redeemedAmount, targetCurrency,
                 appliedFxRate, recipientId, recipientAccountHash,
                 bankAccount, mobileMoneyAccount, paymentRail, offRampPartner);
 
-        // 3. HOLD_STABLECOIN path: skip redemption and payout
         if (payoutType == PayoutType.HOLD_STABLECOIN) {
             order = order.holdStablecoin().completeHold();
             order = payoutOrderRepository.save(order);
@@ -71,25 +68,20 @@ public class PayoutCommandHandler {
             return new PayoutResult(order, true);
         }
 
-        // 4. FIAT path: redeem stablecoin
         order = order.startRedemption();
         var redemptionResult = redemptionGateway.redeem(new RedemptionRequest(
                 order.payoutId(), stablecoin.ticker(), redeemedAmount, order.appliedFxRate()));
 
-        // 5. Complete redemption with fiat amount
         order = order.completeRedemption(redemptionResult.fiatReceived());
 
-        // 5a. Save order before child records (FK constraint)
         order = payoutOrderRepository.save(order);
 
-        // 6. Record StablecoinRedemption
         var redemption = StablecoinRedemption.create(
                 order.payoutId(), stablecoin, redeemedAmount,
                 redemptionResult.fiatReceived(), redemptionResult.fiatCurrency(),
                 offRampPartner.partnerName(), redemptionResult.partnerReference());
         stablecoinRedemptionRepository.save(redemption);
 
-        // 7. Publish StablecoinRedeemedEvent via outbox
         eventPublisher.publish(new StablecoinRedeemedEvent(
                 redemption.redemptionId(),
                 order.payoutId(),
@@ -101,7 +93,6 @@ public class PayoutCommandHandler {
                 redemptionResult.fiatCurrency(),
                 redemptionResult.redeemedAt()));
 
-        // 8. Initiate fiat payout with partner
         var payoutResult = payoutPartnerGateway.initiatePayout(
                 new com.stablecoin.payments.offramp.domain.port.PayoutRequest(
                         order.payoutId(),
@@ -112,10 +103,8 @@ public class PayoutCommandHandler {
                         paymentRail,
                         offRampPartner));
 
-        // 9. Transition to PAYOUT_INITIATED
         order = order.initiatePayout(payoutResult.partnerReference());
 
-        // 10. Record OffRampTransaction for audit trail
         var offRampTxn = OffRampTransaction.create(
                 order.payoutId(),
                 offRampPartner.partnerName(),
@@ -126,10 +115,8 @@ public class PayoutCommandHandler {
                 null);
         offRampTransactionRepository.save(offRampTxn);
 
-        // 11. Save payout order (final state)
         order = payoutOrderRepository.save(order);
 
-        // 12. Publish FiatPayoutInitiatedEvent via outbox
         eventPublisher.publish(new FiatPayoutInitiatedEvent(
                 order.payoutId(),
                 paymentId,

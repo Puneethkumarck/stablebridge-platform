@@ -1,7 +1,8 @@
 package com.stablecoin.payments.fx.application.controller;
 
 import com.stablecoin.payments.fx.api.response.LiquidityPoolResponse;
-import com.stablecoin.payments.fx.application.service.LiquidityPoolApplicationService;
+import com.stablecoin.payments.fx.application.mapper.FxResponseMapper;
+import com.stablecoin.payments.fx.domain.service.LiquidityPoolQueryHandler;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,17 +19,20 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class LiquidityPoolController {
 
-    private final LiquidityPoolApplicationService liquidityPoolApplicationService;
+    private final LiquidityPoolQueryHandler queryHandler;
+    private final FxResponseMapper responseMapper;
 
     @GetMapping("/pools")
     public List<LiquidityPoolResponse> listPools() {
         log.info("GET /v1/liquidity/pools");
-        return liquidityPoolApplicationService.listPools();
+        return queryHandler.listPools().stream()
+                .map(responseMapper::toResponse)
+                .toList();
     }
 
     @GetMapping("/pools/{poolId}")
     public LiquidityPoolResponse getPool(@PathVariable UUID poolId) {
         log.info("GET /v1/liquidity/pools/{}", poolId);
-        return liquidityPoolApplicationService.getPool(poolId);
+        return responseMapper.toResponse(queryHandler.getPool(poolId));
     }
 }

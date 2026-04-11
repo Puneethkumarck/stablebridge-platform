@@ -71,7 +71,7 @@ final class SdnXmlParser {
                             aliases.add(alias);
                         }
                     }
-                    default -> { /* skip unknown elements */ }
+                    default -> { }
                 }
             } else if (event == XMLStreamConstants.END_ELEMENT && "sdnEntry".equals(reader.getLocalName())) {
                 break;
@@ -98,7 +98,7 @@ final class SdnXmlParser {
                     case "category" -> category = readText(reader);
                     case "firstName" -> firstName = readText(reader);
                     case "lastName" -> lastName = readText(reader);
-                    default -> { /* skip unknown elements */ }
+                    default -> { }
                 }
             } else if (event == XMLStreamConstants.END_ELEMENT && "aka".equals(reader.getLocalName())) {
                 break;

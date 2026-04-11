@@ -19,26 +19,21 @@ public class LockService {
                                 LiquidityPool pool) {
         log.info("Locking rate for quote={} payment={}", quote.quoteId(), paymentId);
 
-        // Validate quote is lockable
         if (!quote.isActive()) {
             throw new IllegalStateException("Quote %s is not active (status=%s)"
                     .formatted(quote.quoteId(), quote.status()));
         }
 
-        // Check liquidity
         if (!pool.hasSufficientLiquidity(quote.targetAmount())) {
             throw new IllegalStateException(
                     "Insufficient liquidity in pool %s for amount %s (available=%s)"
                             .formatted(pool.poolId(), quote.targetAmount(), pool.availableBalance()));
         }
 
-        // Lock the quote
         var lockedQuote = quote.lock();
 
-        // Create the rate lock
         var lock = FxRateLock.fromQuote(quote, paymentId, correlationId, sourceCountry, targetCountry);
 
-        // Reserve liquidity
         var updatedPool = pool.reserve(quote.targetAmount());
 
         log.info("Locked rate: lock={} rate={} expires={}", lock.lockId(), lock.lockedRate(), lock.expiresAt());

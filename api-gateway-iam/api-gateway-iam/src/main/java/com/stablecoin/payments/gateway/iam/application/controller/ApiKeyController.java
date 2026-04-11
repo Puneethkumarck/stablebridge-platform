@@ -42,7 +42,7 @@ public class ApiKeyController {
                 request.merchantId(), request.name(), request.environment());
 
         var environment = ApiKeyEnvironment.valueOf(request.environment().toUpperCase());
-        Instant expiresAt = request.expiresInSeconds() != null
+        var expiresAt = request.expiresInSeconds() != null
                 ? Instant.now().plusSeconds(request.expiresInSeconds())
                 : null;
 

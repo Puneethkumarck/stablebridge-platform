@@ -29,7 +29,6 @@ import java.util.UUID;
 import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoring;
 import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoringTimestamps;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
@@ -92,7 +91,6 @@ class MerchantCommandHandlerTest {
         @Test
         void shouldRegisterNewMerchant() {
             var externalId = UUID.randomUUID();
-            given(merchantRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
 
             var expected = Merchant.builder()
                     .externalId(externalId)
@@ -105,6 +103,8 @@ class MerchantCommandHandlerTest {
                     .rateLimitTier(RateLimitTier.STARTER)
                     .version(0L)
                     .build();
+            given(merchantRepository.save(eqIgnoring(expected, "merchantId")))
+                    .willAnswer(inv -> inv.getArgument(0));
 
             merchantCommandHandler.register(externalId, "Test Corp", "US",
                     List.of("payments:read"), List.of(new Corridor("US", "DE")));
@@ -114,9 +114,9 @@ class MerchantCommandHandlerTest {
 
         @Test
         void shouldHandleNullScopesAndCorridors() {
-            given(merchantRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
-
+            var externalId = UUID.randomUUID();
             var expected = Merchant.builder()
+                    .externalId(externalId)
                     .name("Test Corp")
                     .country("US")
                     .scopes(List.of())
@@ -126,10 +126,12 @@ class MerchantCommandHandlerTest {
                     .rateLimitTier(RateLimitTier.STARTER)
                     .version(0L)
                     .build();
+            given(merchantRepository.save(eqIgnoring(expected, "merchantId")))
+                    .willAnswer(inv -> inv.getArgument(0));
 
-            merchantCommandHandler.register(UUID.randomUUID(), "Test Corp", "US", null, null);
+            merchantCommandHandler.register(externalId, "Test Corp", "US", null, null);
 
-            then(merchantRepository).should().save(eqIgnoring(expected, "merchantId", "externalId"));
+            then(merchantRepository).should().save(eqIgnoring(expected, "merchantId"));
         }
     }
 
@@ -142,12 +144,13 @@ class MerchantCommandHandlerTest {
             var externalId = UUID.randomUUID();
             var merchant = pendingMerchant(externalId);
             given(merchantRepository.findByExternalId(externalId)).willReturn(Optional.of(merchant));
-            given(merchantRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
 
             var expected = merchant.toBuilder()
                     .status(MerchantStatus.ACTIVE)
                     .kybStatus(KybStatus.VERIFIED)
                     .build();
+            given(merchantRepository.save(eqIgnoringTimestamps(expected)))
+                    .willAnswer(inv -> inv.getArgument(0));
 
             merchantCommandHandler.activate(externalId);
 
@@ -173,11 +176,12 @@ class MerchantCommandHandlerTest {
             var externalId = UUID.randomUUID();
             var merchant = activeMerchant(externalId);
             given(merchantRepository.findByExternalId(externalId)).willReturn(Optional.of(merchant));
-            given(merchantRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
 
             var expected = merchant.toBuilder()
                     .status(MerchantStatus.SUSPENDED)
                     .build();
+            given(merchantRepository.save(eqIgnoringTimestamps(expected)))
+                    .willAnswer(inv -> inv.getArgument(0));
 
             merchantCommandHandler.suspend(externalId);
 
@@ -206,11 +210,12 @@ class MerchantCommandHandlerTest {
             var externalId = UUID.randomUUID();
             var merchant = activeMerchant(externalId);
             given(merchantRepository.findByExternalId(externalId)).willReturn(Optional.of(merchant));
-            given(merchantRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
 
             var expected = merchant.toBuilder()
                     .status(MerchantStatus.CLOSED)
                     .build();
+            given(merchantRepository.save(eqIgnoringTimestamps(expected)))
+                    .willAnswer(inv -> inv.getArgument(0));
 
             merchantCommandHandler.close(externalId);
 
@@ -255,6 +260,7 @@ class MerchantCommandHandlerTest {
             var externalId = UUID.randomUUID();
             var merchantId = UUID.randomUUID();
             var clientId = UUID.randomUUID();
+            var rawSecret = UUID.randomUUID().toString();
             var merchant = Merchant.builder()
                     .merchantId(merchantId)
                     .externalId(externalId)
@@ -270,8 +276,15 @@ class MerchantCommandHandlerTest {
                     .version(0L)
                     .build();
             given(merchantRepository.findByExternalId(externalId)).willReturn(Optional.of(merchant));
-            given(merchantRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
 
+            var activatedMerchant = merchant.toBuilder()
+                    .status(MerchantStatus.ACTIVE)
+                    .kybStatus(KybStatus.VERIFIED)
+                    .build();
+            given(merchantRepository.save(eqIgnoringTimestamps(activatedMerchant)))
+                    .willAnswer(inv -> inv.getArgument(0));
+
+            var createdAt = Instant.parse("2026-01-01T00:00:00Z");
             var oauthClient = OAuthClient.builder()
                     .clientId(clientId)
                     .merchantId(merchantId)
@@ -280,12 +293,14 @@ class MerchantCommandHandlerTest {
                     .scopes(List.of("payments:read"))
                     .grantTypes(List.of("client_credentials"))
                     .active(true)
-                    .createdAt(Instant.now())
-                    .updatedAt(Instant.now())
+                    .createdAt(createdAt)
+                    .updatedAt(createdAt)
                     .version(0L)
                     .build();
-            given(oauthClientCommandHandler.create(any(), any(), any(), any()))
-                    .willReturn(new OAuthClientCommandHandler.CreateOAuthClientResult(oauthClient, "raw-secret"));
+            given(oauthClientCommandHandler.create(
+                    merchantId, "Acme Corp Default Client",
+                    List.of("payments:read"), List.of("client_credentials")))
+                    .willReturn(new OAuthClientCommandHandler.CreateOAuthClientResult(oauthClient, rawSecret));
 
             merchantCommandHandler.activateAndProvisionOAuthClient(
                     externalId, "Acme Corp", "US", List.of("payments:read"));
@@ -293,7 +308,10 @@ class MerchantCommandHandlerTest {
             then(oauthClientCommandHandler).should().create(
                     merchantId, "Acme Corp Default Client",
                     List.of("payments:read"), List.of("client_credentials"));
-            then(eventPublisher).should().publish(any(OAuthClientProvisionedEvent.class));
+            var expectedEvent = new OAuthClientProvisionedEvent(
+                    clientId, merchantId, rawSecret, "Acme Corp Default Client",
+                    List.of("payments:read"), List.of("client_credentials"), createdAt);
+            then(eventPublisher).should().publish(expectedEvent);
         }
 
         @Test
@@ -316,7 +334,13 @@ class MerchantCommandHandlerTest {
                     .version(0L)
                     .build();
             given(merchantRepository.findByExternalId(externalId)).willReturn(Optional.of(merchant));
-            given(merchantRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+            var activatedMerchant = merchant.toBuilder()
+                    .status(MerchantStatus.ACTIVE)
+                    .kybStatus(KybStatus.VERIFIED)
+                    .build();
+            given(merchantRepository.save(eqIgnoringTimestamps(activatedMerchant)))
+                    .willAnswer(inv -> inv.getArgument(0));
 
             var oauthClient = OAuthClient.builder()
                     .clientId(clientId)
@@ -330,7 +354,9 @@ class MerchantCommandHandlerTest {
                     .updatedAt(Instant.now())
                     .version(0L)
                     .build();
-            given(oauthClientCommandHandler.create(any(), any(), any(), any()))
+            given(oauthClientCommandHandler.create(
+                    merchantId, "Test Corp Default Client",
+                    List.of("payments:read", "payments:write"), List.of("client_credentials")))
                     .willReturn(new OAuthClientCommandHandler.CreateOAuthClientResult(oauthClient, "raw-secret"));
 
             merchantCommandHandler.activateAndProvisionOAuthClient(

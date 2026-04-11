@@ -2,7 +2,9 @@ package com.stablecoin.payments.compliance.application.controller;
 
 import com.stablecoin.payments.compliance.api.request.InitiateComplianceCheckRequest;
 import com.stablecoin.payments.compliance.api.response.ComplianceCheckResponse;
-import com.stablecoin.payments.compliance.application.service.ComplianceCheckApplicationService;
+import com.stablecoin.payments.compliance.application.mapper.ComplianceCheckResponseMapper;
+import com.stablecoin.payments.compliance.domain.model.Money;
+import com.stablecoin.payments.compliance.domain.service.ComplianceCheckCommandHandler;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,19 +25,24 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ComplianceCheckController {
 
-    private final ComplianceCheckApplicationService complianceCheckApplicationService;
+    private final ComplianceCheckCommandHandler commandHandler;
+    private final ComplianceCheckResponseMapper responseMapper;
 
     @PostMapping("/check")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public ComplianceCheckResponse initiateCheck(
             @Valid @RequestBody InitiateComplianceCheckRequest request) {
         log.info("POST /v1/compliance/check paymentId={}", request.paymentId());
-        return complianceCheckApplicationService.initiateCheck(request);
+        var check = commandHandler.initiateCheck(
+                request.paymentId(), request.senderId(), request.recipientId(),
+                new Money(request.amount(), request.currency()),
+                request.sourceCountry(), request.targetCountry(), request.targetCurrency());
+        return responseMapper.toResponse(check);
     }
 
     @GetMapping("/checks/{checkId}")
     public ComplianceCheckResponse getCheck(@PathVariable UUID checkId) {
         log.info("GET /v1/compliance/checks/{}", checkId);
-        return complianceCheckApplicationService.getCheck(checkId);
+        return responseMapper.toResponse(commandHandler.getCheck(checkId));
     }
 }

@@ -52,8 +52,8 @@ public record MerchantUser(
             ));
 
     public MerchantUser acceptInvitation(String newFullName, String newPasswordHash) {
-        UserStatus newStatus = STATE_MACHINE.transition(status, ACCEPT_INVITATION);
-        Instant now = Instant.now();
+        var newStatus = STATE_MACHINE.transition(status, ACCEPT_INVITATION);
+        var now = Instant.now();
         return toBuilder()
                 .status(newStatus)
                 .fullName(newFullName)
@@ -64,8 +64,8 @@ public record MerchantUser(
     }
 
     public MerchantUser suspend() {
-        UserStatus newStatus = STATE_MACHINE.transition(status, SUSPEND);
-        Instant now = Instant.now();
+        var newStatus = STATE_MACHINE.transition(status, SUSPEND);
+        var now = Instant.now();
         return toBuilder()
                 .status(newStatus)
                 .suspendedAt(now)
@@ -74,7 +74,7 @@ public record MerchantUser(
     }
 
     public MerchantUser reactivate() {
-        UserStatus newStatus = STATE_MACHINE.transition(status, REACTIVATE);
+        var newStatus = STATE_MACHINE.transition(status, REACTIVATE);
         return toBuilder()
                 .status(newStatus)
                 .suspendedAt(null)
@@ -83,8 +83,8 @@ public record MerchantUser(
     }
 
     public MerchantUser deactivate() {
-        UserStatus newStatus = STATE_MACHINE.transition(status, DEACTIVATE);
-        Instant now = Instant.now();
+        var newStatus = STATE_MACHINE.transition(status, DEACTIVATE);
+        var now = Instant.now();
         return toBuilder()
                 .status(newStatus)
                 .deactivatedAt(now)
@@ -100,7 +100,7 @@ public record MerchantUser(
     }
 
     public MerchantUser recordLogin() {
-        Instant now = Instant.now();
+        var now = Instant.now();
         return toBuilder()
                 .lastLoginAt(now)
                 .updatedAt(now)

@@ -28,11 +28,10 @@ import java.util.UUID;
 import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoring;
 import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoringTimestamps;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willThrow;
-import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("MerchantCommandHandler")
@@ -68,7 +67,7 @@ class MerchantCommandHandlerTest {
                 null, null, List.of("GB->US"));
         given(merchantRepository.existsByRegistrationNumberAndCountry("REG-123", "GB"))
                 .willReturn(false);
-        given(merchantRepository.save(any(Merchant.class)))
+        given(merchantRepository.save(argThat((Merchant m) -> m != null)))
                 .willAnswer(inv -> inv.getArgument(0));
 
         var expectedMerchant = Merchant.createNew(
@@ -100,7 +99,7 @@ class MerchantCommandHandlerTest {
         var merchant = MerchantFixtures.appliedMerchant();
         var merchantId = merchant.getMerchantId();
         given(merchantRepository.findById(merchantId)).willReturn(Optional.of(merchant));
-        given(merchantRepository.save(any(Merchant.class)))
+        given(merchantRepository.save(argThat((Merchant m) -> m != null)))
                 .willAnswer(inv -> inv.getArgument(0));
 
         var expectedMerchant = merchant.toBuilder().build();
@@ -123,7 +122,7 @@ class MerchantCommandHandlerTest {
         var approver = MerchantFixtures.anApprover();
         var scopes = List.of("payments:read", "payments:write");
         given(merchantRepository.findById(merchantId)).willReturn(Optional.of(merchant));
-        given(merchantRepository.save(any(Merchant.class)))
+        given(merchantRepository.save(argThat((Merchant m) -> m != null)))
                 .willAnswer(inv -> inv.getArgument(0));
 
         var expectedMerchant = merchant.toBuilder().build();
@@ -162,12 +161,12 @@ class MerchantCommandHandlerTest {
         var merchantId = merchant.getMerchantId();
         given(merchantRepository.findById(merchantId)).willReturn(Optional.of(merchant));
         willThrow(new IllegalStateException("KYB not passed"))
-                .given(activationPolicy).validate(any());
+                .given(activationPolicy).validate(merchant);
 
         // when / then
         assertThatThrownBy(() -> handler.activate(merchantId, MerchantFixtures.anApprover(), List.of("payments:read")))
                 .isInstanceOf(IllegalStateException.class);
-        then(eventPublisher).should(never()).publish(any());
+        then(eventPublisher).shouldHaveNoInteractions();
     }
 
     @Test
@@ -177,7 +176,7 @@ class MerchantCommandHandlerTest {
         var merchant = MerchantFixtures.activeMerchant();
         var merchantId = merchant.getMerchantId();
         given(merchantRepository.findById(merchantId)).willReturn(Optional.of(merchant));
-        given(merchantRepository.save(any(Merchant.class)))
+        given(merchantRepository.save(argThat((Merchant m) -> m != null)))
                 .willAnswer(inv -> inv.getArgument(0));
 
         var expectedMerchant = merchant.toBuilder().build();
@@ -205,7 +204,7 @@ class MerchantCommandHandlerTest {
         var merchant = MerchantFixtures.suspendedMerchant();
         var merchantId = merchant.getMerchantId();
         given(merchantRepository.findById(merchantId)).willReturn(Optional.of(merchant));
-        given(merchantRepository.save(any(Merchant.class)))
+        given(merchantRepository.save(argThat((Merchant m) -> m != null)))
                 .willAnswer(inv -> inv.getArgument(0));
 
         var expectedMerchant = merchant.toBuilder().build();
@@ -225,7 +224,7 @@ class MerchantCommandHandlerTest {
         var merchant = MerchantFixtures.activeMerchant();
         var merchantId = merchant.getMerchantId();
         given(merchantRepository.findById(merchantId)).willReturn(Optional.of(merchant));
-        given(merchantRepository.save(any(Merchant.class)))
+        given(merchantRepository.save(argThat((Merchant m) -> m != null)))
                 .willAnswer(inv -> inv.getArgument(0));
 
         var expectedMerchant = merchant.toBuilder().build();
@@ -255,7 +254,7 @@ class MerchantCommandHandlerTest {
         var approvedBy = MerchantFixtures.anApprover();
         var expiresAt = Instant.now().plusSeconds(86400);
         given(merchantRepository.findById(merchantId)).willReturn(Optional.of(merchant));
-        given(approvedCorridorRepository.save(any(ApprovedCorridor.class)))
+        given(approvedCorridorRepository.save(argThat((ApprovedCorridor c) -> c != null)))
                 .willAnswer(inv -> inv.getArgument(0));
 
         var expectedCorridor = ApprovedCorridor.builder()

@@ -22,8 +22,7 @@ import java.util.UUID;
 
 import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoringTimestamps;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
@@ -83,21 +82,21 @@ class AuthServiceTest {
         @Test
         void shouldPersistSessionOnSuccessfulLogin() {
             var user = buildActiveUser();
+            var role = buildRole();
             given(emailHasher.hash("admin@test.com")).willReturn("hash");
             given(loginAttemptTracker.isLockedOut("hash")).willReturn(false);
             given(userRepository.findByMerchantIdAndEmailHash(MERCHANT_ID, "hash"))
                     .willReturn(Optional.of(user));
             given(passwordHasher.verify("password", null)).willReturn(true);
-            given(roleRepository.findById(ROLE_ID)).willReturn(Optional.of(buildRole()));
+            given(roleRepository.findById(ROLE_ID)).willReturn(Optional.of(role));
             given(jwtTokenIssuer.refreshTokenTtlSeconds()).willReturn(86400);
-            given(jwtTokenIssuer.issueAccessToken(any(), any(), anyBoolean())).willReturn("access");
-            given(jwtTokenIssuer.issueRefreshToken(any(), any())).willReturn("refresh");
-            given(userRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
-            given(sessionRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+            given(jwtTokenIssuer.issueAccessToken(user, role, false)).willReturn("access");
 
             authService.login(MERCHANT_ID, "admin@test.com", "password");
 
-            then(sessionRepository).should().save(any(UserSession.class));
+            then(sessionRepository).should().save(argThat((UserSession s) ->
+                    USER_ID.equals(s.userId()) && MERCHANT_ID.equals(s.merchantId())));
+            then(jwtTokenIssuer).should().issueAccessToken(user, role, false);
         }
     }
 
@@ -118,18 +117,20 @@ class AuthServiceTest {
 
         @Test
         void shouldRefreshTokenForActiveUserWithValidSession() {
+            var user = buildActiveUser();
+            var role = buildRole();
             var parsed = new JwtTokenIssuer.ParsedRefreshToken(
                     UUID.randomUUID(), USER_ID, SESSION_ID,
                     Instant.now().plusSeconds(3600).getEpochSecond());
             given(jwtTokenIssuer.parseRefreshToken("refresh-jwt")).willReturn(parsed);
             given(sessionRepository.findById(SESSION_ID)).willReturn(Optional.of(buildValidSession()));
-            given(userRepository.findById(USER_ID)).willReturn(Optional.of(buildActiveUser()));
-            given(roleRepository.findById(ROLE_ID)).willReturn(Optional.of(buildRole()));
-            given(jwtTokenIssuer.issueAccessToken(any(), any(), anyBoolean())).willReturn("new-access-token");
+            given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
+            given(roleRepository.findById(ROLE_ID)).willReturn(Optional.of(role));
+            given(jwtTokenIssuer.issueAccessToken(user, role, false)).willReturn("new-access-token");
 
             authService.refreshToken("refresh-jwt");
 
-            then(jwtTokenIssuer).should().issueAccessToken(any(), any(), anyBoolean());
+            then(jwtTokenIssuer).should().issueAccessToken(user, role, false);
         }
 
         @Test
@@ -254,12 +255,10 @@ class AuthServiceTest {
             var user = buildActiveUser();
             given(mfaProvider.verify("secret", "123456")).willReturn(true);
             given(userRepository.findById(USER_ID)).willReturn(Optional.of(user));
-            given(userRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
-
-            var expectedUser = user.enableMfa("secret");
 
             authService.activateMfa(USER_ID, "secret", "123456");
 
+            var expectedUser = user.enableMfa("secret");
             then(userRepository).should().save(eqIgnoringTimestamps(expectedUser));
         }
 

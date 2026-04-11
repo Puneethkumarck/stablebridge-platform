@@ -38,10 +38,10 @@ public class KybWebhookController {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
-    Map<String, Object> payload = webhookValidator.parsePayload(rawBody);
+    var payload = webhookValidator.parsePayload(rawBody);
     log.info("[WEBHOOK] Onfido webhook received action={}", payload.get("action"));
 
-    KybVerification result = kybProvider.handleWebhook(payload);
+    var result = kybProvider.handleWebhook(payload);
     if (result == null) {
       log.debug("[WEBHOOK] Non-check webhook ignored");
       return ResponseEntity.ok().build();
@@ -53,7 +53,6 @@ public class KybWebhookController {
       return ResponseEntity.ok().build();
     }
 
-    // Signal the Temporal workflow with the KYB result
     var signal = new KybResultSignal(result.kybId(), result.provider(), result.providerRef(), result.status().name(),
         result.riskSignals(), result.reviewNotes(), result.completedAt());
 

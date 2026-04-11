@@ -177,7 +177,6 @@ public class MerchantTeam {
 
     public InviteResult inviteUser(String email, String emailHash, String fullName,
                                    UUID roleId, UUID invitedBy, String tokenHash) {
-        // Invariant: email unique within merchant (among non-deactivated users)
         var emailExists = users.stream()
                 .anyMatch(u -> u.emailHash().equals(emailHash)
                         && u.status() != UserStatus.DEACTIVATED);
@@ -185,7 +184,6 @@ public class MerchantTeam {
             throw UserAlreadyExistsException.forMerchant(merchantId, email);
         }
 
-        // Verify role exists
         var role = findRoleById(roleId);
 
         var now = Instant.now();
@@ -254,7 +252,6 @@ public class MerchantTeam {
         }
         invitations.set(invIdx, accepted);
 
-        // Find the corresponding INVITED user by emailHash
         var userIdx = findUserIndexByEmailHash(invitation.emailHash(), UserStatus.INVITED);
         var user = users.get(userIdx);
         var activated = user.acceptInvitation(fullName, passwordHash);
@@ -284,7 +281,6 @@ public class MerchantTeam {
         var previousRoleId = user.roleId();
         var previousRole = findRoleById(previousRoleId);
 
-        // Invariant: cannot demote the last admin
         var adminRole = findRoleByName(BuiltInRole.ADMIN.name());
         if (user.isAdmin(adminRole.roleId()) && !newRoleId.equals(adminRole.roleId())) {
             var adminCount = countActiveAdmins(adminRole.roleId());
@@ -317,7 +313,6 @@ public class MerchantTeam {
         var userIdx = findUserIndex(userId);
         var user = users.get(userIdx);
 
-        // Invariant: cannot suspend the last admin
         var adminRole = findRoleByName(BuiltInRole.ADMIN.name());
         if (user.isAdmin(adminRole.roleId())) {
             var adminCount = countActiveAdmins(adminRole.roleId());
@@ -370,7 +365,6 @@ public class MerchantTeam {
         var userIdx = findUserIndex(userId);
         var user = users.get(userIdx);
 
-        // Invariant: cannot deactivate the last admin
         var adminRole = findRoleByName(BuiltInRole.ADMIN.name());
         if (user.isAdmin(adminRole.roleId()) && user.isActive()) {
             var adminCount = countActiveAdmins(adminRole.roleId());
