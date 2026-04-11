@@ -2,7 +2,7 @@
 
 # StableBridge Platform
 
-**Enterprise-grade cross-border B2B payments using a fiat → stablecoin → fiat "sandwich".** Ten microservices orchestrated with Temporal sagas, backed by Kafka event streams and PostgreSQL-per-service — moving real money through Stripe ACH, Base L2 USDC, and Modulr SEPA.
+**Enterprise-grade cross-border B2B payments using a fiat → stablecoin → fiat "sandwich".** Ten microservices orchestrated with Temporal sagas, backed by Kafka event streams and PostgreSQL-per-service — moving real money through Stripe ACH, Base L2 USDC, and Modulr Faster Payments.
 
 [![CI](https://github.com/Puneethkumarck/stablebridge-platform/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Puneethkumarck/stablebridge-platform/actions/workflows/ci.yml)
 ![Java 25](https://img.shields.io/badge/Java-25_LTS-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
@@ -12,7 +12,6 @@
 ![Temporal](https://img.shields.io/badge/Temporal-Saga-000000?style=for-the-badge&logo=temporal&logoColor=white)
 ![Redis](https://img.shields.io/badge/Redis-8-DC382D?style=for-the-badge&logo=redis&logoColor=white)
 ![Architecture](https://img.shields.io/badge/Architecture-Hexagonal-purple?style=for-the-badge)
-![Tests](https://img.shields.io/badge/Tests-2,706-success?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)
 
 [Why Stablecoin Rails?](#why-stablecoin-rails) · [The Sandwich Flow](#the-sandwich-flow) · [How a Payment Moves](#how-a-payment-moves) · [Architecture](#architecture) · [Getting Started](#getting-started)
@@ -31,19 +30,19 @@ StableBridge replaces the SWIFT rails with a **fiat → USDC → fiat sandwich**
 
 ## The Result
 
-A production-shaped payment platform where a **USD → EUR transfer clears in minutes**, every state transition is traceable across ten services, and the failure modes that break traditional rails (stuck wires, silent reject codes, manual reconciliation) are modelled as first-class saga states.
+A production-shaped payment platform where a **USD → GBP transfer clears in minutes**, every state transition is traceable across ten services, and the failure modes that break traditional rails (stuck wires, silent reject codes, manual reconciliation) are modelled as first-class saga states.
 
 <div align="center">
 
-| Metric | Value |
-|--------|-------|
-| **Services** | 10 (hexagonal + DDD + CQRS) |
-| **Tests** | 2,706 across unit / integration / business tiers |
-| **Orchestration** | Temporal workflows with LIFO compensation |
+| What | How |
+|------|-----|
+| **Services** | 10 hexagonal microservices (DDD + CQRS) |
+| **Orchestration** | Temporal workflows with LIFO saga compensation |
 | **Event Delivery** | Transactional outbox (Namastack) + Kafka |
-| **External Adapters** | 14 real provider integrations (Stripe · Modulr · Circle · Fireblocks · Onfido · Persona · Chainalysis · Companies House · …) |
-| **Sandbox Tests** | 10 adapter tests that hit real provider sandboxes |
-| **Reference Corridor** | US → DE (USD → EUR) via Stripe ACH · USDC on Base · Modulr SEPA |
+| **External Adapters** | Real provider integrations — Stripe · Modulr · Circle · Fireblocks · Onfido · Persona · Chainalysis · Companies House · Notabene · WorldCheck · OFAC SDN · Frankfurter · Refinitiv |
+| **Sandbox Adapter Tests** | Real API calls into provider sandboxes behind `make sandbox-test` |
+| **Sandbox-verified Corridor** | US → UK (USD → GBP) via Stripe ACH · USDC on Base L2 · Modulr Faster Payments |
+| **Additional rails** | Modulr SEPA (EUR) — code-complete, not sandbox-verified |
 
 </div>
 
@@ -79,7 +78,7 @@ Traditional correspondent banking is a relay race between banks that don't trust
 > **🎬 A Day in the Life of a SWIFT Transfer**
 
 ```text
- 🏢 Sender Bank (NYC)  ──→  "MT103 for $10,000 → Munich"
+ 🏢 Sender Bank (NYC)  ──→  "MT103 for $10,000 → London"
  📨 Correspondent #1   ──→  "Received, holding 24h for compliance"
  📨 Correspondent #2   ──→  "FX'd at internal rate + 2.5%"
  📨 Correspondent #3   ──→  "Cut-off missed — retry Monday"
@@ -87,7 +86,7 @@ Traditional correspondent banking is a relay race between banks that don't trust
                             ⏳ ... 3 business days later ...
 
  🏢 Recipient Bank     ──→  "Funds landed. Minus $85 in fees."
- 📉 Sender             ──→  "Was it 9,300 or 9,350 EUR? Ask ops."
+ 📉 Sender             ──→  "Was it 7,550 or 7,600 GBP? Ask ops."
  😤 Ops Team           ──→  "Manual reconciliation, 40 minutes per wire"
 ```
 
@@ -117,8 +116,8 @@ flowchart LR
         direction TB
         B1["💵 Collect USD<br/>(Stripe ACH)"] --> B2["🔗 Convert to USDC"]
         B2 --> B3["⚡ Transfer on Base L2<br/>(seconds)"]
-        B3 --> B4["💶 Redeem USDC<br/>(Circle)"]
-        B4 --> B5["🏦 Pay out EUR<br/>(Modulr SEPA)"]
+        B3 --> B4["💷 Redeem USDC<br/>(Circle)"]
+        B4 --> B5["🏦 Pay out GBP<br/>(Modulr Faster Payments)"]
     end
 
     SWIFT ~~~ SB
@@ -135,7 +134,7 @@ The name says it: **fiat bread, stablecoin filling**. Three phases, two value tr
  │                                                                           │
  │   🥪  THE STABLECOIN SANDWICH                                             │
  │                                                                           │
- │   💵 Sender USD          🔗 USDC on Base L2          💶 Recipient EUR    │
+ │   💵 Sender USD          🔗 USDC on Base L2          💷 Recipient GBP    │
  │   ──────────────         ─────────────────           ──────────────      │
  │        │                         │                         ▲            │
  │        │    [S3 On-Ramp]         │    [S5 Off-Ramp]       │            │
@@ -145,7 +144,7 @@ The name says it: **fiat bread, stablecoin filling**. Three phases, two value tr
  │   │  ACH   │            │   on Base L2  │             │ + Modulr│      │
  │   └────────┘            └───────────────┘             └────────┘       │
  │                                                                           │
- │   ⏱️ Hours (ACH)          ⚡ ~1 block finality        ⏱️ SEPA clearing   │
+ │   ⏱️ Hours (ACH)          ⚡ ~1 block finality        ⏱️ FPS near-instant │
  │                                                                           │
  │   🧠 All orchestrated by S1 Payment Orchestrator (Temporal saga)         │
  │   🧾 Every state change double-entered by S7 Ledger                      │
@@ -158,8 +157,8 @@ The name says it: **fiat bread, stablecoin filling**. Three phases, two value tr
 graph LR
     A["💵 Sender<br/>(USD)"] --> B["🏢 S3 Fiat On-Ramp<br/>(Stripe ACH)"]
     B -- "USD collected" --> C["🔗 S4 Blockchain<br/>(USDC on Base L2)"]
-    C -- "USDC transferred" --> D["🏦 S5 Fiat Off-Ramp<br/>(Circle redeem → Modulr SEPA)"]
-    D -- "EUR paid out" --> E["💶 Recipient<br/>(EUR)"]
+    C -- "USDC transferred" --> D["🏦 S5 Fiat Off-Ramp<br/>(Circle redeem → Modulr FPS)"]
+    D -- "GBP paid out" --> E["💷 Recipient<br/>(GBP)"]
 
     style A fill:#4CAF50,color:#fff
     style B fill:#00BCD4,color:#fff
@@ -168,7 +167,7 @@ graph LR
     style E fill:#4CAF50,color:#fff
 ```
 
-> **📌 Reference corridor:** `US → DE`, `USD → EUR`. Covered end-to-end by [`Phase3PaymentE2ETest`](phase3-integration-tests/src/test/java/com/stablecoin/payments/phase3/Phase3PaymentE2ETest.java) against a full Docker Compose stack of all seven value-movement services.
+> **📌 Sandbox-verified corridor:** `US → UK`, `USD → GBP`. The first end-to-end payment that actually cleared through all seven value-movement services was a `$5.00 USD → £3.73 GBP` transfer against the real Modulr sandbox (GBP Faster Payments · SCAN destination). The Modulr sandbox is GBP-only — the adapter's SEPA/EUR code path is exercised by [`Phase3PaymentE2ETest`](phase3-integration-tests/src/test/java/com/stablecoin/payments/phase3/Phase3PaymentE2ETest.java) against WireMock stubs but has not been verified against a live Modulr EU account.
 
 ---
 
@@ -186,7 +185,7 @@ A `POST /payments` doesn't just return 201 — it starts a **Temporal workflow**
                   ✅ PASSED — screened against OFAC, Chainalysis, Notabene
 
  ⏱️ T+120ms    [2] 💱  Lock FX rate      (S6)  ─── sync activity
-                  ✅ LOCKED — USD→EUR rate held for 5 minutes
+                  ✅ LOCKED — USD→GBP rate held for 5 minutes
 
  ⏱️ T+180ms    [3] 💵  Initiate collect  (S3)  ─── sync activity
                   ⏳ Stripe ACH in flight — workflow sleeps durably
@@ -201,8 +200,8 @@ A `POST /payments` doesn't just return 201 — it starts a **Temporal workflow**
  ⏱️ T+~30s     [6] 📡  chain.confirmed signal  →  workflow wakes
                   ✅ USDC landed on recipient wallet
 
- ⏱️ T+2s       [7] 💶  Initiate payout   (S5)  ─── sync activity
-                  🏦 Circle redeems USDC → Modulr SEPA payout
+ ⏱️ T+2s       [7] 💷  Initiate payout   (S5)  ─── sync activity
+                  🏦 Circle redeems USDC → Modulr Faster Payments payout
                   ⏳ Wait for fiat.payout.completed signal
 
  ⏱️ T+minutes  📨  payout.completed signal  →  workflow wakes
@@ -311,6 +310,12 @@ flowchart TB
 
 ## Architecture
 
+<p align="center">
+  <img src="documentation/architecture.png" alt="StableBridge Platform — enterprise architecture diagram showing clients, API gateway, identity services, payment core with Temporal saga and LIFO compensation, the fiat-to-stablecoin-to-fiat sandwich flow, external providers, and the infrastructure layer" width="100%">
+</p>
+
+<p align="center"><sub>The full enterprise-level view: clients, gateway, identity, payment core with Temporal saga + LIFO compensation, the fiat → USDC → fiat sandwich, external providers (Stripe, Modulr, Circle, Fireblocks, Onfido, Persona, Chainalysis, Notabene, WorldCheck, OFAC SDN, Companies House, Frankfurter, Refinitiv), and the infrastructure layer (PostgreSQL, TimescaleDB, Redpanda, Redis, Temporal, Vault, Prometheus, Jaeger).</sub></p>
+
 StableBridge follows **Hexagonal Architecture (Ports &amp; Adapters)** with DDD tactical patterns, CQRS at the handler boundary, and event-driven propagation via a transactional outbox. Every service is shaped the same way so you can read one and you've read them all.
 
 | Decision | Why |
@@ -350,7 +355,7 @@ graph TB
         subgraph Value["Value Movement"]
             S3["<b>S3</b> Fiat<br/>On-Ramp<br/><i>Stripe ACH</i>"]
             S4["<b>S4</b> Blockchain<br/>&amp; Custody<br/><i>USDC · Fireblocks · EVM · Solana</i>"]
-            S5["<b>S5</b> Fiat<br/>Off-Ramp<br/><i>Circle redeem · Modulr SEPA</i>"]
+            S5["<b>S5</b> Fiat<br/>Off-Ramp<br/><i>Circle redeem · Modulr FPS</i>"]
             S7["<b>S7</b> Ledger &amp;<br/>Accounting<br/><i>Double-entry · Reconciliation</i>"]
         end
     end
@@ -358,7 +363,7 @@ graph TB
     subgraph External["External Providers"]
         direction LR
         STRIPE["Stripe<br/>(ACH)"]
-        MODULR["Modulr<br/>(SEPA)"]
+        MODULR["Modulr<br/>(Faster Payments)"]
         CIRCLE["Circle<br/>(USDC redeem)"]
         FB["Fireblocks<br/>(MPC custody)"]
         ONFIDO["Onfido<br/>(KYC / KYB)"]
@@ -384,7 +389,7 @@ graph TB
     S1 -.->|"events"| S7
 
     S3 -. "ACH" .-> STRIPE
-    S5 -. "SEPA" .-> MODULR
+    S5 -. "FPS" .-> MODULR
     S5 -. "USDC" .-> CIRCLE
     S4 -. "MPC" .-> FB
     S2 -. "KYC" .-> ONFIDO
@@ -475,20 +480,20 @@ The transactional outbox pattern is used everywhere state changes need to fan ou
 
 All ten services are fully implemented, hexagonal, ArchUnit-enforced, and buildable Gradle modules in [`settings.gradle.kts`](settings.gradle.kts).
 
-| # | Service | Responsibility | Tests | External Adapters |
-|:---:|---|---|:---:|---|
-| **S1** | [Payment Orchestrator](payment-orchestrator/) | Temporal saga · LIFO compensation · payment state machine | `192` | — (orchestration only) |
-| **S2** | [Compliance &amp; Travel Rule](compliance-travel-rule/) | KYC · sanctions · AML/KYT · FATF Travel Rule | `276` | Onfido · Persona · WorldCheck · OFAC SDN · Chainalysis · Notabene |
-| **S3** | [Fiat On-Ramp](fiat-on-ramp/) | ACH collection · webhook relay · refund path | `268` | Stripe |
-| **S4** | [Blockchain &amp; Custody](blockchain-custody/) | USDC transfers · MPC signing · nonce mgmt · chain selection | `387` | Fireblocks · EVM RPC · Solana RPC · local dev (web3j) |
-| **S5** | [Fiat Off-Ramp](fiat-off-ramp/) | USDC redemption · SEPA payout | `282` | Circle · Modulr |
-| **S6** | [FX &amp; Liquidity Engine](fx-liquidity-engine/) | Rate quoting with margin · rate locking · history | `272` | Frankfurter · Refinitiv · Redis rate cache |
-| **S7** | [Ledger &amp; Accounting](ledger-accounting/) | Double-entry bookkeeping · event-sourced reconciliation | `335` | — |
-| **S10** | [API Gateway &amp; IAM](api-gateway-iam/) | OAuth2 · API key auth · rate limiting · audit filters · JWKS | `292` | — |
-| **S11** | [Merchant Onboarding](merchant-onboarding/) | KYB verification · onboarding Temporal workflow · approved corridors | `114` | Onfido · Companies House |
-| **S13** | [Merchant IAM](merchant-iam/) | Roles · permissions · JWT (ES256) · TOTP MFA · Redis sessions | `288` | — |
+| # | Service | Responsibility | External Adapters |
+|:---:|---|---|---|
+| **S1** | [Payment Orchestrator](payment-orchestrator/) | Temporal saga · LIFO compensation · payment state machine | — (orchestration only) |
+| **S2** | [Compliance &amp; Travel Rule](compliance-travel-rule/) | KYC · sanctions · AML/KYT · FATF Travel Rule | Onfido · Persona · WorldCheck · OFAC SDN · Chainalysis · Notabene |
+| **S3** | [Fiat On-Ramp](fiat-on-ramp/) | ACH collection · webhook relay · refund path | Stripe |
+| **S4** | [Blockchain &amp; Custody](blockchain-custody/) | USDC transfers · MPC signing · nonce mgmt · chain selection | Fireblocks · EVM RPC · Solana RPC · local dev (web3j) |
+| **S5** | [Fiat Off-Ramp](fiat-off-ramp/) | USDC redemption · Faster Payments (GBP) / SEPA (EUR) payout | Circle · Modulr |
+| **S6** | [FX &amp; Liquidity Engine](fx-liquidity-engine/) | Rate quoting with margin · rate locking · history | Frankfurter · Refinitiv · Redis rate cache |
+| **S7** | [Ledger &amp; Accounting](ledger-accounting/) | Double-entry bookkeeping · event-sourced reconciliation | — |
+| **S10** | [API Gateway &amp; IAM](api-gateway-iam/) | OAuth2 · API key auth · rate limiting · audit filters · JWKS | — |
+| **S11** | [Merchant Onboarding](merchant-onboarding/) | KYB verification · onboarding Temporal workflow · approved corridors | Onfido · Companies House |
+| **S13** | [Merchant IAM](merchant-iam/) | Roles · permissions · JWT (ES256) · TOTP MFA · Redis sessions | — |
 
-> **2,706 tests** across the ten services (unit + integration + business tiers). Add `platform-infra` (30), `phase2-integration-tests` (5), and `phase3-integration-tests` (3) for platform-wide coverage.
+Every service carries its own unit, integration, and business test tiers with ArchUnit rules enforcing hexagonal boundaries. See [Testing Strategy](#testing-strategy) for conventions.
 
 ---
 
