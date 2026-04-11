@@ -10,13 +10,6 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Redis-backed MFA challenge store.
- * Key:   {@code mfa:challenge:{challengeId}}
- * Value: {@code userId:merchantId:emailHash}
- * TTL:   5 minutes (challenges expire)
- * The key is consumed (deleted) on first successful read — one-time use.
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor

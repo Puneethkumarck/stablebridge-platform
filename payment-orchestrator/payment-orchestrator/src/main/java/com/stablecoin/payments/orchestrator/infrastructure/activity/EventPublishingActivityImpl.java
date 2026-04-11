@@ -13,13 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 
-/**
- * Temporal activity implementation that publishes payment events via Namastack outbox.
- * <p>
- * Each invocation runs in its own transaction so the outbox write is atomic.
- * The {@link PaymentEventPublisher} uses {@code @Transactional(propagation = MANDATORY)},
- * which joins this activity's transaction.
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor

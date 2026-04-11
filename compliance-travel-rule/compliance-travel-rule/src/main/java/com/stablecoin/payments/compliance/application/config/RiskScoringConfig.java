@@ -7,10 +7,6 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.Map;
 
-/**
- * Configuration for the risk scoring engine.
- * Maps {@code app.compliance.risk-scoring.*} properties to {@link RiskScoringWeights}.
- */
 @Configuration
 public class RiskScoringConfig {
 
@@ -37,10 +33,6 @@ public class RiskScoringConfig {
                 .build();
     }
 
-    /**
-     * Mutable properties bean for Spring Boot's {@code @ConfigurationProperties} binding.
-     * Defaults match {@link RiskScoringWeights#defaults()}.
-     */
     public static class RiskScoringProperties {
         private int kycTier1Penalty = RiskScoringWeights.DEFAULT_KYC_TIER1_PENALTY;
         private int highValuePenalty = RiskScoringWeights.DEFAULT_HIGH_VALUE_PENALTY;

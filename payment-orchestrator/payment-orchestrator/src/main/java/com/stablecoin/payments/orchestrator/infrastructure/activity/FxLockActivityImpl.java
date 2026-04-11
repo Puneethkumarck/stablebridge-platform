@@ -16,13 +16,6 @@ import org.springframework.stereotype.Component;
 import static com.stablecoin.payments.orchestrator.domain.workflow.activity.FxLockResult.FxLockStatus.FAILED;
 import static com.stablecoin.payments.orchestrator.domain.workflow.activity.FxLockResult.FxLockStatus.LOCKED;
 
-/**
- * Temporal activity implementation that calls S6 FX &amp; Liquidity Engine via REST.
- * <p>
- * Flow: GET quote → POST lock rate. Compensation releases the lock.
- * <p>
- * Idempotency key: {@code {paymentId}:fx-lock}
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -36,7 +29,6 @@ public class FxLockActivityImpl implements FxLockActivity {
                 request.paymentId(), request.sourceAmount(),
                 request.sourceCurrency(), request.targetCurrency());
 
-        // Step 1: Get quote (4xx = non-retryable corridor/validation error)
         var quote = fxEngineClient.getQuote(
                 request.sourceCurrency(),
                 request.targetCurrency(),
@@ -45,7 +37,6 @@ public class FxLockActivityImpl implements FxLockActivity {
         log.info("Quote received for paymentId={}, quoteId={}, rate={}",
                 request.paymentId(), quote.quoteId(), quote.rate());
 
-        // Step 2: Lock the quoted rate (paymentId used as correlationId for idempotency)
         var lockRequest = new FxRateLockRequest(
                 request.paymentId(),
                 request.paymentId(),

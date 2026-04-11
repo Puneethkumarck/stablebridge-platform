@@ -12,18 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * PostgreSQL-backed implementation of {@link NonceRepository}.
- * <p>
- * Uses {@code pg_advisory_xact_lock} for transaction-scoped locking to serialize
- * nonce assignment per wallet. The lock key is derived from the wallet UUID via
- * {@code hashtext()} to produce a stable 32-bit integer key. The lock is automatically
- * released when the transaction commits or rolls back.
- * <p>
- * The blocking advisory lock + upsert + atomic increment pattern guarantees
- * unique, sequential nonce assignment even under concurrent load. Concurrent
- * callers will wait until the lock is released rather than failing immediately.
- */
 @Slf4j
 @Repository
 @RequiredArgsConstructor

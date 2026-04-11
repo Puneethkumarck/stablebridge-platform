@@ -31,17 +31,6 @@ import static com.stablecoin.payments.onramp.domain.model.CollectionTrigger.REFU
 import static com.stablecoin.payments.onramp.domain.model.CollectionTrigger.REFUND_PROCESSING_STARTED;
 import static com.stablecoin.payments.onramp.domain.model.CollectionTrigger.START_REFUND;
 
-/**
- * Aggregate root for a fiat collection order.
- * <p>
- * Enforces the collection lifecycle via an internal state machine:
- * {@code PENDING -> PAYMENT_INITIATED -> AWAITING_CONFIRMATION -> COLLECTED}.
- * <p>
- * Handles edge cases: amount mismatches, manual review escalation,
- * and refund flows for compensation.
- * <p>
- * Immutable record — all state transitions return new instances via {@code toBuilder()}.
- */
 @Builder(toBuilder = true, access = AccessLevel.PACKAGE)
 public record CollectionOrder(
         UUID collectionId,
@@ -67,29 +56,22 @@ public record CollectionOrder(
 
     private static final StateMachine<CollectionStatus, CollectionTrigger> STATE_MACHINE =
             new StateMachine<>(List.of(
-                    // -- Happy path -----------------------------------------------
                     new StateTransition<>(PENDING, INITIATE_PAYMENT, PAYMENT_INITIATED),
                     new StateTransition<>(PAYMENT_INITIATED, PSP_SESSION_CREATED, AWAITING_CONFIRMATION),
                     new StateTransition<>(AWAITING_CONFIRMATION, PAYMENT_CONFIRMED, COLLECTED),
 
-                    // -- Failure paths --------------------------------------------
                     new StateTransition<>(AWAITING_CONFIRMATION, PAYMENT_TIMEOUT, COLLECTION_FAILED),
                     new StateTransition<>(AWAITING_CONFIRMATION, AMOUNT_MISMATCH_DETECTED, AMOUNT_MISMATCH),
                     new StateTransition<>(AMOUNT_MISMATCH, ESCALATE_MANUAL_REVIEW, MANUAL_REVIEW),
                     new StateTransition<>(PENDING, FAIL, COLLECTION_FAILED),
                     new StateTransition<>(PAYMENT_INITIATED, FAIL, COLLECTION_FAILED),
 
-                    // -- Refund paths (compensation) ------------------------------
                     new StateTransition<>(COLLECTED, START_REFUND, REFUND_INITIATED),
                     new StateTransition<>(REFUND_INITIATED, REFUND_PROCESSING_STARTED, REFUND_PROCESSING),
                     new StateTransition<>(REFUND_PROCESSING, REFUND_COMPLETED, REFUNDED)
             ));
 
-    // -- Factory Method ---------------------------------------------------
 
-    /**
-     * Creates a new collection order in PENDING state.
-     */
     public static CollectionOrder initiate(UUID paymentId, UUID correlationId,
                                            Money amount, PaymentRail paymentRail,
                                            PspIdentifier psp, BankAccount senderAccount) {
@@ -128,11 +110,7 @@ public record CollectionOrder(
                 .build();
     }
 
-    // -- State Transition Methods -----------------------------------------
 
-    /**
-     * Initiates payment with PSP. Transitions PENDING -> PAYMENT_INITIATED.
-     */
     public CollectionOrder initiatePayment() {
         assertNotTerminal();
         var nextState = STATE_MACHINE.transition(status, INITIATE_PAYMENT);
@@ -142,9 +120,6 @@ public record CollectionOrder(
                 .build();
     }
 
-    /**
-     * Records PSP session creation. Transitions PAYMENT_INITIATED -> AWAITING_CONFIRMATION.
-     */
     public CollectionOrder awaitConfirmation(String pspReference) {
         assertNotTerminal();
         if (pspReference == null || pspReference.isBlank()) {
@@ -158,9 +133,6 @@ public record CollectionOrder(
                 .build();
     }
 
-    /**
-     * Confirms collection. Transitions AWAITING_CONFIRMATION -> COLLECTED.
-     */
     public CollectionOrder confirmCollection(Money collectedAmount) {
         assertNotTerminal();
         if (collectedAmount == null) {
@@ -175,9 +147,6 @@ public record CollectionOrder(
                 .build();
     }
 
-    /**
-     * Fails the collection. Can be triggered from PENDING or PAYMENT_INITIATED.
-     */
     public CollectionOrder failCollection(String reason, String errorCode) {
         var nextState = STATE_MACHINE.transition(status, FAIL);
         return toBuilder()
@@ -188,10 +157,6 @@ public record CollectionOrder(
                 .build();
     }
 
-    /**
-     * Marks collection as timed out / PSP-rejected from AWAITING_CONFIRMATION.
-     * Transitions AWAITING_CONFIRMATION -> COLLECTION_FAILED.
-     */
     public CollectionOrder timeoutCollection(String reason, String errorCode) {
         var nextState = STATE_MACHINE.transition(status, PAYMENT_TIMEOUT);
         return toBuilder()
@@ -202,9 +167,6 @@ public record CollectionOrder(
                 .build();
     }
 
-    /**
-     * Detects amount mismatch. Transitions AWAITING_CONFIRMATION -> AMOUNT_MISMATCH.
-     */
     public CollectionOrder detectAmountMismatch() {
         assertNotTerminal();
         var nextState = STATE_MACHINE.transition(status, AMOUNT_MISMATCH_DETECTED);
@@ -214,9 +176,6 @@ public record CollectionOrder(
                 .build();
     }
 
-    /**
-     * Escalates to manual review. Transitions AMOUNT_MISMATCH -> MANUAL_REVIEW.
-     */
     public CollectionOrder escalateToManualReview() {
         assertNotTerminal();
         var nextState = STATE_MACHINE.transition(status, ESCALATE_MANUAL_REVIEW);
@@ -226,9 +185,6 @@ public record CollectionOrder(
                 .build();
     }
 
-    /**
-     * Initiates refund (compensation). Transitions COLLECTED -> REFUND_INITIATED.
-     */
     public CollectionOrder initiateRefund() {
         assertNotTerminal();
         var nextState = STATE_MACHINE.transition(status, START_REFUND);
@@ -238,9 +194,6 @@ public record CollectionOrder(
                 .build();
     }
 
-    /**
-     * Starts refund processing. Transitions REFUND_INITIATED -> REFUND_PROCESSING.
-     */
     public CollectionOrder startRefundProcessing() {
         assertNotTerminal();
         var nextState = STATE_MACHINE.transition(status, REFUND_PROCESSING_STARTED);
@@ -250,9 +203,6 @@ public record CollectionOrder(
                 .build();
     }
 
-    /**
-     * Completes refund. Transitions REFUND_PROCESSING -> REFUNDED.
-     */
     public CollectionOrder completeRefund() {
         assertNotTerminal();
         var nextState = STATE_MACHINE.transition(status, REFUND_COMPLETED);
@@ -262,23 +212,15 @@ public record CollectionOrder(
                 .build();
     }
 
-    // -- Query Methods ----------------------------------------------------
 
-    /**
-     * Returns true if this collection order is in a terminal state.
-     */
     public boolean isTerminal() {
         return TERMINAL_STATES.contains(status);
     }
 
-    /**
-     * Returns true if a given trigger can be applied from the current state.
-     */
     public boolean canApply(CollectionTrigger trigger) {
         return STATE_MACHINE.canTransition(status, trigger);
     }
 
-    // -- Invariant Guards -------------------------------------------------
 
     private void assertNotTerminal() {
         if (isTerminal()) {

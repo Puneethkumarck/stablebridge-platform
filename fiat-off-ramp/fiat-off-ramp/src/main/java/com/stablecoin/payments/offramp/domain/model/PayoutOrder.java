@@ -32,18 +32,6 @@ import static com.stablecoin.payments.offramp.domain.model.PayoutTrigger.INITIAT
 import static com.stablecoin.payments.offramp.domain.model.PayoutTrigger.MARK_PAYOUT_PROCESSING;
 import static com.stablecoin.payments.offramp.domain.model.PayoutTrigger.START_REDEMPTION;
 
-/**
- * Aggregate root for a fiat off-ramp payout order.
- * <p>
- * Enforces the payout lifecycle via an internal state machine:
- * {@code PENDING -> REDEEMING -> REDEEMED -> PAYOUT_INITIATED -> PAYOUT_PROCESSING -> COMPLETED}.
- * <p>
- * For HOLD_STABLECOIN type: {@code PENDING -> STABLECOIN_HELD -> COMPLETED}.
- * <p>
- * Failure paths lead to REDEMPTION_FAILED or PAYOUT_FAILED, both of which can escalate to MANUAL_REVIEW.
- * <p>
- * Immutable record — all state transitions return new instances via {@code toBuilder()}.
- */
 @Builder(toBuilder = true, access = AccessLevel.PACKAGE)
 public record PayoutOrder(
         UUID payoutId,
@@ -74,37 +62,28 @@ public record PayoutOrder(
 
     private static final Set<PayoutStatus> TERMINAL_STATES = Set.of(COMPLETED, MANUAL_REVIEW);
 
-    /** Fiat payout tolerance: fiat_amount must match redeemed * fx_rate within ±0.01 */
     private static final BigDecimal FIAT_AMOUNT_TOLERANCE = new BigDecimal("0.01");
 
     private static final StateMachine<PayoutStatus, PayoutTrigger> STATE_MACHINE =
             new StateMachine<>(List.of(
-                    // -- Fiat happy path ------------------------------------------
                     new StateTransition<>(PENDING, START_REDEMPTION, REDEEMING),
                     new StateTransition<>(REDEEMING, COMPLETE_REDEMPTION, REDEEMED),
                     new StateTransition<>(REDEEMED, INITIATE_PAYOUT, PAYOUT_INITIATED),
                     new StateTransition<>(PAYOUT_INITIATED, MARK_PAYOUT_PROCESSING, PAYOUT_PROCESSING),
                     new StateTransition<>(PAYOUT_PROCESSING, COMPLETE_PAYOUT, COMPLETED),
 
-                    // -- Redemption failure ----------------------------------------
                     new StateTransition<>(REDEEMING, FAIL_REDEMPTION, REDEMPTION_FAILED),
                     new StateTransition<>(REDEMPTION_FAILED, ESCALATE_MANUAL_REVIEW, MANUAL_REVIEW),
 
-                    // -- Payout failure --------------------------------------------
                     new StateTransition<>(PAYOUT_INITIATED, FAIL_PAYOUT, PAYOUT_FAILED),
                     new StateTransition<>(PAYOUT_PROCESSING, FAIL_PAYOUT, PAYOUT_FAILED),
                     new StateTransition<>(PAYOUT_FAILED, ESCALATE_MANUAL_REVIEW, MANUAL_REVIEW),
 
-                    // -- Hold stablecoin path --------------------------------------
                     new StateTransition<>(PENDING, HOLD_STABLECOIN, STABLECOIN_HELD),
                     new StateTransition<>(STABLECOIN_HELD, COMPLETE_HOLD, COMPLETED)
             ));
 
-    // -- Factory Method ---------------------------------------------------
 
-    /**
-     * Creates a new payout order in PENDING state.
-     */
     public static PayoutOrder create(UUID paymentId, UUID correlationId, UUID transferId,
                                      PayoutType payoutType, StablecoinTicker stablecoin,
                                      BigDecimal redeemedAmount, String targetCurrency,
@@ -175,11 +154,7 @@ public record PayoutOrder(
                 .build();
     }
 
-    // -- State Transition Methods -----------------------------------------
 
-    /**
-     * Starts the stablecoin redemption process. Transitions PENDING -> REDEEMING.
-     */
     public PayoutOrder startRedemption() {
         assertNotTerminal();
         var nextState = STATE_MACHINE.transition(status, START_REDEMPTION);
@@ -189,12 +164,6 @@ public record PayoutOrder(
                 .build();
     }
 
-    /**
-     * Completes the redemption and records the fiat amount received.
-     * Transitions REDEEMING -> REDEEMED.
-     * <p>
-     * Invariant: fiatAmount must match redeemedAmount * appliedFxRate within ±0.01 tolerance.
-     */
     public PayoutOrder completeRedemption(BigDecimal receivedFiatAmount) {
         assertNotTerminal();
         if (receivedFiatAmount == null || receivedFiatAmount.compareTo(BigDecimal.ZERO) <= 0) {
@@ -210,9 +179,6 @@ public record PayoutOrder(
                 .build();
     }
 
-    /**
-     * Fails the redemption. Transitions REDEEMING -> REDEMPTION_FAILED.
-     */
     public PayoutOrder failRedemption(String reason) {
         var nextState = STATE_MACHINE.transition(status, FAIL_REDEMPTION);
         return toBuilder()
@@ -223,11 +189,6 @@ public record PayoutOrder(
                 .build();
     }
 
-    /**
-     * Initiates the fiat payout with a partner. Transitions REDEEMED -> PAYOUT_INITIATED.
-     * <p>
-     * Invariant: cannot initiate payout unless stablecoin has been redeemed (status == REDEEMED).
-     */
     public PayoutOrder initiatePayout(String partnerRef) {
         assertNotTerminal();
         if (partnerRef == null || partnerRef.isBlank()) {
@@ -241,9 +202,6 @@ public record PayoutOrder(
                 .build();
     }
 
-    /**
-     * Marks the payout as processing (partner acknowledged). Transitions PAYOUT_INITIATED -> PAYOUT_PROCESSING.
-     */
     public PayoutOrder markPayoutProcessing() {
         assertNotTerminal();
         var nextState = STATE_MACHINE.transition(status, MARK_PAYOUT_PROCESSING);
@@ -253,9 +211,6 @@ public record PayoutOrder(
                 .build();
     }
 
-    /**
-     * Completes the payout. Transitions PAYOUT_PROCESSING -> COMPLETED.
-     */
     public PayoutOrder completePayout(String partnerRef, Instant settledAt) {
         assertNotTerminal();
         if (settledAt == null) {
@@ -270,9 +225,6 @@ public record PayoutOrder(
                 .build();
     }
 
-    /**
-     * Fails the payout. Can be triggered from PAYOUT_INITIATED or PAYOUT_PROCESSING.
-     */
     public PayoutOrder failPayout(String reason) {
         var nextState = STATE_MACHINE.transition(status, FAIL_PAYOUT);
         return toBuilder()
@@ -283,9 +235,6 @@ public record PayoutOrder(
                 .build();
     }
 
-    /**
-     * Escalates to manual review. Can be triggered from REDEMPTION_FAILED or PAYOUT_FAILED.
-     */
     public PayoutOrder escalateToManualReview() {
         var nextState = STATE_MACHINE.transition(status, ESCALATE_MANUAL_REVIEW);
         return toBuilder()
@@ -294,10 +243,6 @@ public record PayoutOrder(
                 .build();
     }
 
-    /**
-     * Holds stablecoin without redemption. Transitions PENDING -> STABLECOIN_HELD.
-     * Only valid for HOLD_STABLECOIN payout type.
-     */
     public PayoutOrder holdStablecoin() {
         assertNotTerminal();
         if (payoutType != PayoutType.HOLD_STABLECOIN) {
@@ -311,9 +256,6 @@ public record PayoutOrder(
                 .build();
     }
 
-    /**
-     * Completes the hold. Transitions STABLECOIN_HELD -> COMPLETED.
-     */
     public PayoutOrder completeHold() {
         assertNotTerminal();
         var nextState = STATE_MACHINE.transition(status, COMPLETE_HOLD);
@@ -323,23 +265,15 @@ public record PayoutOrder(
                 .build();
     }
 
-    // -- Query Methods ----------------------------------------------------
 
-    /**
-     * Returns true if this payout order is in a terminal state (COMPLETED or MANUAL_REVIEW).
-     */
     public boolean isTerminal() {
         return TERMINAL_STATES.contains(status);
     }
 
-    /**
-     * Returns true if a given trigger can be applied from the current state.
-     */
     public boolean canApply(PayoutTrigger trigger) {
         return STATE_MACHINE.canTransition(status, trigger);
     }
 
-    // -- Invariant Guards -------------------------------------------------
 
     private void assertNotTerminal() {
         if (isTerminal()) {
@@ -349,9 +283,6 @@ public record PayoutOrder(
         }
     }
 
-    /**
-     * Validates that the fiat amount matches redeemedAmount * appliedFxRate within tolerance.
-     */
     private void validateFiatAmountTolerance(BigDecimal receivedFiatAmount) {
         var expectedFiat = redeemedAmount.multiply(appliedFxRate);
         var difference = receivedFiatAmount.subtract(expectedFiat).abs();

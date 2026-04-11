@@ -28,12 +28,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Domain command handler for payout order operations.
- * <p>
- * Orchestrates: idempotency check → create order → redeem stablecoin →
- * initiate partner payout → record audit trail → publish events.
- */
 @Slf4j
 @Service
 @Transactional
@@ -47,18 +41,6 @@ public class PayoutCommandHandler {
     private final PayoutPartnerGateway payoutPartnerGateway;
     private final PayoutEventPublisher eventPublisher;
 
-    /**
-     * Initiates a new payout order for a payment.
-     * <p>
-     * Idempotent: if a payout order already exists for the given paymentId,
-     * returns the existing order with {@code created = false}.
-     * <p>
-     * For HOLD_STABLECOIN type: skips redemption and payout, transitions directly
-     * to STABLECOIN_HELD → COMPLETED.
-     * <p>
-     * For FIAT type: redeems stablecoin via RedemptionGateway, then initiates
-     * fiat payout via PayoutPartnerGateway.
-     */
     public PayoutResult initiatePayout(UUID paymentId, UUID correlationId, UUID transferId,
                                        PayoutType payoutType, StablecoinTicker stablecoin,
                                        BigDecimal redeemedAmount, String targetCurrency,
@@ -164,25 +146,11 @@ public class PayoutCommandHandler {
         return new PayoutResult(order, true);
     }
 
-    /**
-     * Retrieves a payout order by its ID.
-     *
-     * @param payoutId the payout order identifier
-     * @return the payout order
-     * @throws PayoutNotFoundException if the order is not found
-     */
     public PayoutOrder getPayout(UUID payoutId) {
         return payoutOrderRepository.findById(payoutId)
                 .orElseThrow(() -> new PayoutNotFoundException(payoutId));
     }
 
-    /**
-     * Retrieves a payout order by its associated payment ID.
-     *
-     * @param paymentId the payment identifier
-     * @return the payout order
-     * @throws PayoutNotFoundException if the order is not found
-     */
     public PayoutOrder getPayoutByPaymentId(UUID paymentId) {
         return payoutOrderRepository.findByPaymentId(paymentId)
                 .orElseThrow(() -> new PayoutNotFoundException(paymentId.toString()));

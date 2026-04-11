@@ -8,6 +8,7 @@ import com.stablecoin.payments.custody.domain.model.TransferStatus;
 import com.stablecoin.payments.custody.domain.port.ChainRpcProvider;
 import com.stablecoin.payments.custody.domain.port.ChainTransferRepository;
 import com.stablecoin.payments.custody.domain.port.CustodyEngine;
+import com.stablecoin.payments.custody.domain.port.IsolatedTransactionExecutor;
 import com.stablecoin.payments.custody.domain.port.SignRequest;
 import com.stablecoin.payments.custody.domain.port.TransferEventPublisher;
 import com.stablecoin.payments.custody.domain.port.TransferLifecycleEventRepository;
@@ -19,10 +20,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionDefinition;
-import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.support.SimpleTransactionStatus;
 
 import java.time.Clock;
 import java.util.List;
@@ -70,21 +67,8 @@ class TransferMonitorCommandHandlerTest {
     // Use system clock for the default handler — transfers are created with Instant.now()
     private static final Clock SYSTEM_CLOCK = Clock.systemUTC();
 
-    private static PlatformTransactionManager passthroughTransactionManager() {
-        return new PlatformTransactionManager() {
-            @Override
-            public TransactionStatus getTransaction(TransactionDefinition definition) {
-                return new SimpleTransactionStatus();
-            }
-
-            @Override
-            public void commit(TransactionStatus status) {
-            }
-
-            @Override
-            public void rollback(TransactionStatus status) {
-            }
-        };
+    private static IsolatedTransactionExecutor passthroughTransactionExecutor() {
+        return Runnable::run;
     }
 
     @BeforeEach
@@ -99,7 +83,7 @@ class TransferMonitorCommandHandlerTest {
                 defaultMonitorProperties(),
                 defaultChainConfirmationProperties(),
                 SYSTEM_CLOCK,
-                passthroughTransactionManager()
+                passthroughTransactionExecutor()
         );
     }
 
@@ -203,7 +187,7 @@ class TransferMonitorCommandHandlerTest {
                     defaultMonitorProperties(),
                     defaultChainConfirmationProperties(),
                     futureClock,
-                    passthroughTransactionManager()
+                    passthroughTransactionExecutor()
             );
 
             var transfer = aSubmittedTransferOnBase();
@@ -353,7 +337,7 @@ class TransferMonitorCommandHandlerTest {
                     defaultMonitorProperties(),
                     defaultChainConfirmationProperties(),
                     futureClock,
-                    passthroughTransactionManager()
+                    passthroughTransactionExecutor()
             );
 
             var transfer = aConfirmingTransferOnBase();

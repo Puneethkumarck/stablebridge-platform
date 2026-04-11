@@ -38,7 +38,6 @@ public class MerchantTeamService {
     private final EmailHasher emailHasher;
     private final PasswordHasher passwordHasher;
 
-    // ── User management ─────────────────────────────────────────────────────
 
     @Transactional
     public InviteResult inviteUser(UUID merchantId, String email, String fullName,
@@ -151,10 +150,6 @@ public class MerchantTeamService {
                 .toList();
     }
 
-    /**
-     * Lists users with their resolved roles in a single transaction.
-     * Avoids lazy-load issues caused by calling findRole() outside the service transaction.
-     */
     @Transactional(readOnly = true)
     public List<UserWithRole> listUsersWithRoles(UUID merchantId, UserStatus statusFilter) {
         return listUsers(merchantId, statusFilter).stream()
@@ -166,10 +161,6 @@ public class MerchantTeamService {
                 .toList();
     }
 
-    /**
-     * Invites a user and returns both the result and the role name in one transaction.
-     * Avoids the controller needing a second findRole() call.
-     */
     @Transactional
     public InviteResultWithRole inviteUserWithRole(UUID merchantId, String email, String fullName,
                                                    UUID roleId, UUID invitedBy, String merchantName) {
@@ -183,7 +174,6 @@ public class MerchantTeamService {
 
     public record InviteResultWithRole(InviteResult inviteResult, String roleName) {}
 
-    // ── Role management ─────────────────────────────────────────────────────
 
     @Transactional
     public Role createRole(UUID merchantId, String roleName, String description,
@@ -241,13 +231,7 @@ public class MerchantTeamService {
                 .orElseThrow(() -> RoleNotFoundException.withId(roleId));
     }
 
-    // ── Merchant lifecycle (driven by Kafka events from S11) ─────────────────
 
-    /**
-     * Seeds the 4 built-in roles and creates the first ADMIN user.
-     * Called when {@code merchant.activated} is received from S11.
-     * Password hash is empty — the first admin sets their password via invitation link.
-     */
     @Transactional
     public MerchantUser seedRolesAndFirstAdmin(UUID merchantId, String email,
                                                String fullName, String merchantName) {
@@ -284,10 +268,6 @@ public class MerchantTeamService {
         return admin;
     }
 
-    /**
-     * Deactivates all non-deactivated users for a merchant.
-     * Called when {@code merchant.closed} is received from S11.
-     */
     @Transactional
     public void deactivateAllUsers(UUID merchantId) {
         var users = userRepository.findByMerchantId(merchantId).stream()
@@ -301,7 +281,6 @@ public class MerchantTeamService {
         log.info("Deactivated {} users for merchantId={}", users.size(), merchantId);
     }
 
-    // ── Internal helpers ────────────────────────────────────────────────────
 
     private MerchantTeam loadTeam(UUID merchantId) {
         var roles = roleRepository.findByMerchantId(merchantId);

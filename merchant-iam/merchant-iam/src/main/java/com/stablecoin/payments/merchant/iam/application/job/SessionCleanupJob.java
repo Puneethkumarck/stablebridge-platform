@@ -9,10 +9,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 
-/**
- * Purges sessions that have expired (past {@code expires_at}) but were not explicitly revoked.
- * Runs every hour.
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor

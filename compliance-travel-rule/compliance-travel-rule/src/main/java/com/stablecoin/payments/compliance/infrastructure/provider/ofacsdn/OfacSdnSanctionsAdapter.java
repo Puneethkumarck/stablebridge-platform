@@ -36,9 +36,6 @@ public class OfacSdnSanctionsAdapter implements SanctionsProvider {
         this.downloader = downloader;
     }
 
-    // TODO: SanctionsProvider port currently passes UUIDs, not party names.
-    //  OFAC SDN matching requires actual names. Once the port is extended with
-    //  senderName/recipientName (domain-level change), replace UUID.toString() below.
     @Override
     public SanctionsResult screen(UUID senderId, UUID recipientId) {
         log.info("[OFAC-SDN] Screening sender={} recipient={}", senderId, recipientId);

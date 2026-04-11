@@ -25,17 +25,6 @@ import java.util.UUID;
 
 import static com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor.applyTo;
 
-/**
- * Onfido sandbox/production KYB adapter.
- * <p>
- * Uses Onfido REST API v3.6 to create applicants and submit checks. In sandbox mode, results are deterministic:
- * <ul>
- * <li>{@code last_name = "Consider"} → consider (maps to MANUAL_REVIEW)</li>
- * <li>Any other last_name → clear (maps to PASSED)</li>
- * </ul>
- * <p>
- * Webhook callback completes the async flow via {@code handleWebhook()}.
- */
 @Slf4j
 @Component
 @ConditionalOnProperty(name = "app.kyb.provider", havingValue = "onfido")
@@ -66,7 +55,6 @@ public class OnfidoKybAdapter implements KybProvider {
   public KybVerification submit(UUID merchantId, String legalName, String registrationNumber, String country) {
     log.info("[ONFIDO] Creating applicant for merchant={} legalName={}", merchantId, legalName);
 
-    // Step 1: Create an applicant
     var nameParts = splitName(legalName);
     var applicantBody = Map.of("first_name", nameParts[0], "last_name", nameParts[1]);
 
@@ -76,7 +64,6 @@ public class OnfidoKybAdapter implements KybProvider {
     var applicantId = (String) applicantResponse.get("id");
     log.info("[ONFIDO] Applicant created applicantId={}", applicantId);
 
-    // Step 2: Create a check
     var checkBody = Map.of("applicant_id", applicantId, "report_names", List.of("document", "watchlist_standard"));
 
     @SuppressWarnings("unchecked")

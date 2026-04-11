@@ -12,11 +12,6 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Domain service that calculates a 0-100 risk score from multiple weighted factors.
- * Factors: KYC tier, high-value amount, AML flags, cross-border, corridor risk,
- * new customer, amount-to-limit ratio, transaction velocity.
- */
 @Slf4j
 @Service
 public class RiskScoringService {
@@ -32,21 +27,6 @@ public class RiskScoringService {
         this.weights = weights;
     }
 
-    /**
-     * Calculates a risk score from multiple factors using the scoring context.
-     * <p>
-     * Factors considered (each contributes configurable penalty points):
-     * <ul>
-     *   <li>KYC tier (TIER_1 adds penalty — lowest verification level)</li>
-     *   <li>Transaction amount (high-value threshold: >= $10,000)</li>
-     *   <li>AML flags from screening</li>
-     *   <li>Cross-border transaction</li>
-     *   <li>Corridor risk (configurable per country pair)</li>
-     *   <li>New customer (no existing risk profile)</li>
-     *   <li>Amount relative to tier limits (>= 80% of per-txn limit)</li>
-     *   <li>Transaction velocity (>= 10 recent transactions)</li>
-     * </ul>
-     */
     public RiskScore calculateScore(RiskScoringContext context) {
         var check = context.check();
         log.info("Calculating risk score for check={}", check.checkId());

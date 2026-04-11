@@ -17,11 +17,6 @@ import java.util.List;
 
 import static com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor.applyTo;
 
-/**
- * Separate Spring bean for downloading the OFAC SDN list so that
- * {@link Retry @Retry} and {@link CircuitBreaker @CircuitBreaker} annotations
- * are intercepted by Spring AOP (self-invocation within the same bean bypasses proxies).
- */
 @Slf4j
 @Component
 class SdnListDownloader {

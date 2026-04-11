@@ -23,9 +23,9 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
+import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 class AuditLogFilterTest {
@@ -58,14 +58,14 @@ class AuditLogFilterTest {
     void shouldAlwaysCallFilterChain() throws ServletException, IOException {
         filter.doFilterInternal(request, response, filterChain);
 
-        verify(filterChain).doFilter(request, response);
+        then(filterChain).should().doFilter(request, response);
     }
 
     @Test
     void shouldSkipAuditWhenNotAuthenticated() throws ServletException, IOException {
         filter.doFilterInternal(request, response, filterChain);
 
-        verify(auditLogRepository, never()).save(any());
+        then(auditLogRepository).should(never()).save(any());
     }
 
     @Nested
@@ -88,7 +88,7 @@ class AuditLogFilterTest {
             filter.doFilterInternal(request, response, filterChain);
 
             var captor = ArgumentCaptor.forClass(AuditLogEntry.class);
-            verify(auditLogRepository).save(captor.capture());
+            then(auditLogRepository).should().save(captor.capture());
 
             var entry = captor.getValue();
             assertThat(entry.getMerchantId()).isEqualTo(merchantId);
@@ -110,30 +110,30 @@ class AuditLogFilterTest {
             filter.doFilterInternal(request, response, filterChain);
 
             var captor = ArgumentCaptor.forClass(AuditLogEntry.class);
-            verify(auditLogRepository).save(captor.capture());
+            then(auditLogRepository).should().save(captor.capture());
             assertThat(captor.getValue().getDetail()).containsEntry("auth_method", "JWT");
         }
 
         @Test
         void shouldNotFailWhenRepositoryThrows() throws ServletException, IOException {
-            doThrow(new RuntimeException("DB down"))
-                    .when(auditLogRepository).save(any());
+            willThrow(new RuntimeException("DB down"))
+                    .given(auditLogRepository).save(any());
 
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(filterChain).doFilter(request, response);
+            then(filterChain).should().doFilter(request, response);
             // No exception propagated — filter swallows it
         }
 
         @Test
         void shouldAuditEvenWhenFilterChainThrows() throws ServletException, IOException {
-            doThrow(new ServletException("downstream error"))
-                    .when(filterChain).doFilter(request, response);
+            willThrow(new ServletException("downstream error"))
+                    .given(filterChain).doFilter(request, response);
 
             assertThatThrownBy(() -> filter.doFilterInternal(request, response, filterChain))
                     .isInstanceOf(ServletException.class);
 
-            verify(auditLogRepository).save(any());
+            then(auditLogRepository).should().save(any());
         }
     }
 }

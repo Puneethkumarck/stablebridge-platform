@@ -15,9 +15,6 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-/**
- * Domain service that orchestrates the compliance check pipeline.
- */
 @Slf4j
 @Service
 public class ComplianceCheckService {
@@ -71,11 +68,6 @@ public class ComplianceCheckService {
         return check.amlClear(amlResult);
     }
 
-    /**
-     * Records the risk score on the compliance check.
-     * CRITICAL band blocks the payment and routes to MANUAL_REVIEW.
-     * All other bands proceed to TRAVEL_RULE_PACKAGING.
-     */
     public ComplianceCheck recordRiskScore(ComplianceCheck check, RiskScore riskScore) {
         log.info("Recording risk score for check={}, score={}, band={}",
                 check.checkId(), riskScore.score(), riskScore.band());
@@ -99,10 +91,6 @@ public class ComplianceCheckService {
         return check.completeTravelRule(null);
     }
 
-    /**
-     * Determines whether a compliance check requires Travel Rule data packaging
-     * based on the FATF threshold (>= $1,000 / EUR 1,000).
-     */
     public boolean requiresTravelRule(ComplianceCheck check) {
         var amount = check.sourceAmount();
         var currency = check.sourceCurrency();

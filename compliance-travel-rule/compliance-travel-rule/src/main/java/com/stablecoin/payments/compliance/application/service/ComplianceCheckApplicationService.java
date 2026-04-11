@@ -12,10 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
-/**
- * Thin application service that maps API DTOs to domain objects and delegates
- * all business logic to the {@link ComplianceCheckCommandHandler}.
- */
 @Service
 @RequiredArgsConstructor
 public class ComplianceCheckApplicationService {

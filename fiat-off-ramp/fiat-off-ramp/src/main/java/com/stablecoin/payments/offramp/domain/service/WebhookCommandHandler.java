@@ -19,12 +19,6 @@ import java.time.Instant;
 import static com.stablecoin.payments.offramp.domain.service.PartnerWebhookCommand.EVENT_PAYMENT_FAILED;
 import static com.stablecoin.payments.offramp.domain.service.PartnerWebhookCommand.EVENT_PAYMENT_SETTLED;
 
-/**
- * Domain command handler that processes partner webhook notifications.
- * <p>
- * Orchestrates: lookup order by partnerReference -> check idempotency ->
- * transition state -> record OffRampTransaction -> publish event via outbox.
- */
 @Slf4j
 @Service
 @Transactional
@@ -35,15 +29,6 @@ public class WebhookCommandHandler {
     private final OffRampTransactionRepository transactionRepository;
     private final PayoutEventPublisher eventPublisher;
 
-    /**
-     * Processes a webhook command from a partner settlement notification.
-     * <p>
-     * Idempotent: if the payout order is already in COMPLETED or MANUAL_REVIEW
-     * state, the webhook is skipped.
-     *
-     * @param command the parsed webhook command
-     * @return the payout order (updated or unchanged if idempotent)
-     */
     public PayoutOrder handleWebhook(PartnerWebhookCommand command) {
         log.info("Processing partner webhook eventId={} type={} partnerRef={}",
                 command.eventId(), command.eventType(), command.partnerReference());

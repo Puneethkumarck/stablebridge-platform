@@ -16,19 +16,6 @@ import java.math.BigDecimal;
 import java.util.UUID;
 import java.util.function.Consumer;
 
-/**
- * Kafka consumer that receives async events from S3 and S4,
- * and forwards them as Temporal signals to the payment workflow.
- * <p>
- * Events consumed:
- * <ul>
- *   <li>{@code fiat.collected} → {@link PaymentWorkflow#onFiatCollected}</li>
- *   <li>{@code chain.transfer.confirmed} → {@link PaymentWorkflow#onChainConfirmed}</li>
- * </ul>
- * <p>
- * Idempotent: sending a signal to an already-completed workflow is a no-op
- * (caught as {@link WorkflowNotFoundException}).
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor

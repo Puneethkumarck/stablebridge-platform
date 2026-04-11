@@ -6,9 +6,6 @@ import com.stablecoin.payments.merchant.onboarding.domain.merchant.model.core.Me
 import com.stablecoin.payments.merchant.onboarding.domain.merchant.model.core.RiskTier;
 import org.springframework.stereotype.Service;
 
-/**
- * Domain service: enforces all invariants before a merchant can be activated.
- */
 @Service
 public class MerchantActivationPolicy {
 

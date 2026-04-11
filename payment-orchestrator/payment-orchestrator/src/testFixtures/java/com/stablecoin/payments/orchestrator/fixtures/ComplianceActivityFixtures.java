@@ -12,9 +12,6 @@ import static com.stablecoin.payments.orchestrator.fixtures.PaymentFixtures.SEND
 import static com.stablecoin.payments.orchestrator.fixtures.WorkflowFixtures.CHECK_ID;
 import static com.stablecoin.payments.orchestrator.fixtures.WorkflowFixtures.PAYMENT_ID;
 
-/**
- * Test fixture factory methods for compliance activity DTOs.
- */
 public final class ComplianceActivityFixtures {
 
     private ComplianceActivityFixtures() {}

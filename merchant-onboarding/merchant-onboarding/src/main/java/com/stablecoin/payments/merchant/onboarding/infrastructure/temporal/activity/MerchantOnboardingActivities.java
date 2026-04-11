@@ -7,21 +7,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Activities for the merchant onboarding workflow. Each method is a single unit of work with its own retry policy.
- * <p>
- * Note: {@code @ActivityMethod} is intentionally omitted — {@code @ActivityInterface} is sufficient and avoids
- * compatibility issues with Mockito proxies in tests.
- */
 @ActivityInterface
 public interface MerchantOnboardingActivities {
 
-  /**
-   * Validates the merchant's registration against an official company registry (Companies House for GB, SEC EDGAR for
-   * US).
-   *
-   * @return the company status (e.g. "active", "dissolved") or "NOT_FOUND" / "UNSUPPORTED_COUNTRY"
-   */
   String verifyCompanyRegistry(UUID merchantId);
 
   String startKyb(UUID merchantId);

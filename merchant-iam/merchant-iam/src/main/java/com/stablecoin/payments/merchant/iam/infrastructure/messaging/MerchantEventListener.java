@@ -18,10 +18,6 @@ public class MerchantEventListener {
     private final UserSessionRepository sessionRepository;
     private final ObjectMapper objectMapper;
 
-    /**
-     * Consumes {@code merchant.activated} from S11.
-     * Seeds the 4 built-in roles and creates the first ADMIN user for the merchant.
-     */
     @KafkaListener(topics = "merchant.activated", groupId = "merchant-iam-onboard")
     public void onMerchantActivated(@Payload String payload) {
         try {
@@ -41,10 +37,6 @@ public class MerchantEventListener {
         }
     }
 
-    /**
-     * Consumes {@code merchant.suspended} from S11.
-     * Revokes all active user sessions for the merchant.
-     */
     @KafkaListener(topics = "merchant.suspended", groupId = "merchant-iam-suspend")
     public void onMerchantSuspended(@Payload String payload) {
         try {
@@ -60,10 +52,6 @@ public class MerchantEventListener {
         }
     }
 
-    /**
-     * Consumes {@code merchant.closed} from S11.
-     * Deactivates all users and revokes all sessions for the merchant.
-     */
     @KafkaListener(topics = "merchant.closed", groupId = "merchant-iam-close")
     public void onMerchantClosed(@Payload String payload) {
         try {

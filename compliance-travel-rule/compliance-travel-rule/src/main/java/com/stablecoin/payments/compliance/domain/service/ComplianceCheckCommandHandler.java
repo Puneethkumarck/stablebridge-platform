@@ -29,13 +29,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Domain command handler that orchestrates the compliance check pipeline.
- * <p>
- * Coordinates KYC, sanctions, AML, risk scoring, and travel rule sub-checks
- * through provider ports, persists the aggregate via the repository port,
- * and publishes domain events via the event publisher port.
- */
 @Slf4j
 @Service
 @Transactional
@@ -52,11 +45,6 @@ public class ComplianceCheckCommandHandler {
     private final RiskScoringService riskScoringService;
     private final EventPublisher<Object> eventPublisher;
 
-    /**
-     * Initiates a new compliance check for a payment.
-     *
-     * @throws DuplicatePaymentException if a check already exists for the payment
-     */
     public ComplianceCheck initiateCheck(UUID paymentId, UUID senderId, UUID recipientId,
                                          Money sourceAmount, String sourceCountry,
                                          String targetCountry, String targetCurrency) {
@@ -82,22 +70,12 @@ public class ComplianceCheckCommandHandler {
         return saved;
     }
 
-    /**
-     * Retrieves a compliance check by its ID.
-     *
-     * @throws CheckNotFoundException if no check exists with the given ID
-     */
     @Transactional(readOnly = true)
     public ComplianceCheck getCheck(UUID checkId) {
         return checkRepository.findById(checkId)
                 .orElseThrow(() -> new CheckNotFoundException(checkId));
     }
 
-    /**
-     * Retrieves a customer risk profile by customer ID.
-     *
-     * @throws CustomerNotFoundException if no profile exists for the customer
-     */
     @Transactional(readOnly = true)
     public CustomerRiskProfile getCustomerRiskProfile(UUID customerId) {
         return profileRepository.findByCustomerId(customerId)
@@ -105,28 +83,24 @@ public class ComplianceCheckCommandHandler {
     }
 
     private ComplianceCheck runPipeline(ComplianceCheck check) {
-        // Step 1: KYC verification
         var kycResult = kycProvider.verify(check.senderId(), check.recipientId());
         check = complianceCheckService.recordKycResult(check, kycResult);
         if (check.isTerminal()) {
             return check;
         }
 
-        // Step 2: Sanctions screening
         var sanctionsResult = sanctionsProvider.screen(check.senderId(), check.recipientId());
         check = complianceCheckService.recordSanctionsResult(check, sanctionsResult);
         if (check.isTerminal()) {
             return check;
         }
 
-        // Step 3: AML analysis
         var amlResult = amlProvider.analyze(check.senderId(), check.recipientId());
         check = complianceCheckService.recordAmlResult(check, amlResult);
         if (check.isTerminal()) {
             return check;
         }
 
-        // Step 4: Risk scoring
         var profile = profileRepository.findByCustomerId(check.senderId()).orElse(null);
         var context = RiskScoringContext.builder()
                 .check(check)
@@ -139,7 +113,6 @@ public class ComplianceCheckCommandHandler {
             return check;
         }
 
-        // Step 5: Travel rule packaging
         if (complianceCheckService.requiresTravelRule(check)) {
             check = handleTravelRule(check);
         } else {

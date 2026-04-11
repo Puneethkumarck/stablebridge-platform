@@ -16,10 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Handles authentication: login, MFA verify, token issue, and logout.
- * Returns domain objects only — controllers map to API response DTOs.
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -43,12 +39,7 @@ public class AuthService {
 
     public record MfaSetupResult(String secret, String provisioningUri) {}
 
-    // ── Login ─────────────────────────────────────────────────────────────────
 
-    /**
-     * Validates credentials, enforces brute-force lockout.
-     * Returns tokens on success; throws {@link MfaRequiredException} if MFA is enabled.
-     */
     @Transactional
     public LoginResult login(UUID merchantId, String email, String password) {
         var emailHash = emailHasher.hash(email);
@@ -85,10 +76,6 @@ public class AuthService {
         return issueTokens(user, false);
     }
 
-    /**
-     * Verifies a TOTP code using the stored MFA challenge.
-     * Consumes the challenge (one-time use).
-     */
     @Transactional
     public LoginResult verifyMfa(String challengeId, String totpCode) {
         var challenge = mfaChallengeStore.consume(challengeId)
@@ -110,14 +97,9 @@ public class AuthService {
         return issueTokens(user, true);
     }
 
-    // ── Refresh token ────────────────────────────────────────────────────────
 
     public record RefreshResult(String accessToken, int expiresIn) {}
 
-    /**
-     * Exchanges a valid refresh token for a new access token.
-     * Validates the refresh JWT signature, expiry, session state, and that the user is still active.
-     */
     @Transactional(readOnly = true)
     public RefreshResult refreshToken(String refreshTokenValue) {
         var parsed = jwtTokenIssuer.parseRefreshToken(refreshTokenValue);
@@ -145,7 +127,6 @@ public class AuthService {
         return new RefreshResult(accessToken, 3600);
     }
 
-    // ── MFA setup ─────────────────────────────────────────────────────────────
 
     @Transactional
     public MfaSetupResult setupMfa(UUID userId, String email) {
@@ -168,7 +149,6 @@ public class AuthService {
         return saved;
     }
 
-    // ── Utilities ─────────────────────────────────────────────────────────────
 
     @Transactional(readOnly = true)
     public Role findRoleForUser(UUID roleId) {
@@ -186,7 +166,6 @@ public class AuthService {
         log.info("Logged out userId={}", userId);
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private LoginResult issueTokens(MerchantUser user, boolean mfaVerified) {
         var role = roleRepository.findById(user.roleId())

@@ -15,11 +15,6 @@ import static com.stablecoin.payments.ledger.domain.model.ReconciliationLegType.
 import static com.stablecoin.payments.ledger.domain.model.ReconciliationLegType.STABLECOIN_MINTED;
 import static com.stablecoin.payments.ledger.domain.model.ReconciliationLegType.STABLECOIN_REDEEMED;
 
-/**
- * Per-payment reconciliation record tracking the 5-leg matching flow.
- * Required legs for RECONCILED status: FIAT_IN, STABLECOIN_MINTED, CHAIN_TRANSFERRED,
- * STABLECOIN_REDEEMED, FIAT_OUT. FX_RATE is metadata only.
- */
 public record ReconciliationRecord(
         UUID recId,
         UUID paymentId,
@@ -45,9 +40,6 @@ public record ReconciliationRecord(
         legs = List.copyOf(legs);
     }
 
-    /**
-     * Creates a new PENDING reconciliation record for a payment.
-     */
     public static ReconciliationRecord create(UUID paymentId, BigDecimal tolerance) {
         return new ReconciliationRecord(
                 UUID.randomUUID(),
@@ -62,9 +54,6 @@ public record ReconciliationRecord(
         );
     }
 
-    /**
-     * Adds a reconciliation leg and updates status based on leg completeness.
-     */
     public ReconciliationRecord addLeg(ReconciliationLeg leg) {
         Objects.requireNonNull(leg, "leg must not be null");
 
@@ -97,10 +86,6 @@ public record ReconciliationRecord(
         );
     }
 
-    /**
-     * Finalizes reconciliation — checks all legs present and amounts within tolerance.
-     * Returns RECONCILED or DISCREPANCY.
-     */
     public ReconciliationRecord finalize(BigDecimal discrepancy) {
         Objects.requireNonNull(discrepancy, "discrepancy must not be null");
 
@@ -135,9 +120,6 @@ public record ReconciliationRecord(
         );
     }
 
-    /**
-     * Marks the reconciliation as DISCREPANCY (e.g., due to payment failure).
-     */
     public ReconciliationRecord markDiscrepancy() {
         return new ReconciliationRecord(
                 this.recId,

@@ -11,14 +11,6 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.List;
 
-/**
- * Shared metrics configuration for all services.
- *
- * <p>Registers common tags (service name, environment) on every meter,
- * ensuring consistent labelling across the platform for Prometheus / Grafana dashboards.
- *
- * <p>Activated by default; disable with {@code app.metrics.enabled=false}.
- */
 @Configuration
 @ConditionalOnBean(MeterRegistry.class)
 @ConditionalOnProperty(name = "app.metrics.enabled", havingValue = "true", matchIfMissing = true)

@@ -1,10 +1,11 @@
-package com.stablecoin.payments.onramp.config;
+package com.stablecoin.payments.onramp.infrastructure.config;
 
 import com.stablecoin.payments.onramp.domain.port.PspGateway;
 import com.stablecoin.payments.onramp.domain.port.PspPaymentResult;
 import com.stablecoin.payments.onramp.domain.port.PspRefundResult;
 import com.stablecoin.payments.onramp.domain.port.WebhookSignatureValidator;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,18 +13,13 @@ import org.springframework.context.annotation.Configuration;
 import java.time.Clock;
 import java.util.UUID;
 
-/**
- * Provides fallback (dev/test) implementations of outbound ports.
- * Activated only when {@code app.fallback-adapters.enabled=true}.
- * Real adapters are registered by provider-specific configurations
- * under {@code infrastructure/provider/<name>/}.
- */
 @Slf4j
 @Configuration
 @ConditionalOnProperty(name = "app.fallback-adapters.enabled", havingValue = "true")
 public class FallbackAdaptersConfig {
 
     @Bean
+    @ConditionalOnMissingBean
     public PspGateway fallbackPspGateway() {
         return new PspGateway() {
             @Override
@@ -45,6 +41,7 @@ public class FallbackAdaptersConfig {
     }
 
     @Bean
+    @ConditionalOnMissingBean
     public WebhookSignatureValidator fallbackWebhookSignatureValidator() {
         return (payload, signature) -> {
             log.warn("[FALLBACK-WEBHOOK] Using dev webhook signature validator — always valid");
@@ -53,6 +50,7 @@ public class FallbackAdaptersConfig {
     }
 
     @Bean
+    @ConditionalOnMissingBean
     public Clock clock() {
         return Clock.systemUTC();
     }

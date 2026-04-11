@@ -31,15 +31,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.HexFormat;
 import java.util.Set;
 
-/**
- * Enforces presence of {@code Idempotency-Key} header on state-mutating endpoints
- * (POST, PATCH, DELETE) -- excluding auth and invitation endpoints which use
- * tokens as implicit idempotency controls.
- * Uses INSERT-first reservation pattern to prevent TOCTOU races:
- * 1. Try INSERT with status_code=0 (reservation)
- * 2. If INSERT succeeds, proceed with request and UPDATE with real response
- * 3. If INSERT fails (duplicate), re-read stored record for replay or conflict
- */
 @Slf4j
 @Component
 @Order(2)
@@ -57,7 +48,6 @@ public class IdempotencyKeyFilter extends OncePerRequestFilter {
             "/actuator/"
     );
 
-    /** Path segments that mark a sub-resource as auth-related (login, refresh, logout, mfa). */
     private static final Set<String> AUTH_PATH_SEGMENTS = Set.of(
             "/auth/login", "/auth/refresh", "/auth/logout", "/auth/mfa"
     );
@@ -253,10 +243,6 @@ public class IdempotencyKeyFilter extends OncePerRequestFilter {
 
     record IdempotencyRecord(String idempotencyKey, String requestHash, String responseBody, int statusCode) {}
 
-    /**
-     * Request wrapper that replays a cached body so downstream filters and
-     * controllers can read the request body after it has already been consumed.
-     */
     private static class CachedBodyRequestWrapper extends HttpServletRequestWrapper {
 
         private final byte[] body;

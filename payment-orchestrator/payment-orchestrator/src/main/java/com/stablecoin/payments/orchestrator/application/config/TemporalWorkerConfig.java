@@ -15,13 +15,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import static com.stablecoin.payments.orchestrator.application.config.TemporalConfig.TASK_QUEUE;
+import static com.stablecoin.payments.orchestrator.domain.service.PaymentCommandHandler.TASK_QUEUE;
 
-/**
- * Registers Temporal workers with workflow types and activity implementations.
- * <p>
- * Disabled during integration/unit tests via {@code app.temporal.worker.enabled=false}.
- */
 @Slf4j
 @Configuration
 @ConditionalOnProperty(name = "app.temporal.worker.enabled", havingValue = "true", matchIfMissing = true)

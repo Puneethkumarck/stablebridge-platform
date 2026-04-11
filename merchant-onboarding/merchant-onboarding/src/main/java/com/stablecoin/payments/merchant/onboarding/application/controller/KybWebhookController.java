@@ -19,12 +19,6 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Receives KYB provider webhook callbacks (Onfido check.completed events). Validates HMAC signature, delegates to
- * KybProvider.handleWebhook(), then signals the Temporal onboarding workflow with the result.
- * <p>
- * No @PreAuthorize — webhook endpoints are authenticated via HMAC signature.
- */
 @Slf4j
 @RestController
 @RequestMapping("/api/internal/webhooks")

@@ -6,9 +6,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Response DTO representing a payment in the API layer.
- */
 public record PaymentResponse(
         UUID paymentId,
         String idempotencyKey,
@@ -28,9 +25,6 @@ public record PaymentResponse(
         Instant expiresAt
 ) {
 
-    /**
-     * Maps a domain {@link Payment} aggregate to the API response DTO.
-     */
     public static PaymentResponse from(Payment payment) {
         return new PaymentResponse(
                 payment.paymentId(),

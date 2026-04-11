@@ -23,7 +23,6 @@ public final class IamEntityFixtures {
         return MERCHANT_ID;
     }
 
-    // ─── Roles ───
 
     public static RoleEntity anAdminRole() {
         return RoleEntity.builder()
@@ -64,7 +63,6 @@ public final class IamEntityFixtures {
                 .build();
     }
 
-    // ─── Role Permissions ───
 
     public static RolePermissionEntity aRolePermission(RoleEntity role, String permission) {
         return RolePermissionEntity.builder()
@@ -75,7 +73,6 @@ public final class IamEntityFixtures {
                 .build();
     }
 
-    // ─── Merchant Users ───
 
     public static MerchantUserEntity anActiveUser(RoleEntity role) {
         return MerchantUserEntity.builder()
@@ -112,7 +109,6 @@ public final class IamEntityFixtures {
                 .build();
     }
 
-    // ─── Invitations ───
 
     public static InvitationEntity aPendingInvitation(RoleEntity role) {
         return InvitationEntity.builder()
@@ -144,7 +140,6 @@ public final class IamEntityFixtures {
                 .build();
     }
 
-    // ─── User Sessions ───
 
     public static UserSessionEntity anActiveSession(MerchantUserEntity user) {
         return UserSessionEntity.builder()
@@ -160,7 +155,6 @@ public final class IamEntityFixtures {
                 .build();
     }
 
-    // ─── Permission Audit Log ───
 
     public static PermissionAuditLogEntity anAuditLogEntry() {
         return PermissionAuditLogEntity.builder()

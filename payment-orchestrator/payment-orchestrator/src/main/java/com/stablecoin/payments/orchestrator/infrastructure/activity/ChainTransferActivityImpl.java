@@ -15,14 +15,6 @@ import org.springframework.stereotype.Component;
 import static com.stablecoin.payments.orchestrator.domain.workflow.activity.ChainTransferResult.ChainTransferStatus.FAILED;
 import static com.stablecoin.payments.orchestrator.domain.workflow.activity.ChainTransferResult.ChainTransferStatus.SUBMITTED;
 
-/**
- * Temporal activity implementation that calls S4 Blockchain &amp; Custody via Feign.
- * <p>
- * Transfer submission is async — actual confirmation arrives via S4's block
- * monitor job, which publishes a Kafka event, consumed by S1 to signal the workflow.
- * <p>
- * Compensation: submit a RETURN transfer back to the originating wallet.
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor

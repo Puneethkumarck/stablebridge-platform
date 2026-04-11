@@ -4,11 +4,6 @@ import lombok.Builder;
 
 import java.util.Map;
 
-/**
- * Configurable weights for each risk scoring factor.
- * Weights represent the maximum penalty points each factor can contribute.
- * Total score is capped at 100.
- */
 @Builder(toBuilder = true)
 public record RiskScoringWeights(
         int kycTier1Penalty,
@@ -50,10 +45,6 @@ public record RiskScoringWeights(
                 .build();
     }
 
-    /**
-     * Returns the corridor-specific risk score override, or 0 if not configured.
-     * Key format: "US-NG", "US-IR", etc.
-     */
     public int corridorRisk(String sourceCountry, String targetCountry) {
         var key = sourceCountry + "-" + targetCountry;
         return corridorRiskScores.getOrDefault(key, 0);

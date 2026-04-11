@@ -11,9 +11,6 @@ public interface AccountBalanceRepository {
 
     Optional<AccountBalance> findByAccountCodeAndCurrency(String accountCode, String currency);
 
-    /**
-     * Finds the balance with a pessimistic lock (FOR UPDATE) for safe concurrent updates.
-     */
     Optional<AccountBalance> findForUpdate(String accountCode, String currency);
 
     List<AccountBalance> findAll();

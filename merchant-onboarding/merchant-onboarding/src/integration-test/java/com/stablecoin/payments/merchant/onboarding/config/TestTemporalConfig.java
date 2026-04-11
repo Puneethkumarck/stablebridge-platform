@@ -7,8 +7,8 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * Provides a mock WorkflowClient for integration tests. Temporal auto-configuration is excluded, so we need to supply
@@ -21,8 +21,8 @@ public class TestTemporalConfig {
   public WorkflowClient workflowClient() {
     var client = mock(WorkflowClient.class);
     var workflowStub = mock(MerchantOnboardingWorkflow.class);
-    when(client.newWorkflowStub(any(Class.class), any(WorkflowOptions.class))).thenReturn(workflowStub);
-    when(client.newWorkflowStub(any(Class.class), any(String.class))).thenReturn(workflowStub);
+    given(client.newWorkflowStub(any(Class.class), any(WorkflowOptions.class))).willReturn(workflowStub);
+    given(client.newWorkflowStub(any(Class.class), any(String.class))).willReturn(workflowStub);
     return client;
   }
 }

@@ -34,12 +34,6 @@ import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Domain command handler that orchestrates blockchain transfer submission.
- * <p>
- * Full flow: chain selection → balance reservation → nonce acquisition →
- * custody signing → persist + lifecycle events + participants + outbox event.
- */
 @Slf4j
 @Service
 @Transactional
@@ -56,12 +50,6 @@ public class TransferCommandHandler {
     private final CustodyEngine custodyEngine;
     private final TransferEventPublisher transferEventPublisher;
 
-    /**
-     * Initiates a new chain transfer.
-     * <p>
-     * Idempotent: if a transfer already exists for the given paymentId + transferType,
-     * returns the existing transfer with {@code created=false}.
-     */
     public TransferResult initiateTransfer(UUID paymentId, UUID correlationId,
                                            TransferType transferType, UUID parentTransferId,
                                            StablecoinTicker stablecoin, BigDecimal amount,
@@ -169,9 +157,6 @@ public class TransferCommandHandler {
         return new TransferResult(transfer, true);
     }
 
-    /**
-     * Retrieves a transfer by ID.
-     */
     @Transactional(readOnly = true)
     public ChainTransfer getTransfer(UUID transferId) {
         return chainTransferRepository.findById(transferId)
@@ -179,9 +164,6 @@ public class TransferCommandHandler {
                         "Transfer not found: " + transferId));
     }
 
-    /**
-     * Retrieves wallet balance details.
-     */
     @Transactional(readOnly = true)
     public WalletBalanceDetails getWalletBalance(UUID walletId) {
         var wallet = walletRepository.findById(walletId)
@@ -196,9 +178,6 @@ public class TransferCommandHandler {
         walletBalanceRepository.save(released);
     }
 
-    /**
-     * Wrapper for wallet + balance list used by the controller.
-     */
     public record WalletBalanceDetails(
             Wallet wallet,
             List<WalletBalance> balances

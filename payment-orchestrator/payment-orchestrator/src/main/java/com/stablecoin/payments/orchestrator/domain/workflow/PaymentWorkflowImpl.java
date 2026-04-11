@@ -38,28 +38,6 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.UUID;
 
-/**
- * Deterministic Temporal workflow implementation for the cross-border payment saga.
- * <p>
- * <strong>Full sandwich flow (5 steps):</strong>
- * <ol>
- *   <li>Compliance check (S2) — read-only, no compensation</li>
- *   <li>FX rate lock (S6) — compensation: release lock</li>
- *   <li>Fiat collection (S3) — async (webhook signal), compensation: refund</li>
- *   <li>Chain transfer (S4) — async (monitor signal), compensation: return transfer</li>
- *   <li>Off-ramp payout (S5) — fire-and-forget, no compensation</li>
- * </ol>
- * <p>
- * <strong>Determinism rules enforced:</strong>
- * <ul>
- *   <li>Uses {@link Workflow#currentTimeMillis()} — never {@code System.currentTimeMillis()}</li>
- *   <li>Uses {@link Workflow#getLogger(Class)} — never SLF4J directly</li>
- *   <li>No {@code Random}, no I/O, no {@code Thread.sleep}</li>
- * </ul>
- * <p>
- * <strong>Saga compensation:</strong> compensation actions are pushed onto a LIFO stack
- * after each forward step succeeds. On cancel or failure, the stack is unwound in reverse order.
- */
 public class PaymentWorkflowImpl implements PaymentWorkflow {
 
     private static final Duration FIAT_COLLECTION_TIMEOUT = Duration.ofMinutes(30);
@@ -172,7 +150,6 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
         log = Workflow.getLogger(PaymentWorkflowImpl.class);
         log.info("Starting payment workflow for paymentId={}", request.paymentId());
 
-        // ── Step 1: Compliance Check ────────────────────────────────────
         currentState = "COMPLIANCE_CHECK";
         log.info("Step 1: Running compliance check for paymentId={}", request.paymentId());
 
@@ -216,7 +193,6 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
             return handleCancellation(request);
         }
 
-        // ── Step 2: FX Rate Lock ────────────────────────────────────────
         currentState = "FX_LOCKING";
         log.info("Step 2: Locking FX rate for paymentId={}", request.paymentId());
 
@@ -262,7 +238,6 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
             return handleCancellation(request);
         }
 
-        // ── Step 3: Fiat Collection (S3 — async) ────────────────────────
         currentState = "FIAT_COLLECTION_PENDING";
         log.info("Step 3: Initiating fiat collection for paymentId={}", request.paymentId());
 
@@ -320,7 +295,6 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
             return handleCancellation(request);
         }
 
-        // ── Step 4: Chain Transfer (S4 — async) ─────────────────────────
         currentState = "ON_CHAIN_SUBMITTED";
         log.info("Step 4: Submitting chain transfer for paymentId={}", request.paymentId());
 
@@ -379,7 +353,6 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
             return handleCancellation(request);
         }
 
-        // ── Step 5: Off-Ramp Payout (S5) ────────────────────────────────
         currentState = "OFF_RAMP_INITIATED";
         log.info("Step 5: Initiating off-ramp payout for paymentId={}", request.paymentId());
 
@@ -414,7 +387,6 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
             return handleFailureWithCompensation(request, reason);
         }
 
-        // ── Settlement Complete ─────────────────────────────────────────
         currentState = "SETTLED";
         log.info("Off-ramp payout initiated for paymentId={}, payoutId={}",
                 request.paymentId(), offRampResult.payoutId());
@@ -462,10 +434,6 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
     private static final String REFUND_FIAT_PREFIX = "REFUND_FIAT:";
     private static final String RETURN_CHAIN_PREFIX = "RETURN_CHAIN:";
 
-    /**
-     * Runs compensation stack in LIFO order and returns a FAILED result.
-     * Used when cancellation is requested between saga steps.
-     */
     private PaymentResult handleCancellation(PaymentRequest request) {
         currentState = "COMPENSATING";
         var reason = cancelReason != null ? cancelReason.reason() : "Cancellation requested";
@@ -483,10 +451,6 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
         return PaymentResult.failed(request.paymentId(), failureReason);
     }
 
-    /**
-     * Runs compensation stack in LIFO order and returns a FAILED result.
-     * Used when a forward step fails and compensation is needed.
-     */
     private PaymentResult handleFailureWithCompensation(PaymentRequest request, String reason) {
         log.info("Running compensation for paymentId={}, reason={}, compensationSteps={}",
                 request.paymentId(), reason, compensationStack.size());
@@ -539,9 +503,6 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
         }
     }
 
-    /**
-     * Fire-and-forget event publishing. Failures are logged but do not block the saga.
-     */
     private void publishEvent(PaymentEventRequest request) {
         try {
             eventPublishingActivity.publishPaymentEvent(request);
@@ -551,10 +512,6 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
         }
     }
 
-    /**
-     * Syncs the workflow terminal state to the Payment aggregate in PostgreSQL.
-     * Best-effort — failures are logged but do not block the workflow result.
-     */
     private void syncStateToDb(PaymentStateUpdate update) {
         try {
             updateStateActivity.updateState(update);

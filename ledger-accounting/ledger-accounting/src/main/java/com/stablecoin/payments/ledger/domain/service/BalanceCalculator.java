@@ -15,17 +15,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Domain service that computes balance updates for journal entries.
- * Acquires pessimistic locks on AccountBalance rows in ascending account_code order
- * to prevent deadlocks during concurrent transaction posting.
- *
- * <p>Balance rules:
- * <ul>
- *   <li>ASSET/CLEARING/EXPENSE: DEBIT increases, CREDIT decreases</li>
- *   <li>LIABILITY/REVENUE: CREDIT increases, DEBIT decreases</li>
- * </ul>
- */
 @Service
 @RequiredArgsConstructor
 public class BalanceCalculator {
@@ -33,13 +22,6 @@ public class BalanceCalculator {
     private final AccountRepository accountRepository;
     private final AccountBalanceRepository balanceRepository;
 
-    /**
-     * Computes balance updates for all entries in a transaction.
-     * Locks AccountBalance rows in ascending account_code + currency order to prevent deadlocks.
-     *
-     * @param entries the entry requests to compute balances for
-     * @return map of "accountCode:currency" → BalanceUpdate
-     */
     public Map<String, BalanceUpdate> computeBalances(List<JournalEntryRequest> entries) {
         List<JournalEntryRequest> sorted = entries.stream()
                 .sorted(Comparator.comparing(JournalEntryRequest::accountCode)
@@ -90,9 +72,6 @@ public class BalanceCalculator {
         return currentBalance.subtract(amount);
     }
 
-    /**
-     * Builds the composite key for balance lookup: "accountCode:currency".
-     */
     public static String balanceKey(String accountCode, String currency) {
         return accountCode + ":" + currency;
     }

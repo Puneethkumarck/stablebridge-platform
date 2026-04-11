@@ -15,21 +15,6 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Temporal workflow orchestrating the merchant KYB onboarding flow.
- * <p>
- * Flow:
- * <ol>
- * <li>Verify company against official registry (Companies House / SEC EDGAR)</li>
- * <li>Submit KYB check to provider (activity)</li>
- * <li>Wait for KYB result signal (7-day timeout)</li>
- * <li>If MANUAL_REVIEW — notify ops, wait for review decision (5-day timeout + escalation)</li>
- * <li>If PASSED — calculate risk tier, mark merchant as KYB passed</li>
- * <li>Publish domain events to Kafka</li>
- * </ol>
- * <p>
- * Workflow ID convention: {@code onboarding-<merchantId>}
- */
 public class MerchantOnboardingWorkflowImpl implements MerchantOnboardingWorkflow {
 
   private static final Duration KYB_TIMEOUT = Duration.ofDays(7);
@@ -58,7 +43,6 @@ public class MerchantOnboardingWorkflowImpl implements MerchantOnboardingWorkflo
 
   @Override
   public OnboardingResult runOnboarding(UUID merchantId) {
-    // Step 1: Verify company against official registry
     currentStatus = "VERIFYING_COMPANY";
     var companyStatus = onboardingActivities.verifyCompanyRegistry(merchantId);
 
@@ -76,12 +60,10 @@ public class MerchantOnboardingWorkflowImpl implements MerchantOnboardingWorkflo
       return OnboardingResult.rejected(merchantId, "Company registry status is not active: " + companyStatus);
     }
 
-    // Step 2: Submit KYB check
     currentStatus = "KYB_SUBMITTING";
     var providerRef = onboardingActivities.startKyb(merchantId);
     currentStatus = "AWAITING_KYB_RESULT";
 
-    // Step 3: Wait for KYB result signal (from webhook relay)
     boolean kybReceived = Workflow.await(KYB_TIMEOUT, () -> kybResult != null);
 
     if (!kybReceived) {
@@ -91,7 +73,6 @@ public class MerchantOnboardingWorkflowImpl implements MerchantOnboardingWorkflo
       return OnboardingResult.timedOut(merchantId, "KYB verification timed out after 7 days");
     }
 
-    // Step 4: Process KYB result
     var kybStatus = kybResult.status();
 
     if ("FAILED".equals(kybStatus)) {
@@ -132,14 +113,12 @@ public class MerchantOnboardingWorkflowImpl implements MerchantOnboardingWorkflo
       // APPROVED — fall through to risk tier calculation
     }
 
-    // Step 5: Calculate risk tier and mark KYB passed
     var riskSignals = kybResult.riskSignals() != null ? kybResult.riskSignals() : Map.<String, Object>of();
     var riskTier = onboardingActivities.calculateRiskTier(riskSignals);
 
     currentStatus = "KYB_PASSED";
     onboardingActivities.markKybPassed(merchantId, riskTier);
 
-    // Step 6: Publish events
     publishKybPassedEvent(merchantId, kybResult, riskTier);
 
     currentStatus = "PENDING_APPROVAL";

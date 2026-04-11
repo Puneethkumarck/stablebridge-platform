@@ -1,10 +1,5 @@
 package com.stablecoin.payments.orchestrator.domain.model;
 
-/**
- * Value object representing a payment corridor (source country to target country).
- * <p>
- * Invariant: sourceCountry must not equal targetCountry.
- */
 public record Corridor(String sourceCountry, String targetCountry) {
 
     public Corridor {

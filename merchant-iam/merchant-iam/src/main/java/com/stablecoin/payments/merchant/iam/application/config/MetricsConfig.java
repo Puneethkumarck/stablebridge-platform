@@ -5,10 +5,6 @@ import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * Registers the 11 Micrometer counters specified in the S13 spec Section 7.
- * Inject the {@link Counter} beans where needed, or use {@link MeterRegistry} directly.
- */
 @Configuration
 public class MetricsConfig {
 

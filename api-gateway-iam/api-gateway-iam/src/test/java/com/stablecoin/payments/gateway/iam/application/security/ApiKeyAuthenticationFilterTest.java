@@ -26,10 +26,9 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ApiKeyAuthenticationFilterTest {
@@ -64,7 +63,7 @@ class ApiKeyAuthenticationFilterTest {
         void shouldPassThroughWithoutHeader() throws ServletException, IOException {
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(filterChain).doFilter(request, response);
+            then(filterChain).should().doFilter(request, response);
             assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
         }
 
@@ -74,8 +73,8 @@ class ApiKeyAuthenticationFilterTest {
 
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(filterChain).doFilter(request, response);
-            verify(apiKeyService, never()).validate(anyString(), anyString());
+            then(filterChain).should().doFilter(request, response);
+            then(apiKeyService).shouldHaveNoInteractions();
         }
     }
 
@@ -106,11 +105,11 @@ class ApiKeyAuthenticationFilterTest {
                     .version(0)
                     .build();
 
-            when(apiKeyService.validate(rawKey, "10.0.0.1")).thenReturn(apiKey);
+            given(apiKeyService.validate(rawKey, "10.0.0.1")).willReturn(apiKey);
 
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(filterChain).doFilter(request, response);
+            then(filterChain).should().doFilter(request, response);
             var auth = SecurityContextHolder.getContext().getAuthentication();
             assertThat(auth).isInstanceOf(MerchantAuthentication.class);
             var merchantAuth = (MerchantAuthentication) auth;
@@ -127,12 +126,12 @@ class ApiKeyAuthenticationFilterTest {
         @Test
         void shouldRejectNotFoundKey() throws ServletException, IOException {
             request.addHeader("X-API-Key", "invalid_key");
-            when(apiKeyService.validate("invalid_key", "127.0.0.1"))
-                    .thenThrow(ApiKeyNotFoundException.byHash());
+            given(apiKeyService.validate("invalid_key", "127.0.0.1"))
+                    .willThrow(ApiKeyNotFoundException.byHash());
 
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(filterChain, never()).doFilter(request, response);
+            then(filterChain).should(never()).doFilter(request, response);
             assertThat(response.getStatus()).isEqualTo(401);
         }
 
@@ -140,12 +139,12 @@ class ApiKeyAuthenticationFilterTest {
         void shouldRejectRevokedKey() throws ServletException, IOException {
             var keyId = UUID.randomUUID();
             request.addHeader("X-API-Key", "revoked_key");
-            when(apiKeyService.validate("revoked_key", "127.0.0.1"))
-                    .thenThrow(ApiKeyRevokedException.of(keyId));
+            given(apiKeyService.validate("revoked_key", "127.0.0.1"))
+                    .willThrow(ApiKeyRevokedException.of(keyId));
 
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(filterChain, never()).doFilter(request, response);
+            then(filterChain).should(never()).doFilter(request, response);
             assertThat(response.getStatus()).isEqualTo(401);
         }
 
@@ -153,12 +152,12 @@ class ApiKeyAuthenticationFilterTest {
         void shouldRejectExpiredKey() throws ServletException, IOException {
             var keyId = UUID.randomUUID();
             request.addHeader("X-API-Key", "expired_key");
-            when(apiKeyService.validate("expired_key", "127.0.0.1"))
-                    .thenThrow(ApiKeyExpiredException.of(keyId));
+            given(apiKeyService.validate("expired_key", "127.0.0.1"))
+                    .willThrow(ApiKeyExpiredException.of(keyId));
 
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(filterChain, never()).doFilter(request, response);
+            then(filterChain).should(never()).doFilter(request, response);
             assertThat(response.getStatus()).isEqualTo(401);
         }
 
@@ -166,12 +165,12 @@ class ApiKeyAuthenticationFilterTest {
         void shouldRejectDisallowedIp() throws ServletException, IOException {
             request.addHeader("X-API-Key", "valid_key");
             request.setRemoteAddr("192.168.1.1");
-            when(apiKeyService.validate("valid_key", "192.168.1.1"))
-                    .thenThrow(IpNotAllowedException.of("192.168.1.1"));
+            given(apiKeyService.validate("valid_key", "192.168.1.1"))
+                    .willThrow(IpNotAllowedException.of("192.168.1.1"));
 
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(filterChain, never()).doFilter(request, response);
+            then(filterChain).should(never()).doFilter(request, response);
             assertThat(response.getStatus()).isEqualTo(401);
         }
     }
@@ -185,7 +184,7 @@ class ApiKeyAuthenticationFilterTest {
 
         filter.doFilterInternal(request, response, filterChain);
 
-        verify(filterChain).doFilter(request, response);
-        verify(apiKeyService, never()).validate(anyString(), anyString());
+        then(filterChain).should().doFilter(request, response);
+        then(apiKeyService).shouldHaveNoInteractions();
     }
 }

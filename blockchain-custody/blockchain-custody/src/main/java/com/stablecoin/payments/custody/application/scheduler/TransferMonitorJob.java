@@ -7,11 +7,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-/**
- * Scheduled job that polls in-flight chain transfers every 15 seconds.
- * <p>
- * Delegates all business logic to {@link TransferMonitorCommandHandler}.
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor

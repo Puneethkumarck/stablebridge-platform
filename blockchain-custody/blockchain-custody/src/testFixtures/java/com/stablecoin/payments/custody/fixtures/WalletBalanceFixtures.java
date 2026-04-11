@@ -15,17 +15,10 @@ public final class WalletBalanceFixtures {
     public static final ChainId CHAIN_BASE = new ChainId("base");
     public static final StablecoinTicker USDC = StablecoinTicker.of("USDC");
 
-    /**
-     * A freshly initialized balance with all zeros.
-     */
     public static WalletBalance aZeroBalance() {
         return WalletBalance.initialize(WALLET_ID, CHAIN_BASE, USDC);
     }
 
-    /**
-     * A balance with specific available and reserved amounts.
-     * Achieved by syncing from chain and then reserving.
-     */
     public static WalletBalance aBalanceWith(BigDecimal available, BigDecimal reserved) {
         var total = available.add(reserved);
         var synced = aZeroBalance().syncFromChain(total, 100L);

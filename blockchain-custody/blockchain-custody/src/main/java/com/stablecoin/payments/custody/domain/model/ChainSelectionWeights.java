@@ -2,11 +2,6 @@ package com.stablecoin.payments.custody.domain.model;
 
 import lombok.Builder;
 
-/**
- * Immutable weights for the multi-criteria chain selection scoring model.
- * <p>
- * All weights must be non-negative and sum to approximately 1.0 (±0.001 tolerance).
- */
 @Builder(toBuilder = true)
 public record ChainSelectionWeights(
         double costWeight,
@@ -37,9 +32,6 @@ public record ChainSelectionWeights(
         }
     }
 
-    /**
-     * Returns the default weights (cost=0.4, speed=0.35, reliability=0.25).
-     */
     public static ChainSelectionWeights defaults() {
         return new ChainSelectionWeights(DEFAULT_COST_WEIGHT, DEFAULT_SPEED_WEIGHT, DEFAULT_RELIABILITY_WEIGHT);
     }

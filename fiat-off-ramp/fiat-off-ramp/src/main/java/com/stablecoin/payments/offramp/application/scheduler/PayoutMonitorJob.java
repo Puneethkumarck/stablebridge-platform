@@ -7,13 +7,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-/**
- * Scheduled job that delegates to {@link PayoutMonitorCommandHandler}
- * for stuck payout detection and escalation.
- * <p>
- * Polls every 5 minutes by default (configurable via {@code app.payout.monitor.interval-ms}).
- * Disabled in tests via {@code app.payout.monitor.enabled=false}.
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor

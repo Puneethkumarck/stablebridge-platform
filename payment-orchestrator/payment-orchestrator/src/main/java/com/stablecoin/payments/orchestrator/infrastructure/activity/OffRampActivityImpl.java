@@ -18,15 +18,6 @@ import java.util.HexFormat;
 import static com.stablecoin.payments.orchestrator.domain.workflow.activity.OffRampResult.OffRampStatus.FAILED;
 import static com.stablecoin.payments.orchestrator.domain.workflow.activity.OffRampResult.OffRampStatus.INITIATED;
 
-/**
- * Temporal activity implementation that calls S5 Fiat Off-Ramp via Feign.
- * <p>
- * Payout initiation is async — actual settlement arrives via partner webhook
- * to S5, which publishes a Kafka event consumed by S7 for ledger reconciliation.
- * <p>
- * No compensation method — once stablecoin is redeemed, the off-ramp partner
- * handles the fiat payout settlement.
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor

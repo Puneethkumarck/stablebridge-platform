@@ -14,10 +14,6 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.Set;
 
-/**
- * Enforces presence of {@code Idempotency-Key} header on state-mutating endpoints
- * (POST, PATCH, DELETE) -- excluding actuator endpoints.
- */
 @Slf4j
 @Component
 @Order(2)

@@ -21,10 +21,6 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Read-only query handler for ledger data.
- * Not @Transactional — all methods are pure reads with no state changes.
- */
 @Service
 @RequiredArgsConstructor
 public class LedgerQueryHandler {
@@ -35,10 +31,6 @@ public class LedgerQueryHandler {
     private final AccountRepository accountRepository;
     private final ReconciliationRepository reconciliationRepository;
 
-    /**
-     * Returns all ledger transactions with their entries for a payment.
-     * Throws JournalNotFoundException if no transactions exist.
-     */
     public List<LedgerTransaction> getPaymentJournal(UUID paymentId) {
         var transactions = transactionRepository.findByPaymentId(paymentId);
         if (transactions.isEmpty()) {
@@ -47,17 +39,11 @@ public class LedgerQueryHandler {
         return transactions;
     }
 
-    /**
-     * Returns the reconciliation record with all legs for a payment.
-     */
     public ReconciliationRecord getReconciliation(UUID paymentId) {
         return reconciliationRepository.findByPaymentId(paymentId)
                 .orElseThrow(() -> new ReconciliationNotFoundException(paymentId));
     }
 
-    /**
-     * Returns account info + multi-currency balances for a given account code.
-     */
     public AccountWithBalances getAccountBalance(String accountCode) {
         var account = accountRepository.findByAccountCode(accountCode)
                 .orElseThrow(() -> new AccountNotFoundException(accountCode));
@@ -65,9 +51,6 @@ public class LedgerQueryHandler {
         return new AccountWithBalances(account, balances);
     }
 
-    /**
-     * Returns paginated journal entries for a specific account + currency.
-     */
     public AccountHistory getAccountHistory(String accountCode, String currency, int page, int size) {
         accountRepository.findByAccountCode(accountCode)
                 .orElseThrow(() -> new AccountNotFoundException(accountCode));
@@ -77,9 +60,6 @@ public class LedgerQueryHandler {
         return new AccountHistory(accountCode, currency, entries, page, size, totalElements);
     }
 
-    /**
-     * Returns trial balance — all active accounts with debit/credit balance split.
-     */
     public TrialBalance getTrialBalance() {
         var accounts = accountRepository.findByIsActive(true);
         var allBalances = balanceRepository.findAll();

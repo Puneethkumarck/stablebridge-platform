@@ -7,12 +7,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Entity representing a stablecoin redemption for a payout order.
- * <p>
- * Created when Circle (or another redemption provider) confirms the
- * conversion from stablecoin to fiat currency.
- */
 @Builder(toBuilder = true, access = AccessLevel.PACKAGE)
 public record StablecoinRedemption(
         UUID redemptionId,
@@ -26,9 +20,6 @@ public record StablecoinRedemption(
         Instant redeemedAt
 ) {
 
-    /**
-     * Creates a new StablecoinRedemption.
-     */
     public static StablecoinRedemption create(UUID payoutId, StablecoinTicker stablecoin,
                                               BigDecimal redeemedAmount, BigDecimal fiatReceived,
                                               String fiatCurrency, String partner,

@@ -28,10 +28,6 @@ import static com.stablecoin.payments.merchant.onboarding.domain.merchant.model.
 import static com.stablecoin.payments.merchant.onboarding.domain.merchant.model.core.MerchantStatus.PENDING_APPROVAL;
 import static com.stablecoin.payments.merchant.onboarding.domain.merchant.model.core.MerchantStatus.SUSPENDED;
 
-/**
- * Aggregate root for the Merchant bounded context.
- * All state changes go through domain methods that enforce the state machine.
- */
 @Getter
 @Builder(toBuilder = true)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)

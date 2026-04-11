@@ -22,10 +22,6 @@ public class PermissionsController {
 
     private final PermissionQueryService permissionQueryService;
 
-    /**
-     * GET /v1/auth/permissions/check?user_id=&merchant_id=&permission=payments:write
-     * Called by S10 API Gateway on every inbound request.
-     */
     @GetMapping("/check")
     public DataResponse<PermissionCheckResponse> checkPermission(
             @RequestParam("user_id") UUID userId,

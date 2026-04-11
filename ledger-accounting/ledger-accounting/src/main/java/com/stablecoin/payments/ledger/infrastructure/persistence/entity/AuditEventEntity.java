@@ -16,10 +16,6 @@ import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Immutable, append-only entity — no @Version, no update methods.
- * Partitioned by occurred_at (composite PK: audit_id + occurred_at).
- */
 @Entity
 @Table(name = "audit_events")
 @IdClass(AuditEventId.class)

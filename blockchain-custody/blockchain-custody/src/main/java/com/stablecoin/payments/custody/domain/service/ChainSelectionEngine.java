@@ -24,20 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Domain service that evaluates candidate blockchain chains using a weighted scoring model
- * and selects the optimal chain for a given transfer.
- *
- * <p>Algorithm:
- * <ol>
- *   <li>Get MVP candidate chains (Base, Ethereum, Solana)</li>
- *   <li>Filter by wallet liquidity — chain must have an ON_RAMP wallet with sufficient balance</li>
- *   <li>Filter by health — chain must have health score &gt; 0</li>
- *   <li>Score each candidate: score = costWeight * (1/feeUsd) + speedWeight * (1/finalitySeconds) + reliabilityWeight * healthScore</li>
- *   <li>If preferredChain is set and healthy, select it regardless of score</li>
- *   <li>Otherwise select the candidate with the highest score</li>
- * </ol>
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -50,9 +36,6 @@ public class ChainSelectionEngine {
     private final WalletBalanceRepository walletBalanceRepository;
     private final ChainSelectionLogRepository chainSelectionLogRepository;
 
-    /**
-     * Request record for chain selection.
-     */
     public record ChainSelectionRequest(
             UUID transferId,
             StablecoinTicker stablecoin,
@@ -73,9 +56,6 @@ public class ChainSelectionEngine {
         }
     }
 
-    /**
-     * MVP candidate chain configurations.
-     */
     private static final Map<String, ChainConfig> MVP_CHAINS = Map.of(
             "base", new ChainConfig(
                     new ChainId("base"), 1, 12, "ETH",
@@ -88,14 +68,6 @@ public class ChainSelectionEngine {
                     List.of("https://sol-rpc.example.com"), "https://explorer.solana.com")
     );
 
-    /**
-     * Selects the optimal chain for a transfer based on cost, speed, reliability,
-     * wallet liquidity, and chain health.
-     *
-     * @param request the selection request containing transfer details
-     * @return the selection result with the chosen chain and all scored candidates
-     * @throws ChainUnavailableException if no healthy, funded chain is available
-     */
     public ChainSelectionResult selectChain(ChainSelectionRequest request) {
         log.info("Selecting chain for transfer={}, stablecoin={}, amount={}",
                 request.transferId(), request.stablecoin().ticker(), request.amount());

@@ -5,10 +5,6 @@ import lombok.Builder;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * The result of a chain selection evaluation, containing the selected chain,
- * all evaluated candidates with their scores, and the transfer ID.
- */
 @Builder(toBuilder = true)
 public record ChainSelectionResult(
         ChainId selectedChain,

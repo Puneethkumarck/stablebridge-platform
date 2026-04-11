@@ -2,10 +2,6 @@ package com.stablecoin.payments.compliance.domain.model;
 
 import lombok.Builder;
 
-/**
- * Groups all input data needed for risk scoring.
- * Separates the scoring inputs from the ComplianceCheck aggregate.
- */
 @Builder(toBuilder = true)
 public record RiskScoringContext(
         ComplianceCheck check,

@@ -20,11 +20,6 @@ import java.time.Clock;
 import java.util.Optional;
 import java.util.UUID;
 
-/**
- * Reconciliation command handler: records legs as payment lifecycle events arrive,
- * finalizes reconciliation when all 5 required legs are present, and publishes
- * outcome events via outbox.
- */
 @Slf4j
 @Service
 @Transactional
@@ -37,10 +32,6 @@ public class ReconciliationCommandHandler {
     private final LedgerEventPublisher eventPublisher;
     private final Clock clock;
 
-    /**
-     * Creates a PENDING reconciliation record for a payment.
-     * Idempotent: returns existing record if already created.
-     */
     public ReconciliationRecord createRecord(UUID paymentId) {
         return reconciliationRepository.findByPaymentId(paymentId)
                 .orElseGet(() -> {
@@ -49,10 +40,6 @@ public class ReconciliationCommandHandler {
                 });
     }
 
-    /**
-     * Records a reconciliation leg for a payment. Creates the reconciliation
-     * record if it doesn't exist. Idempotent: skips if leg type already recorded.
-     */
     public void recordLeg(UUID paymentId, ReconciliationLegType legType,
                           BigDecimal amount, String currency, UUID sourceEventId) {
         var record = createRecord(paymentId);
@@ -69,9 +56,6 @@ public class ReconciliationCommandHandler {
         reconciliationRepository.save(record.addLeg(leg));
     }
 
-    /**
-     * Finds a specific reconciliation leg for a payment.
-     */
     public Optional<ReconciliationLeg> findLeg(UUID paymentId, ReconciliationLegType legType) {
         return reconciliationRepository.findByPaymentId(paymentId)
                 .flatMap(record -> record.legs().stream()
@@ -79,9 +63,6 @@ public class ReconciliationCommandHandler {
                         .findFirst());
     }
 
-    /**
-     * Marks reconciliation as DISCREPANCY (e.g., on payment failure).
-     */
     public void markDiscrepancy(UUID paymentId) {
         reconciliationRepository.findByPaymentId(paymentId)
                 .ifPresent(record -> {
@@ -96,12 +77,6 @@ public class ReconciliationCommandHandler {
                 });
     }
 
-    /**
-     * Finalizes reconciliation if all 5 required legs are present.
-     * Calculates discrepancy (|stablecoin_minted - stablecoin_redeemed|) and
-     * compares against tolerance. Publishes RECONCILED or DISCREPANCY event.
-     * Idempotent: skips already finalized records or records without all legs.
-     */
     public Optional<ReconciliationRecord> finalizeReconciliation(UUID paymentId) {
         return reconciliationRepository.findByPaymentId(paymentId)
                 .filter(r -> r.status() != ReconciliationStatus.RECONCILED
@@ -134,10 +109,6 @@ public class ReconciliationCommandHandler {
         }
     }
 
-    /**
-     * Discrepancy = |stablecoin_minted - stablecoin_redeemed|.
-     * These should be identical in a normal stablecoin sandwich flow.
-     */
     BigDecimal calculateDiscrepancy(ReconciliationRecord record) {
         var mintedAmount = record.legs().stream()
                 .filter(l -> l.legType() == ReconciliationLegType.STABLECOIN_MINTED)

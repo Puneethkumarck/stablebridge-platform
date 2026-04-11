@@ -1,9 +1,5 @@
 package com.stablecoin.payments.compliance.infrastructure.provider.ofacsdn;
 
-/**
- * Self-contained Jaro-Winkler distance implementation for fuzzy name matching.
- * Returns a similarity score between 0.0 (no match) and 1.0 (exact match).
- */
 final class JaroWinklerSimilarity {
 
     private static final double WINKLER_PREFIX_WEIGHT = 0.1;
@@ -12,10 +8,6 @@ final class JaroWinklerSimilarity {
     private JaroWinklerSimilarity() {
     }
 
-    /**
-     * Computes the Jaro-Winkler similarity between two strings after normalization.
-     * Normalization: lowercase, trim, collapse multiple whitespace to single space.
-     */
     static double similarity(String first, String second) {
         if (first == null || second == null) {
             return 0.0;

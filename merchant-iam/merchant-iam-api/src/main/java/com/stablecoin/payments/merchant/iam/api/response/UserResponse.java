@@ -3,9 +3,6 @@ package com.stablecoin.payments.merchant.iam.api.response;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * User representation returned by list and accept-invitation endpoints.
- */
 public record UserResponse(
         UUID userId,
         UUID merchantId,

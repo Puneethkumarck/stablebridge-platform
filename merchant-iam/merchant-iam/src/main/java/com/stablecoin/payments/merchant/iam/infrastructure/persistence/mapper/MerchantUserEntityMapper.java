@@ -12,10 +12,6 @@ import java.util.UUID;
 @Mapper
 public interface MerchantUserEntityMapper {
 
-    /**
-     * Domain → Entity.
-     * email is encrypted/stored as bytea; role FK requires a pre-loaded RoleEntity.
-     */
     @Mapping(target = "email", expression = "java(toBytes(user.email()))")
     @Mapping(target = "role", expression = "java(roleRef(user.roleId()))")
     @Mapping(target = "status", expression = "java(user.status().name())")
@@ -23,10 +19,6 @@ public interface MerchantUserEntityMapper {
     @Mapping(target = "version", ignore = true)
     MerchantUserEntity toEntity(MerchantUser user);
 
-    /**
-     * Entity → Domain.
-     * roleId is extracted from the role FK; email decoded from bytea.
-     */
     @Mapping(target = "email", expression = "java(fromBytes(entity.getEmail()))")
     @Mapping(target = "roleId", expression = "java(entity.getRole().getRoleId())")
     @Mapping(target = "status", expression = "java(com.stablecoin.payments.merchant.iam.domain.team.model.core.UserStatus.valueOf(entity.getStatus()))")

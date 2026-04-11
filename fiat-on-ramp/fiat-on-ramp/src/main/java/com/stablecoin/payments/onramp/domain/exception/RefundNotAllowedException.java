@@ -4,10 +4,6 @@ import com.stablecoin.payments.onramp.domain.model.CollectionStatus;
 
 import java.util.UUID;
 
-/**
- * Thrown when a refund is requested for a collection order
- * that is not in the COLLECTED state.
- */
 public class RefundNotAllowedException extends RuntimeException {
 
     public static final String ERROR_CODE = "OR-2002";

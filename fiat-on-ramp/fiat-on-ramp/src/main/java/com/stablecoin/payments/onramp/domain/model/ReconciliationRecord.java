@@ -10,11 +10,6 @@ import java.util.UUID;
 import static com.stablecoin.payments.onramp.domain.model.ReconciliationStatus.DISCREPANCY;
 import static com.stablecoin.payments.onramp.domain.model.ReconciliationStatus.MATCHED;
 
-/**
- * Immutable record representing a reconciliation result for a collection order.
- * <p>
- * Compares expected vs actual amounts and records match/discrepancy status.
- */
 @Builder(toBuilder = true, access = AccessLevel.PACKAGE)
 public record ReconciliationRecord(
         UUID reconciliationId,
@@ -33,12 +28,6 @@ public record ReconciliationRecord(
 
     private static final BigDecimal TOLERANCE = new BigDecimal("0.01");
 
-    /**
-     * Creates a reconciliation record by comparing expected and actual amounts.
-     * <p>
-     * If the absolute difference is within tolerance (0.01), the record is MATCHED.
-     * Otherwise, it is marked as DISCREPANCY with the difference captured.
-     */
     public static ReconciliationRecord reconcile(UUID collectionId, String psp,
                                                   String pspReference, BigDecimal expectedAmount,
                                                   BigDecimal actualAmount, String currency) {

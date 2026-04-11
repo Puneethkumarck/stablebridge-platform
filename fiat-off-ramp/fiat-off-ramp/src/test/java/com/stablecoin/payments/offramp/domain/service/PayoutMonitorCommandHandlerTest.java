@@ -1,6 +1,7 @@
 package com.stablecoin.payments.offramp.domain.service;
 
 import com.stablecoin.payments.offramp.domain.event.FiatPayoutFailedEvent;
+import com.stablecoin.payments.offramp.domain.port.IsolatedTransactionExecutor;
 import com.stablecoin.payments.offramp.domain.port.PayoutEventPublisher;
 import com.stablecoin.payments.offramp.domain.port.PayoutMonitorProperties;
 import com.stablecoin.payments.offramp.domain.port.PayoutOrderRepository;
@@ -11,10 +12,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionDefinition;
-import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.support.SimpleTransactionStatus;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -56,7 +53,7 @@ class PayoutMonitorCommandHandlerTest {
                 orderRepository,
                 eventPublisher,
                 new StubMonitorProperties(STUCK_THRESHOLD_MINUTES),
-                passthroughTransactionManager(),
+                passthroughTransactionExecutor(),
                 clock
         );
     }
@@ -228,23 +225,8 @@ class PayoutMonitorCommandHandlerTest {
 
     // -- Helpers ----------------------------------------------------------
 
-    private static PlatformTransactionManager passthroughTransactionManager() {
-        return new PlatformTransactionManager() {
-            @Override
-            public TransactionStatus getTransaction(TransactionDefinition definition) {
-                return new SimpleTransactionStatus(true);
-            }
-
-            @Override
-            public void commit(TransactionStatus status) {
-                // no-op in unit tests
-            }
-
-            @Override
-            public void rollback(TransactionStatus status) {
-                // no-op in unit tests
-            }
-        };
+    private static IsolatedTransactionExecutor passthroughTransactionExecutor() {
+        return Runnable::run;
     }
 
     private record StubMonitorProperties(int stuckThresholdMinutes) implements PayoutMonitorProperties {

@@ -15,14 +15,6 @@ import org.springframework.stereotype.Component;
 import static com.stablecoin.payments.orchestrator.domain.workflow.activity.FiatCollectionResult.FiatCollectionStatus.FAILED;
 import static com.stablecoin.payments.orchestrator.domain.workflow.activity.FiatCollectionResult.FiatCollectionStatus.INITIATED;
 
-/**
- * Temporal activity implementation that calls S3 Fiat On-Ramp via Feign.
- * <p>
- * Collection initiation is async — actual confirmation arrives via Stripe webhook
- * to S3, which publishes a Kafka event, consumed by S1 to send a workflow signal.
- * <p>
- * Compensation: refund the collected fiat via S3 refund endpoint.
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor

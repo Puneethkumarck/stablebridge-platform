@@ -1,6 +1,5 @@
 package com.stablecoin.payments.ledger.domain.service;
 
-
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
@@ -8,13 +7,6 @@ import java.util.UUID;
 import static com.stablecoin.payments.ledger.domain.model.EntryType.CREDIT;
 import static com.stablecoin.payments.ledger.domain.model.EntryType.DEBIT;
 
-/**
- * Maps payment lifecycle events to balanced journal entry templates.
- * Each method returns a {@link TransactionRequest} with the correct debit/credit pairs
- * according to the chart of accounts.
- *
- * <p>This is a pure domain service — no dependencies on Spring or infrastructure.
- */
 public final class AccountingRules {
 
     // Chart of accounts codes
@@ -32,9 +24,6 @@ public final class AccountingRules {
     private AccountingRules() {
     }
 
-    /**
-     * payment.initiated → DEBIT 1000 Fiat Receivable / CREDIT 2010 Client Funds Held
-     */
     public static TransactionRequest paymentInitiated(
             UUID paymentId, UUID correlationId, UUID sourceEventId,
             BigDecimal amount, String currency
@@ -49,9 +38,6 @@ public final class AccountingRules {
         );
     }
 
-    /**
-     * fiat.collected → DEBIT 1001 Fiat Cash / CREDIT 1000 Fiat Receivable
-     */
     public static TransactionRequest fiatCollected(
             UUID paymentId, UUID correlationId, UUID sourceEventId,
             BigDecimal amount, String currency
@@ -66,9 +52,6 @@ public final class AccountingRules {
         );
     }
 
-    /**
-     * chain.transfer.submitted → DEBIT 1010 Stablecoin Inventory / CREDIT 9000 In-Transit Clearing
-     */
     public static TransactionRequest chainTransferSubmitted(
             UUID paymentId, UUID correlationId, UUID sourceEventId,
             BigDecimal amount, String stablecoin
@@ -83,9 +66,6 @@ public final class AccountingRules {
         );
     }
 
-    /**
-     * chain.transfer.confirmed → DEBIT 1020 Off-Ramp Receivable / CREDIT 1010 Stablecoin Inventory
-     */
     public static TransactionRequest chainTransferConfirmed(
             UUID paymentId, UUID correlationId, UUID sourceEventId,
             BigDecimal amount, String stablecoin
@@ -100,9 +80,6 @@ public final class AccountingRules {
         );
     }
 
-    /**
-     * stablecoin.redeemed → DEBIT 1030 Stablecoin Redeemed / CREDIT 1020 Off-Ramp Receivable
-     */
     public static TransactionRequest stablecoinRedeemed(
             UUID paymentId, UUID correlationId, UUID sourceEventId,
             BigDecimal amount, String stablecoin
@@ -117,9 +94,6 @@ public final class AccountingRules {
         );
     }
 
-    /**
-     * fiat.payout.completed → DEBIT 2010 Client Funds Held / CREDIT 2000 Fiat Payable
-     */
     public static TransactionRequest fiatPayoutCompleted(
             UUID paymentId, UUID correlationId, UUID sourceEventId,
             BigDecimal amount, String currency
@@ -134,9 +108,6 @@ public final class AccountingRules {
         );
     }
 
-    /**
-     * payment.completed (clearing) → DEBIT 9000 In-Transit Clearing / CREDIT 1030 Stablecoin Redeemed
-     */
     public static TransactionRequest paymentCompletedClearing(
             UUID paymentId, UUID correlationId, UUID sourceEventId,
             BigDecimal stablecoinAmount, String stablecoin
@@ -151,9 +122,6 @@ public final class AccountingRules {
         );
     }
 
-    /**
-     * payment.completed (revenue) → DEBIT 2010 Client Funds Held / CREDIT 4000 FX Spread Revenue
-     */
     public static TransactionRequest paymentCompletedRevenue(
             UUID paymentId, UUID correlationId, UUID sourceEventId,
             BigDecimal feeAmount, String currency
@@ -168,10 +136,6 @@ public final class AccountingRules {
         );
     }
 
-    /**
-     * payment.failed (reversal) — creates reversal entries for all existing entries.
-     * Swaps DEBIT ↔ CREDIT with same amount/currency/account.
-     */
     public static List<JournalEntryRequest> reversalEntries(List<JournalEntryRequest> originalEntries) {
         return originalEntries.stream()
                 .map(e -> new JournalEntryRequest(

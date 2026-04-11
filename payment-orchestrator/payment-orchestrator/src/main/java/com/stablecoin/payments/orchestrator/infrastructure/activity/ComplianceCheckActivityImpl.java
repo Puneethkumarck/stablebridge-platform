@@ -18,14 +18,6 @@ import static com.stablecoin.payments.orchestrator.domain.workflow.activity.Comp
 import static com.stablecoin.payments.orchestrator.domain.workflow.activity.ComplianceResult.ComplianceStatus.PASSED;
 import static com.stablecoin.payments.orchestrator.domain.workflow.activity.ComplianceResult.ComplianceStatus.SANCTIONS_HIT;
 
-/**
- * Temporal activity implementation that calls S2 Compliance Service via REST.
- * <p>
- * Flow: POST to initiate check, then poll GET until terminal state.
- * Heartbeats during polling to signal liveness to the Temporal server.
- * <p>
- * No compensation needed — compliance check does not move value.
- */
 @Slf4j
 @Component
 @RequiredArgsConstructor

@@ -12,9 +12,6 @@ import static com.stablecoin.payments.orchestrator.fixtures.WorkflowFixtures.LOC
 import static com.stablecoin.payments.orchestrator.fixtures.WorkflowFixtures.PAYMENT_ID;
 import static com.stablecoin.payments.orchestrator.fixtures.WorkflowFixtures.QUOTE_ID;
 
-/**
- * Test fixture factory methods for FX activity DTOs.
- */
 public final class FxActivityFixtures {
 
     private FxActivityFixtures() {}

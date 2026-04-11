@@ -8,10 +8,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.util.Map;
 
-/**
- * Application-layer implementation of {@link ChainConfirmationProperties} and {@link TokenContractResolver}.
- * Binds to {@code app.chains.*} YAML properties.
- */
 @ConfigurationProperties(prefix = "app")
 public record ChainMonitorConfig(
         Map<String, ChainProperties> chains
@@ -51,9 +47,6 @@ public record ChainMonitorConfig(
         return contracts.get(stablecoin.ticker());
     }
 
-    /**
-     * Per-chain configuration properties.
-     */
     public record ChainProperties(
             int minConfirmations,
             int avgFinalityS,

@@ -17,7 +17,6 @@ public final class WebhookFixtures {
 
     private WebhookFixtures() {}
 
-    // -- Constants --------------------------------------------------------
 
     public static final String WEBHOOK_SECRET = "whsec_test_secret_12345";
     public static final String EVENT_ID = "evt_test_001";
@@ -26,7 +25,6 @@ public final class WebhookFixtures {
     public static final String EVENT_TYPE_FAILED = "payment_intent.payment_failed";
     public static final UUID COLLECTION_ID = UUID.fromString("c3d4e5f6-a7b8-9012-cdef-123456789012");
 
-    // -- Stripe Event JSON -----------------------------------------------
 
     public static String aSucceededEventJson() {
         return aSucceededEventJson(PSP_REFERENCE, 100000L, "usd", COLLECTION_ID);
@@ -84,7 +82,6 @@ public final class WebhookFixtures {
         return aSucceededEventJson(PSP_REFERENCE, 50000L, "usd", COLLECTION_ID);
     }
 
-    // -- WebhookCommand factories ----------------------------------------
 
     public static WebhookCommand aSucceededCommand() {
         return new WebhookCommand(
@@ -155,7 +152,6 @@ public final class WebhookFixtures {
                 aMismatchAmountEventJson());
     }
 
-    // -- Signature helpers -----------------------------------------------
 
     public static String computeSignature(String payload, String secret) {
         return computeSignature(payload, secret, Instant.now());

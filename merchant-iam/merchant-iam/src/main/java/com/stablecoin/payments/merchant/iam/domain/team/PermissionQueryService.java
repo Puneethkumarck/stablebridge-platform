@@ -12,11 +12,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
-/**
- * Domain service for permission resolution.
- * Checks Redis cache first; falls back to DB on cache miss.
- * Called by S10 API Gateway via {@code GET /v1/auth/permissions/check}.
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor

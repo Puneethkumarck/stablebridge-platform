@@ -1,6 +1,6 @@
 package com.stablecoin.payments.orchestrator.application.controller;
 
-import com.stablecoin.payments.orchestrator.application.security.SecurityConfig;
+import com.stablecoin.payments.orchestrator.application.config.SecurityConfig;
 import com.stablecoin.payments.orchestrator.domain.model.PaymentNotCancellableException;
 import com.stablecoin.payments.orchestrator.domain.model.PaymentNotFoundException;
 import com.stablecoin.payments.orchestrator.domain.model.PaymentState;

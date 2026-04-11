@@ -23,12 +23,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Domain command handler for collection order operations.
- * <p>
- * Orchestrates: idempotency check -> create order -> call PSP ->
- * transition state -> record PspTransaction -> publish event -> save.
- */
 @Slf4j
 @Service
 @Transactional
@@ -40,20 +34,6 @@ public class CollectionCommandHandler {
     private final PspGateway pspGateway;
     private final CollectionEventPublisher eventPublisher;
 
-    /**
-     * Initiates a new collection order for a payment.
-     * <p>
-     * Idempotent: if a collection order already exists for the given paymentId,
-     * returns the existing order with {@code created = false}.
-     *
-     * @param paymentId     the payment identifier
-     * @param correlationId the correlation identifier for tracing
-     * @param amount        the amount to collect
-     * @param paymentRail   the payment rail details
-     * @param psp           the PSP identifier
-     * @param senderAccount the sender bank account details
-     * @return a {@link CollectionResult} indicating the order and whether it was newly created
-     */
     public CollectionResult initiateCollection(UUID paymentId, UUID correlationId,
                                                Money amount, PaymentRail paymentRail,
                                                PspIdentifier psp, BankAccount senderAccount) {
@@ -109,39 +89,16 @@ public class CollectionCommandHandler {
         return new CollectionResult(order, true);
     }
 
-    /**
-     * Retrieves a collection order by its ID.
-     *
-     * @param collectionId the collection order identifier
-     * @return the collection order
-     * @throws CollectionOrderNotFoundException if the order is not found
-     */
     public CollectionOrder getCollection(UUID collectionId) {
         return collectionOrderRepository.findById(collectionId)
                 .orElseThrow(() -> new CollectionOrderNotFoundException(collectionId));
     }
 
-    /**
-     * Retrieves a collection order by its associated payment ID.
-     *
-     * @param paymentId the payment identifier
-     * @return the collection order
-     * @throws CollectionOrderNotFoundException if the order is not found
-     */
     public CollectionOrder getCollectionByPaymentId(UUID paymentId) {
         return collectionOrderRepository.findByPaymentId(paymentId)
                 .orElseThrow(() -> new CollectionOrderNotFoundException(paymentId));
     }
 
-    /**
-     * Expires a collection order that has been in AWAITING_CONFIRMATION past its timeout.
-     * <p>
-     * Transitions the order to COLLECTION_FAILED, persists, and publishes a
-     * {@link CollectionFailedEvent} via the outbox.
-     *
-     * @param order the expired order
-     * @param now   the current timestamp
-     */
     public void expireCollection(CollectionOrder order, Instant now) {
         var expired = order.timeoutCollection("Collection expired", "OR-3001");
         collectionOrderRepository.save(expired);

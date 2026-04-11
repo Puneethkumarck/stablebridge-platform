@@ -4,9 +4,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
-/**
- * Command object to create a balanced ledger transaction with journal entries.
- */
 public record TransactionRequest(
         UUID paymentId,
         UUID correlationId,

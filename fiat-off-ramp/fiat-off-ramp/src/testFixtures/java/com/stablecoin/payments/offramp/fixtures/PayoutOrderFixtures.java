@@ -19,7 +19,6 @@ public final class PayoutOrderFixtures {
 
     private PayoutOrderFixtures() {}
 
-    // -- Constants --------------------------------------------------------
 
     public static final UUID PAYMENT_ID = UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567890");
     public static final UUID CORRELATION_ID = UUID.fromString("b2c3d4e5-f6a7-8901-bcde-f12345678901");
@@ -33,7 +32,6 @@ public final class PayoutOrderFixtures {
     public static final String PARTNER_REFERENCE = "modulr_ref_12345";
     public static final String FAILURE_REASON = "Partner timeout exceeded";
 
-    // -- Value Object Factories -------------------------------------------
 
     public static StablecoinTicker aStablecoinTicker() {
         return StablecoinTicker.of("USDC");
@@ -55,7 +53,6 @@ public final class PayoutOrderFixtures {
         return new Money(new BigDecimal("1000.00"), "USD");
     }
 
-    // -- API Request Factories --------------------------------------------
 
     public static PayoutRequest aPayoutRequest() {
         return new PayoutRequest(
@@ -83,7 +80,6 @@ public final class PayoutOrderFixtures {
         );
     }
 
-    // -- PayoutOrder State Factories --------------------------------------
 
     public static PayoutOrder aPendingOrder() {
         return PayoutOrder.create(

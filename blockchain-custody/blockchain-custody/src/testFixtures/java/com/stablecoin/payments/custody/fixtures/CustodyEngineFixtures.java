@@ -14,9 +14,6 @@ public final class CustodyEngineFixtures {
     public static final UUID TRANSFER_ID = UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567890");
     public static final String VAULT_ACCOUNT_ID = "42";
 
-    /**
-     * A sign request for Base USDC transfer.
-     */
     public static SignRequest aSignRequest() {
         return new SignRequest(
                 TRANSFER_ID,

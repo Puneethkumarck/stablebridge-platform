@@ -23,13 +23,6 @@ import java.util.Optional;
 
 import static com.stablecoin.payments.platform.infrastructure.http.ExternalApiLoggingInterceptor.applyTo;
 
-/**
- * Companies House API adapter — free, real UK company data.
- * <p>
- * API docs: <a href="https://developer.company-information.service.gov.uk/">Companies House Developer Hub</a>
- * <p>
- * Rate limit: 600 requests per 5-minute window. Authentication: HTTP Basic with API key as username, empty password.
- */
 @Slf4j
 @Component
 @ConditionalOnProperty(name = "app.company-registry.provider", havingValue = "companies-house")

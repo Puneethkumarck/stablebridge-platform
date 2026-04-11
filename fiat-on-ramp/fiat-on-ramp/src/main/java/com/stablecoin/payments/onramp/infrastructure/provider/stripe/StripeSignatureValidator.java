@@ -16,14 +16,6 @@ import java.util.HexFormat;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
-/**
- * Stripe-specific webhook signature validator using HMAC-SHA256.
- * <p>
- * Stripe signature format: {@code t=<timestamp>,v1=<hmac_hex>}
- * where HMAC is computed as {@code HMAC-SHA256(webhook_secret, "<timestamp>.<rawBody>")}.
- * <p>
- * Validates both the HMAC and the timestamp tolerance (default 5 minutes).
- */
 @Slf4j
 @Component
 @ConditionalOnProperty(name = "app.psp.provider", havingValue = "stripe")

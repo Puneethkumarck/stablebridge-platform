@@ -10,21 +10,6 @@ import org.springframework.stereotype.Service;
 import java.util.Set;
 import java.util.UUID;
 
-/**
- * Domain service that manages nonce assignment for blockchain wallets.
- * <p>
- * EVM chains (Ethereum, Base, Polygon, Avalanche, Tron) use an account-based nonce
- * model where each transaction from a wallet must carry a strictly incrementing nonce.
- * This service delegates to {@link NonceRepository} for serialized nonce assignment
- * to prevent two concurrent transactions from receiving the same nonce.
- * <p>
- * Non-EVM chains such as Solana use a different model (recent blockhash) and do not
- * require nonce management -- for those chains, {@link NonceAssignment#notApplicable()}
- * is returned.
- * <p>
- * Resubmission (replace-by-fee): when a transaction is resubmitted, the <em>same</em>
- * nonce is reused so that the new transaction replaces the stuck one in the mempool.
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -35,14 +20,6 @@ public class NonceManager {
 
     private final NonceRepository nonceRepository;
 
-    /**
-     * Assigns a nonce for a wallet on the given chain.
-     *
-     * @param walletId   the wallet that will sign the transaction
-     * @param chainId    the target blockchain chain
-     * @param isResubmit {@code true} when resubmitting a stuck transaction (reuse nonce)
-     * @return the nonce assignment result
-     */
     public NonceAssignment assignNonce(UUID walletId, ChainId chainId, boolean isResubmit) {
         if (walletId == null) {
             throw new IllegalArgumentException("walletId is required");

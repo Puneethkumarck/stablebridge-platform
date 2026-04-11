@@ -25,10 +25,6 @@ import java.util.UUID;
 import static org.springframework.http.HttpStatus.ACCEPTED;
 import static org.springframework.http.HttpStatus.OK;
 
-/**
- * Thin REST controller for blockchain transfer operations.
- * Delegates all business logic to {@link TransferCommandHandler}.
- */
 @RestController
 @RequestMapping("/v1")
 @RequiredArgsConstructor

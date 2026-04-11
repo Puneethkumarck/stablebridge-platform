@@ -2,6 +2,7 @@ package com.stablecoin.payments.gateway.iam.application.security;
 
 import com.stablecoin.payments.gateway.iam.domain.model.Merchant;
 import com.stablecoin.payments.gateway.iam.domain.model.MerchantStatus;
+import com.stablecoin.payments.gateway.iam.domain.model.RateLimitPolicy;
 import com.stablecoin.payments.gateway.iam.domain.model.RateLimitTier;
 import com.stablecoin.payments.gateway.iam.domain.port.MerchantRepository;
 import com.stablecoin.payments.gateway.iam.domain.port.RateLimitEventRepository;
@@ -28,10 +29,9 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class RateLimitFilterTest {
@@ -93,18 +93,18 @@ class RateLimitFilterTest {
     void shouldPassThroughWhenNotAuthenticated() throws ServletException, IOException {
         filter.doFilterInternal(request, response, filterChain);
 
-        verify(filterChain).doFilter(request, response);
-        verify(rateLimiter, never()).check(any(), any(), any());
+        then(filterChain).should().doFilter(request, response);
+        then(rateLimiter).shouldHaveNoInteractions();
     }
 
     @Test
     void shouldRejectWhenMerchantNotFound() throws ServletException, IOException {
         setAuthentication();
-        when(merchantRepository.findById(merchantId)).thenReturn(Optional.empty());
+        given(merchantRepository.findById(merchantId)).willReturn(Optional.empty());
 
         filter.doFilterInternal(request, response, filterChain);
 
-        verify(filterChain, never()).doFilter(request, response);
+        then(filterChain).should(never()).doFilter(request, response);
         assertThat(response.getStatus()).isEqualTo(401);
         assertThat(response.getContentAsString()).contains("GW-1001");
         assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
@@ -113,13 +113,13 @@ class RateLimitFilterTest {
     @Test
     void shouldSkipRateLimitingForUnlimitedTier() throws ServletException, IOException {
         setAuthentication();
-        when(merchantRepository.findById(merchantId))
-                .thenReturn(Optional.of(buildMerchant(RateLimitTier.UNLIMITED)));
+        given(merchantRepository.findById(merchantId))
+                .willReturn(Optional.of(buildMerchant(RateLimitTier.UNLIMITED)));
 
         filter.doFilterInternal(request, response, filterChain);
 
-        verify(filterChain).doFilter(request, response);
-        verify(rateLimiter, never()).check(any(), any(), any());
+        then(filterChain).should().doFilter(request, response);
+        then(rateLimiter).shouldHaveNoInteractions();
     }
 
     @Nested
@@ -152,13 +152,15 @@ class RateLimitFilterTest {
         void shouldAllowRequestAndSetHeaders() throws ServletException, IOException {
             setAuthentication();
             var merchant = buildMerchant(RateLimitTier.STARTER);
-            when(merchantRepository.findById(merchantId)).thenReturn(Optional.of(merchant));
-            when(rateLimiter.check(eq(merchantId), any(), any()))
-                    .thenReturn(new RateLimitResult(true, 5, 60, "1m", 0));
+            var endpoint = "GET /v1/payments";
+            var policy = new RateLimitPolicy(RateLimitTier.STARTER);
+            given(merchantRepository.findById(merchantId)).willReturn(Optional.of(merchant));
+            given(rateLimiter.check(merchantId, endpoint, policy))
+                    .willReturn(new RateLimitResult(true, 5, 60, "1m", 0));
 
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(filterChain).doFilter(request, response);
+            then(filterChain).should().doFilter(request, response);
             assertThat(response.getHeader("X-RateLimit-Limit")).isEqualTo("60");
             assertThat(response.getHeader("X-RateLimit-Remaining")).isEqualTo("55");
         }
@@ -171,13 +173,15 @@ class RateLimitFilterTest {
         void shouldRejectWithMinuteBreachAndRetryAfter() throws ServletException, IOException {
             setAuthentication();
             var merchant = buildMerchant(RateLimitTier.STARTER);
-            when(merchantRepository.findById(merchantId)).thenReturn(Optional.of(merchant));
-            when(rateLimiter.check(eq(merchantId), any(), any()))
-                    .thenReturn(new RateLimitResult(false, 61, 60, "1m", 60));
+            var endpoint = "GET /v1/payments";
+            var policy = new RateLimitPolicy(RateLimitTier.STARTER);
+            given(merchantRepository.findById(merchantId)).willReturn(Optional.of(merchant));
+            given(rateLimiter.check(merchantId, endpoint, policy))
+                    .willReturn(new RateLimitResult(false, 61, 60, "1m", 60));
 
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(filterChain, never()).doFilter(request, response);
+            then(filterChain).should(never()).doFilter(request, response);
             assertThat(response.getStatus()).isEqualTo(429);
             assertThat(response.getHeader("Retry-After")).isEqualTo("60");
             assertThat(response.getContentAsString()).contains("GW-6001");
@@ -187,13 +191,15 @@ class RateLimitFilterTest {
         void shouldRejectWithDayBreachAndRetryAfter() throws ServletException, IOException {
             setAuthentication();
             var merchant = buildMerchant(RateLimitTier.STARTER);
-            when(merchantRepository.findById(merchantId)).thenReturn(Optional.of(merchant));
-            when(rateLimiter.check(eq(merchantId), any(), any()))
-                    .thenReturn(new RateLimitResult(false, 10001, 10000, "1d", 3600));
+            var endpoint = "GET /v1/payments";
+            var policy = new RateLimitPolicy(RateLimitTier.STARTER);
+            given(merchantRepository.findById(merchantId)).willReturn(Optional.of(merchant));
+            given(rateLimiter.check(merchantId, endpoint, policy))
+                    .willReturn(new RateLimitResult(false, 10001, 10000, "1d", 3600));
 
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(filterChain, never()).doFilter(request, response);
+            then(filterChain).should(never()).doFilter(request, response);
             assertThat(response.getStatus()).isEqualTo(429);
             assertThat(response.getHeader("Retry-After")).isEqualTo("3600");
         }
@@ -202,13 +208,15 @@ class RateLimitFilterTest {
         void shouldPersistRateLimitEvent() throws ServletException, IOException {
             setAuthentication();
             var merchant = buildMerchant(RateLimitTier.STARTER);
-            when(merchantRepository.findById(merchantId)).thenReturn(Optional.of(merchant));
-            when(rateLimiter.check(eq(merchantId), any(), any()))
-                    .thenReturn(new RateLimitResult(false, 61, 60, "1m", 60));
+            var endpoint = "GET /v1/payments";
+            var policy = new RateLimitPolicy(RateLimitTier.STARTER);
+            given(merchantRepository.findById(merchantId)).willReturn(Optional.of(merchant));
+            given(rateLimiter.check(merchantId, endpoint, policy))
+                    .willReturn(new RateLimitResult(false, 61, 60, "1m", 60));
 
             filter.doFilterInternal(request, response, filterChain);
 
-            verify(rateLimitEventRepository).save(any());
+            then(rateLimitEventRepository).should().save(any());
         }
     }
 }

@@ -5,10 +5,6 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
-/**
- * Real-time running balance per account+currency.
- * Updated on every journal entry with optimistic locking via version.
- */
 public record AccountBalance(
         String accountCode,
         String currency,
@@ -24,9 +20,6 @@ public record AccountBalance(
         Objects.requireNonNull(balance, "balance must not be null");
     }
 
-    /**
-     * Creates an initial zero balance for an account+currency pair.
-     */
     public static AccountBalance zero(String accountCode, String currency) {
         return new AccountBalance(
                 accountCode,
@@ -38,12 +31,6 @@ public record AccountBalance(
         );
     }
 
-    /**
-     * Applies a journal entry to this balance and returns a new AccountBalance with updated values.
-     * DEBIT increases ASSET/EXPENSE/CLEARING, decreases LIABILITY/REVENUE.
-     * CREDIT decreases ASSET/EXPENSE/CLEARING, increases LIABILITY/REVENUE.
-     * The caller is responsible for determining the sign — this method simply adds or subtracts.
-     */
     public AccountBalance applyEntry(JournalEntry entry, EntryType normalBalance) {
         Objects.requireNonNull(entry, "entry must not be null");
         Objects.requireNonNull(normalBalance, "normalBalance must not be null");

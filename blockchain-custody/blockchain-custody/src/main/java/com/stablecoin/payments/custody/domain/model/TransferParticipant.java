@@ -6,9 +6,6 @@ import lombok.Builder;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-/**
- * Represents a participant (input, output, or fee) in a chain transfer.
- */
 @Builder(toBuilder = true, access = AccessLevel.PACKAGE)
 public record TransferParticipant(
         UUID participantId,
@@ -20,11 +17,7 @@ public record TransferParticipant(
         String assetCode
 ) {
 
-    // -- Factory Method -------------------------------------------------
 
-    /**
-     * Creates a new transfer participant.
-     */
     public static TransferParticipant create(UUID transferId, ParticipantType participantType,
                                              String address, UUID walletId,
                                              BigDecimal amount, String assetCode) {

@@ -16,8 +16,8 @@ import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.BDDMockito.then;
 
 @ExtendWith(MockitoExtension.class)
 class CachedUserJwksProviderTest {
@@ -44,7 +44,7 @@ class CachedUserJwksProviderTest {
                 "payment-platform",
                 24);
         provider = new CachedUserJwksProvider(merchantIamClient, redis, properties);
-        when(redis.opsForValue()).thenReturn(valueOps);
+        given(redis.opsForValue()).willReturn(valueOps);
     }
 
     @Nested
@@ -52,24 +52,24 @@ class CachedUserJwksProviderTest {
 
         @Test
         void shouldFetchAndCacheJwks() {
-            when(valueOps.get(CACHE_KEY)).thenReturn(null);
-            when(merchantIamClient.fetchJwks()).thenReturn(JWKS_JSON);
+            given(valueOps.get(CACHE_KEY)).willReturn(null);
+            given(merchantIamClient.fetchJwks()).willReturn(JWKS_JSON);
 
             var result = provider.fetchJwks();
 
             assertThat(result).isEqualTo(JWKS_JSON);
-            verify(valueOps).set(CACHE_KEY, JWKS_JSON, Duration.ofHours(24));
+            then(valueOps).should().set(CACHE_KEY, JWKS_JSON, Duration.ofHours(24));
         }
 
         @Test
         void shouldRefreshCacheEvenWhenCachedValueExists() {
-            when(valueOps.get(CACHE_KEY)).thenReturn("old-jwks");
-            when(merchantIamClient.fetchJwks()).thenReturn(JWKS_JSON);
+            given(valueOps.get(CACHE_KEY)).willReturn("old-jwks");
+            given(merchantIamClient.fetchJwks()).willReturn(JWKS_JSON);
 
             var result = provider.fetchJwks();
 
             assertThat(result).isEqualTo(JWKS_JSON);
-            verify(valueOps).set(CACHE_KEY, JWKS_JSON, Duration.ofHours(24));
+            then(valueOps).should().set(CACHE_KEY, JWKS_JSON, Duration.ofHours(24));
         }
     }
 
@@ -78,8 +78,8 @@ class CachedUserJwksProviderTest {
 
         @Test
         void shouldReturnCachedValueWhenAvailable() {
-            when(valueOps.get(CACHE_KEY)).thenReturn(JWKS_JSON);
-            when(merchantIamClient.fetchJwks()).thenThrow(new RuntimeException("Connection refused"));
+            given(valueOps.get(CACHE_KEY)).willReturn(JWKS_JSON);
+            given(merchantIamClient.fetchJwks()).willThrow(new RuntimeException("Connection refused"));
 
             var result = provider.fetchJwks();
 
@@ -88,8 +88,8 @@ class CachedUserJwksProviderTest {
 
         @Test
         void shouldThrowWhenNoCachedValue() {
-            when(valueOps.get(CACHE_KEY)).thenReturn(null);
-            when(merchantIamClient.fetchJwks()).thenThrow(new RuntimeException("Connection refused"));
+            given(valueOps.get(CACHE_KEY)).willReturn(null);
+            given(merchantIamClient.fetchJwks()).willThrow(new RuntimeException("Connection refused"));
 
             assertThatThrownBy(() -> provider.fetchJwks())
                     .isInstanceOf(UserJwksUnavailableException.class)

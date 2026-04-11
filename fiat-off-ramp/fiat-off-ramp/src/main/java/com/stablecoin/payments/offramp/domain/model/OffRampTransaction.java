@@ -7,12 +7,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-/**
- * Entity recording off-ramp partner transaction events (audit trail).
- * <p>
- * Each interaction with an off-ramp partner (Modulr, CurrencyCloud, Safaricom, etc.)
- * creates a new OffRampTransaction record for auditability.
- */
 @Builder(toBuilder = true, access = AccessLevel.PACKAGE)
 public record OffRampTransaction(
         UUID offRampTxnId,
@@ -26,9 +20,6 @@ public record OffRampTransaction(
         Instant receivedAt
 ) {
 
-    /**
-     * Creates a new OffRampTransaction.
-     */
     public static OffRampTransaction create(UUID payoutId, String partnerName,
                                             String eventType, BigDecimal amount,
                                             String currency, String status,

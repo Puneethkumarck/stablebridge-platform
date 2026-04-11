@@ -11,12 +11,6 @@ import static com.stablecoin.payments.onramp.domain.model.RefundStatus.FAILED;
 import static com.stablecoin.payments.onramp.domain.model.RefundStatus.PENDING;
 import static com.stablecoin.payments.onramp.domain.model.RefundStatus.PROCESSING;
 
-/**
- * Child entity representing a refund for a collected payment.
- * <p>
- * Tracks the refund lifecycle: {@code PENDING -> PROCESSING -> COMPLETED/FAILED}.
- * Immutable record — all state transitions return new instances via {@code toBuilder()}.
- */
 @Builder(toBuilder = true, access = AccessLevel.PACKAGE)
 public record Refund(
         UUID refundId,
@@ -31,11 +25,7 @@ public record Refund(
         String failureReason
 ) {
 
-    // -- Factory Method ---------------------------------------------------
 
-    /**
-     * Creates a new refund in PENDING state.
-     */
     public static Refund initiate(UUID collectionId, UUID paymentId,
                                   Money refundAmount, String reason) {
         if (collectionId == null) {
@@ -62,11 +52,7 @@ public record Refund(
                 .build();
     }
 
-    // -- State Transition Methods -----------------------------------------
 
-    /**
-     * Starts processing the refund. Transitions PENDING -> PROCESSING.
-     */
     public Refund startProcessing() {
         if (status != PENDING) {
             throw new IllegalStateException(
@@ -77,9 +63,6 @@ public record Refund(
                 .build();
     }
 
-    /**
-     * Completes the refund. Transitions PROCESSING -> COMPLETED.
-     */
     public Refund complete(String pspRefundRef) {
         if (status != PROCESSING) {
             throw new IllegalStateException(
@@ -95,9 +78,6 @@ public record Refund(
                 .build();
     }
 
-    /**
-     * Fails the refund. Transitions PROCESSING -> FAILED.
-     */
     public Refund fail(String failureReason) {
         if (status != PROCESSING) {
             throw new IllegalStateException(

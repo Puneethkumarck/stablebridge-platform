@@ -28,11 +28,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * Aggregate root for the Merchant Team bounded context.
- * Manages users, roles, invitations and enforces all team invariants.
- * Zero Spring/JPA dependencies — pure domain logic.
- */
 public class MerchantTeam {
 
     private static final Duration INVITATION_TTL = Duration.ofDays(7);
@@ -57,7 +52,6 @@ public class MerchantTeam {
         return new MerchantTeam(merchantId, new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
     }
 
-    // ── Queries ─────────────────────────────────────────────
 
     public UUID getMerchantId() {
         return merchantId;
@@ -75,11 +69,7 @@ public class MerchantTeam {
         return List.copyOf(invitations);
     }
 
-    // ── Commands ────────────────────────────────────────────
 
-    /**
-     * Seeds the 4 built-in roles for a newly activated merchant.
-     */
     public List<Role> seedBuiltInRoles() {
         var seeded = new ArrayList<Role>();
         for (BuiltInRole builtIn : BuiltInRole.values()) {
@@ -100,9 +90,6 @@ public class MerchantTeam {
         return seeded;
     }
 
-    /**
-     * Creates a custom (non-builtin) role for this merchant.
-     */
     public Role createCustomRole(String roleName, String description,
                                  List<Permission> permissions, UUID createdBy) {
         var nameExists = roles.stream()
@@ -130,10 +117,6 @@ public class MerchantTeam {
         return role;
     }
 
-    /**
-     * Deletes (deactivates) a custom role. Built-in roles cannot be deleted.
-     * Roles with active users assigned cannot be deleted.
-     */
     public Role deleteCustomRole(UUID roleId) {
         var roleIdx = findRoleIndex(roleId);
         var role = roles.get(roleIdx);
@@ -155,9 +138,6 @@ public class MerchantTeam {
         return deactivated;
     }
 
-    /**
-     * Updates permissions on a custom role. Built-in roles cannot be modified.
-     */
     public Role updateCustomRolePermissions(UUID roleId, List<Permission> newPermissions) {
         var roleIdx = findRoleIndex(roleId);
         var role = roles.get(roleIdx);
@@ -171,10 +151,6 @@ public class MerchantTeam {
         return updated;
     }
 
-    /**
-     * Creates the first ADMIN user when a merchant is activated.
-     * The user starts in INVITED status — they set their password via the invitation link.
-     */
     public MerchantUser createFirstAdmin(String email, String emailHash, String fullName,
                                          String passwordHash) {
         var adminRole = findRoleByName(BuiltInRole.ADMIN.name());
@@ -199,10 +175,6 @@ public class MerchantTeam {
         return user;
     }
 
-    /**
-     * Invites a new user to the merchant team.
-     * Creates a user in INVITED status and a pending invitation.
-     */
     public InviteResult inviteUser(String email, String emailHash, String fullName,
                                    UUID roleId, UUID invitedBy, String tokenHash) {
         // Invariant: email unique within merchant (among non-deactivated users)
@@ -266,9 +238,6 @@ public class MerchantTeam {
         return new InviteResult(user, invitation);
     }
 
-    /**
-     * Accepts a pending invitation. Transitions user INVITED → ACTIVE.
-     */
     public MerchantUser acceptInvitation(UUID invitationId, String fullName, String passwordHash) {
         var invIdx = findInvitationIndex(invitationId);
         var invitation = invitations.get(invIdx);
@@ -308,9 +277,6 @@ public class MerchantTeam {
         return activated;
     }
 
-    /**
-     * Changes a user's role. Enforces last-admin invariant.
-     */
     public MerchantUser changeUserRole(UUID userId, UUID newRoleId, UUID changedBy) {
         var userIdx = findUserIndex(userId);
         var user = users.get(userIdx);
@@ -347,9 +313,6 @@ public class MerchantTeam {
         return changed;
     }
 
-    /**
-     * Suspends a user. Transitions ACTIVE → SUSPENDED.
-     */
     public MerchantUser suspendUser(UUID userId, String reason, UUID suspendedBy) {
         var userIdx = findUserIndex(userId);
         var user = users.get(userIdx);
@@ -380,9 +343,6 @@ public class MerchantTeam {
         return suspended;
     }
 
-    /**
-     * Reactivates a suspended user. Transitions SUSPENDED → ACTIVE.
-     */
     public MerchantUser reactivateUser(UUID userId) {
         var userIdx = findUserIndex(userId);
         var user = users.get(userIdx);
@@ -406,9 +366,6 @@ public class MerchantTeam {
         return reactivated;
     }
 
-    /**
-     * Deactivates a user (terminal state). Enforces last-admin invariant.
-     */
     public MerchantUser deactivateUser(UUID userId, String reason, UUID deactivatedBy) {
         var userIdx = findUserIndex(userId);
         var user = users.get(userIdx);
@@ -439,9 +396,6 @@ public class MerchantTeam {
         return deactivated;
     }
 
-    /**
-     * Revokes all sessions for this merchant (e.g., merchant suspended).
-     */
     public AllSessionsRevokedEvent revokeAllSessions(String reason) {
         var event = AllSessionsRevokedEvent.builder()
                 .schemaVersion(AllSessionsRevokedEvent.SCHEMA_VERSION)
@@ -456,7 +410,6 @@ public class MerchantTeam {
         return event;
     }
 
-    // ── Domain Events ───────────────────────────────────────
 
     public List<Object> domainEvents() {
         return List.copyOf(domainEvents);
@@ -466,7 +419,6 @@ public class MerchantTeam {
         domainEvents.clear();
     }
 
-    // ── Internal helpers ────────────────────────────────────
 
     private int findUserIndex(UUID userId) {
         for (int i = 0; i < users.size(); i++) {

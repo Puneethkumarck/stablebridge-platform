@@ -21,7 +21,6 @@ import java.util.List;
 @Mapper
 public interface IamResponseMapper {
 
-    // ── Role ─────────────────────────────────────────────────────────────────
 
     RoleSummary toRoleSummary(Role role);
 
@@ -29,7 +28,6 @@ public interface IamResponseMapper {
     @Mapping(target = "userCount", constant = "0L")
     RoleResponse toRoleResponse(Role role);
 
-    // ── User ─────────────────────────────────────────────────────────────────
 
     default UserResponse toUserResponse(MerchantUser user, Role role) {
         return new UserResponse(
@@ -46,7 +44,6 @@ public interface IamResponseMapper {
                 user.createdAt());
     }
 
-    // ── Invitation ────────────────────────────────────────────────────────────
 
     default InvitationResponse toInvitationResponse(Invitation invitation, String roleName) {
         return new InvitationResponse(
@@ -59,7 +56,6 @@ public interface IamResponseMapper {
                 invitation.createdAt());
     }
 
-    // ── State-change responses ────────────────────────────────────────────────
 
     default ChangeRoleResponse toChangeRoleResponse(RoleChangeResult result) {
         return new ChangeRoleResponse(
@@ -78,7 +74,6 @@ public interface IamResponseMapper {
         return new ReactivateUserResponse(user.userId(), user.status().name(), user.activatedAt());
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
 
     default List<String> toPermissionStrings(List<Permission> permissions) {
         if (permissions == null) {

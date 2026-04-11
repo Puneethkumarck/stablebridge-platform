@@ -14,12 +14,6 @@ import java.time.Instant;
 
 import static com.stablecoin.payments.onramp.domain.model.ReconciliationStatus.DISCREPANCY;
 
-/**
- * Domain service responsible for reconciling collection orders.
- * <p>
- * Compares expected vs collected amounts and persists the reconciliation result.
- * Publishes an alert event when a discrepancy is detected.
- */
 @Slf4j
 @Service
 @Transactional
@@ -29,12 +23,6 @@ public class ReconciliationCommandHandler {
     private final ReconciliationRecordRepository reconciliationRecordRepository;
     private final CollectionEventPublisher eventPublisher;
 
-    /**
-     * Reconciles a single collection order by comparing expected and collected amounts.
-     *
-     * @param order the collected order to reconcile
-     * @return the persisted reconciliation record
-     */
     public ReconciliationRecord reconcile(CollectionOrder order) {
         if (reconciliationRecordRepository.existsByCollectionId(order.collectionId())) {
             log.info("Reconciliation record already exists for collectionId={} — skipping",
