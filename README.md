@@ -1,176 +1,402 @@
-<h1 align="center">
-  <br>
-  StableBridge Platform
-  <br>
-</h1>
+<div align="center">
 
-<h4 align="center">Enterprise-grade cross-border B2B payments using a fiat &rarr; stablecoin &rarr; fiat "sandwich" model.</h4>
+# StableBridge Platform
 
-<p align="center">
-  <a href="https://github.com/Puneethkumarck/stablebridge-platform/actions/workflows/ci.yml"><img src="https://github.com/Puneethkumarck/stablebridge-platform/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/Puneethkumarck/stablebridge-platform" alt="License"></a>
-</p>
+**Enterprise-grade cross-border B2B payments using a fiat → stablecoin → fiat "sandwich".** Ten microservices orchestrated with Temporal sagas, backed by Kafka event streams and PostgreSQL-per-service — moving real money through Stripe ACH, Base L2 USDC, and Modulr SEPA.
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Java-25-ED8B00?logo=openjdk&logoColor=white" alt="Java 25">
-  <img src="https://img.shields.io/badge/Spring%20Boot-4.0.3-6DB33F?logo=springboot&logoColor=white" alt="Spring Boot">
-  <img src="https://img.shields.io/badge/Gradle-9.0-02303A?logo=gradle&logoColor=white" alt="Gradle">
-  <img src="https://img.shields.io/badge/PostgreSQL-18-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL">
-  <img src="https://img.shields.io/badge/Redis-8-DC382D?logo=redis&logoColor=white" alt="Redis">
-</p>
+[![CI](https://github.com/Puneethkumarck/stablebridge-platform/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Puneethkumarck/stablebridge-platform/actions/workflows/ci.yml)
+![Java 25](https://img.shields.io/badge/Java-25_LTS-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-4.0.3-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+![Kafka](https://img.shields.io/badge/Kafka-Redpanda-E0234E?style=for-the-badge&logo=apachekafka&logoColor=white)
+![Temporal](https://img.shields.io/badge/Temporal-Saga-000000?style=for-the-badge&logo=temporal&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-8-DC382D?style=for-the-badge&logo=redis&logoColor=white)
+![Architecture](https://img.shields.io/badge/Architecture-Hexagonal-purple?style=for-the-badge)
+![Tests](https://img.shields.io/badge/Tests-2,706-success?style=for-the-badge)
+![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Apache%20Kafka-231F20?logo=apachekafka&logoColor=white" alt="Kafka">
-  <img src="https://img.shields.io/badge/Temporal-000000?logo=temporal&logoColor=white" alt="Temporal">
-  <img src="https://img.shields.io/badge/Elasticsearch-005571?logo=elasticsearch&logoColor=white" alt="Elasticsearch">
-  <img src="https://img.shields.io/badge/HashiCorp%20Vault-FFEC6E?logo=vault&logoColor=black" alt="Vault">
-  <img src="https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white" alt="Docker">
-</p>
+[Why Stablecoin Rails?](#why-stablecoin-rails) · [The Sandwich Flow](#the-sandwich-flow) · [How a Payment Moves](#how-a-payment-moves) · [Architecture](#architecture) · [Getting Started](#getting-started)
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Base%20L2-0052FF?logo=coinbase&logoColor=white" alt="Base L2">
-  <img src="https://img.shields.io/badge/USDC-2775CA?logo=circle&logoColor=white" alt="USDC">
-  <img src="https://img.shields.io/badge/Testcontainers-2496ED?logo=docker&logoColor=white" alt="Testcontainers">
-  <img src="https://img.shields.io/badge/GitHub%20Actions-2088FF?logo=githubactions&logoColor=white" alt="GitHub Actions">
-  <img src="https://img.shields.io/badge/SonarCloud-F3702A?logo=sonarcloud&logoColor=white" alt="SonarCloud">
-</p>
-
-<p align="center">
-  <a href="#overview">Overview</a> &bull;
-  <a href="#architecture">Architecture</a> &bull;
-  <a href="#services">Services</a> &bull;
-  <a href="#getting-started">Getting Started</a> &bull;
-  <a href="#contributing">Contributing</a>
-</p>
+</div>
 
 ---
 
-## Overview
+## The Problem
 
-StableBridge eliminates the latency and cost of traditional correspondent banking by using stablecoins as the settlement rail. It converts sender fiat to USDC on-chain, transfers via Base L2, and converts back to recipient fiat.
+Cross-border B2B payments take **2–5 business days**, lose **3–7% to FX spreads and intermediary fees**, and give you **zero visibility** between "submitted" and "landed." Every correspondent banking hop is a SWIFT message, a cut-off window, and a reconciliation headache.
+
+## The Solution
+
+StableBridge replaces the SWIFT rails with a **fiat → USDC → fiat sandwich**: collect fiat from the sender, convert to USDC on-chain, bridge across borders in seconds, then redeem to the recipient's local currency. A Temporal saga orchestrates the entire lifecycle with LIFO compensation on failure — every step is crash-proof, observable, and reversible.
+
+## The Result
+
+A production-shaped payment platform where a **USD → EUR transfer clears in minutes**, every state transition is traceable across ten services, and the failure modes that break traditional rails (stuck wires, silent reject codes, manual reconciliation) are modelled as first-class saga states.
+
+<div align="center">
+
+| Metric | Value |
+|--------|-------|
+| **Services** | 10 (hexagonal + DDD + CQRS) |
+| **Tests** | 2,706 across unit / integration / business tiers |
+| **Orchestration** | Temporal workflows with LIFO compensation |
+| **Event Delivery** | Transactional outbox (Namastack) + Kafka |
+| **External Adapters** | 14 real provider integrations (Stripe · Modulr · Circle · Fireblocks · Onfido · Persona · Chainalysis · Companies House · …) |
+| **Sandbox Tests** | 10 adapter tests that hit real provider sandboxes |
+| **Reference Corridor** | US → DE (USD → EUR) via Stripe ACH · USDC on Base · Modulr SEPA |
+
+</div>
+
+---
+
+## Table of Contents
+
+- [Why Stablecoin Rails?](#why-stablecoin-rails)
+- [The Sandwich Flow](#the-sandwich-flow)
+- [How a Payment Moves](#how-a-payment-moves)
+- [Saga &amp; Compensation](#saga--compensation)
+- [Architecture](#architecture)
+  - [System Architecture](#system-architecture)
+  - [Hexagonal Layer Design](#hexagonal-layer-design)
+  - [Event-Driven Flow](#event-driven-flow)
+- [Services](#services)
+- [External Provider Adapters](#external-provider-adapters)
+- [Tech Stack](#tech-stack)
+- [Project Structure](#project-structure)
+- [Testing Strategy](#testing-strategy)
+- [Getting Started](#getting-started)
+- [Local Infrastructure](#local-infrastructure)
+- [CI/CD Pipeline](#cicd-pipeline)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
+
+## Why Stablecoin Rails?
+
+Traditional correspondent banking is a relay race between banks that don't trust each other. Every hop adds latency, cost, and a new failure mode.
+
+> **🎬 A Day in the Life of a SWIFT Transfer**
+
+```text
+ 🏢 Sender Bank (NYC)  ──→  "MT103 for $10,000 → Munich"
+ 📨 Correspondent #1   ──→  "Received, holding 24h for compliance"
+ 📨 Correspondent #2   ──→  "FX'd at internal rate + 2.5%"
+ 📨 Correspondent #3   ──→  "Cut-off missed — retry Monday"
+
+                            ⏳ ... 3 business days later ...
+
+ 🏢 Recipient Bank     ──→  "Funds landed. Minus $85 in fees."
+ 📉 Sender             ──→  "Was it 9,300 or 9,350 EUR? Ask ops."
+ 😤 Ops Team           ──→  "Manual reconciliation, 40 minutes per wire"
+```
+
+### What Goes Wrong
+
+| | Failure Mode | What Happens | Severity |
+|---|---|---|---|
+| ⏱️ | **Cut-off windows** | Submit at 4:01pm → wait until tomorrow | 🟠 Predictable delay |
+| 💸 | **Opaque FX spread** | "Mid-market + 2.5%" applied at each hop | 🔴 Silent fee drain |
+| 🕳️ | **Intermediary holds** | Correspondent holds 24h for "compliance" | 🟠 No callback |
+| 🔇 | **Silent rejects** | MT103 rejected → bounces through the chain | 🔴 Lost for days |
+| 🧾 | **Manual reconciliation** | "Was this the Acme wire?" → 40 min of spreadsheet work | 🔴 Doesn't scale |
+
+### What Stablecoin Rails Replace
+
+```mermaid
+flowchart LR
+    subgraph SWIFT["❌ Traditional SWIFT Rails"]
+        direction TB
+        A1["🏢 Sender bank"] --> A2["📨 Correspondent #1"]
+        A2 --> A3["📨 Correspondent #2"]
+        A3 --> A4["📨 Correspondent #3"]
+        A4 --> A5["🏢 Recipient bank<br/>3–5 days, 3–7% lost"]
+    end
+
+    subgraph SB["✅ StableBridge Sandwich"]
+        direction TB
+        B1["💵 Collect USD<br/>(Stripe ACH)"] --> B2["🔗 Convert to USDC"]
+        B2 --> B3["⚡ Transfer on Base L2<br/>(seconds)"]
+        B3 --> B4["💶 Redeem USDC<br/>(Circle)"]
+        B4 --> B5["🏦 Pay out EUR<br/>(Modulr SEPA)"]
+    end
+
+    SWIFT ~~~ SB
+```
+
+---
+
+## The Sandwich Flow
+
+The name says it: **fiat bread, stablecoin filling**. Three phases, two value transformations, one atomic saga.
+
+```text
+ ┌───────────────────────────────────────────────────────────────────────────┐
+ │                                                                           │
+ │   🥪  THE STABLECOIN SANDWICH                                             │
+ │                                                                           │
+ │   💵 Sender USD          🔗 USDC on Base L2          💶 Recipient EUR    │
+ │   ──────────────         ─────────────────           ──────────────      │
+ │        │                         │                         ▲            │
+ │        │    [S3 On-Ramp]         │    [S5 Off-Ramp]       │            │
+ │        ▼                         ▼                         │            │
+ │   ┌────────┐    mint    ┌───────────────┐    redeem   ┌────────┐       │
+ │   │ Stripe │ ─────────► │ USDC transfer │ ──────────► │ Circle │       │
+ │   │  ACH   │            │   on Base L2  │             │ + Modulr│      │
+ │   └────────┘            └───────────────┘             └────────┘       │
+ │                                                                           │
+ │   ⏱️ Hours (ACH)          ⚡ ~1 block finality        ⏱️ SEPA clearing   │
+ │                                                                           │
+ │   🧠 All orchestrated by S1 Payment Orchestrator (Temporal saga)         │
+ │   🧾 Every state change double-entered by S7 Ledger                      │
+ │   🛡️ Every transfer screened by S2 Compliance (AML/KYT/Travel Rule)     │
+ │                                                                           │
+ └───────────────────────────────────────────────────────────────────────────┘
+```
 
 ```mermaid
 graph LR
-    A["Sender (USD)"] --> B["Fiat On-Ramp\n(Stripe ACH)"]
-    B -- "USD → USDC" --> C["Blockchain Transfer\n(Base L2)"]
-    C -- "USDC Transfer" --> D["Fiat Off-Ramp\n(Modulr)"]
-    D -- "USDC → EUR" --> E["Recipient (EUR)"]
+    A["💵 Sender<br/>(USD)"] --> B["🏢 S3 Fiat On-Ramp<br/>(Stripe ACH)"]
+    B -- "USD collected" --> C["🔗 S4 Blockchain<br/>(USDC on Base L2)"]
+    C -- "USDC transferred" --> D["🏦 S5 Fiat Off-Ramp<br/>(Circle redeem → Modulr SEPA)"]
+    D -- "EUR paid out" --> E["💶 Recipient<br/>(EUR)"]
 
     style A fill:#4CAF50,color:#fff
-    style B fill:#2196F3,color:#fff
+    style B fill:#00BCD4,color:#fff
     style C fill:#FF9800,color:#fff
-    style D fill:#2196F3,color:#fff
+    style D fill:#00BCD4,color:#fff
     style E fill:#4CAF50,color:#fff
 ```
 
-> **MVP Corridor:** US &rarr; DE (USD &rarr; EUR) via Stripe ACH + Base/USDC + Modulr SEPA
+> **📌 Reference corridor:** `US → DE`, `USD → EUR`. Covered end-to-end by [`Phase3PaymentE2ETest`](phase3-integration-tests/src/test/java/com/stablecoin/payments/phase3/Phase3PaymentE2ETest.java) against a full Docker Compose stack of all seven value-movement services.
+
+---
+
+## How a Payment Moves
+
+A `POST /payments` doesn't just return 201 — it starts a **Temporal workflow** that carries the request through seven services, sleeps durably while waiting on ACH, wakes on webhook signals, and can unwind its own compensation stack if anything fails.
+
+> **🎬 The Seven-Stage Journey**
+
+```text
+ ⏱️ T+0s       📤 Client  →  POST /payments
+               🚀 S1 starts PaymentWorkflow (Temporal)
+
+ ⏱️ T+50ms     [1] 🛡️  Compliance check  (S2)  ─── sync activity
+                  ✅ PASSED — screened against OFAC, Chainalysis, Notabene
+
+ ⏱️ T+120ms    [2] 💱  Lock FX rate      (S6)  ─── sync activity
+                  ✅ LOCKED — USD→EUR rate held for 5 minutes
+
+ ⏱️ T+180ms    [3] 💵  Initiate collect  (S3)  ─── sync activity
+                  ⏳ Stripe ACH in flight — workflow sleeps durably
+
+ ⏱️ T+hours    [4] 📨  Stripe webhook arrives  →  signal: fiatCollected
+                  🔓 Workflow wakes up automatically
+
+ ⏱️ T+1s       [5] 🔗  Initiate transfer (S4)  ─── sync activity
+                  🏗️ Fireblocks MPC signs → broadcast USDC on Base L2
+                  ⏳ Workflow sleeps again, waiting for chain confirmation
+
+ ⏱️ T+~30s     [6] 📡  chain.confirmed signal  →  workflow wakes
+                  ✅ USDC landed on recipient wallet
+
+ ⏱️ T+2s       [7] 💶  Initiate payout   (S5)  ─── sync activity
+                  🏦 Circle redeems USDC → Modulr SEPA payout
+                  ⏳ Wait for fiat.payout.completed signal
+
+ ⏱️ T+minutes  📨  payout.completed signal  →  workflow wakes
+                  🏁 STATE = COMPLETED
+                  📢 S1 publishes payment.completed → S7 Ledger posts journal
+```
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant S1 as S1 Orchestrator<br/>(Temporal Saga)
+    participant S2 as S2 Compliance
+    participant S6 as S6 FX Engine
+    participant S3 as S3 On-Ramp
+    participant S4 as S4 Blockchain
+    participant S5 as S5 Off-Ramp
+    participant S7 as S7 Ledger
+
+    Client->>S1: POST /payments
+    S1-->>Client: 201 {payment_id}
+
+    rect rgb(232, 245, 233)
+        Note over S1,S6: ⚙️ Synchronous activities (sub-second)
+        S1->>S2: [1] checkCompliance()
+        S2-->>S1: PASSED
+        S1->>S6: [2] lockFxRate()
+        S6-->>S1: LOCKED (rate, lockId)
+        S1->>S3: [3] initiateCollection()
+    end
+
+    rect rgb(227, 242, 253)
+        Note over S3,S5: 😴 Durable waits (minutes to hours)
+        S3-)S1: [4] fiat.collected (Stripe webhook → Temporal signal)
+        S1->>S4: [5] initiateTransfer()
+        S4-)S1: [6] chain.transfer.confirmed (signal)
+        S1->>S5: [7] initiatePayout()
+        S5-)S1: fiat.payout.completed (signal)
+    end
+
+    S1-)S7: payment.completed (Kafka via outbox)
+    Note over S1: 🏁 STATE = COMPLETED
+```
+
+**Why Temporal?** A payment lifecycle can span **hours** (ACH settlement) and must survive process restarts, deploys, and crashes. Temporal provides **durable execution** — the workflow code reads like sequential Java, but state is persisted between every step. If the worker process dies at T+10 minutes, a new worker picks up at T+10 minutes, not T+0.
+
+| Temporal Feature | Used By |
+|---|---|
+| **Workflows** | [`PaymentWorkflowImpl`](payment-orchestrator/payment-orchestrator/src/main/java/com/stablecoin/payments/orchestrator/domain/workflow/PaymentWorkflowImpl.java), [`MerchantOnboardingWorkflowImpl`](merchant-onboarding/merchant-onboarding/src/main/java/com/stablecoin/payments/merchant/onboarding/infrastructure/temporal/workflow/MerchantOnboardingWorkflowImpl.java) |
+| **Activities** | `ComplianceCheckActivity`, `FxLockActivity`, `FiatCollectionActivity`, `ChainTransferActivity`, `OffRampActivity`, `UpdatePaymentStateActivity`, `EventPublishingActivity` |
+| **Signals** | `FiatCollectedSignal`, `ChainConfirmedSignal`, `CancelRequest` — external webhook arrivals routed into a running workflow |
+| **Retry policy** | Per-activity exponential backoff with a non-retryable exception list (e.g. `SANCTIONS_HIT`, `CORRIDOR_NOT_SUPPORTED`, `INSUFFICIENT_LIQUIDITY`, `PSP_REJECTED`, `INSUFFICIENT_BALANCE`) |
+| **Durable timers** | `FIAT_COLLECTION_TIMEOUT = 30 min`, `CHAIN_CONFIRMATION_TIMEOUT = 30 min` |
+
+---
+
+## Saga &amp; Compensation
+
+The hardest thing about multi-step financial workflows isn't the happy path — it's what happens when **step 6 fails after steps 1–5 have already moved real money**. StableBridge uses a **LIFO compensation stack**: every step that performs a reversible side-effect pushes its own undo onto the stack. If anything fails afterwards, the stack unwinds in reverse order.
+
+> **🎬 Failure Scenario: Chain transfer fails after fiat was collected**
+
+```text
+ ⏱️ T+0s     ✅  Compliance passed             ← no compensation needed
+ ⏱️ T+1s     ✅  FX lock acquired              ← push RELEASE_FX_LOCK
+ ⏱️ T+hours  ✅  Fiat collected via Stripe     ← push REFUND_FIAT
+ ⏱️ T+1s     ✅  Chain transfer broadcast      ← push RETURN_CHAIN
+ ⏱️ T+30min  ❌  Chain confirmation TIMEOUT
+
+             ┌─ COMPENSATION STACK (LIFO) ──┐
+             │  [top]  RETURN_CHAIN         │  ← ArrayDeque.pop()
+             │         REFUND_FIAT          │
+             │  [bot]  RELEASE_FX_LOCK      │
+             └──────────────────────────────┘
+
+ ⏱️ T+31min  🔄  Pop RETURN_CHAIN   → S4 returns funds on-chain
+ ⏱️ T+32min  🔄  Pop REFUND_FIAT    → S3 refunds Stripe charge
+ ⏱️ T+33min  🔄  Pop RELEASE_FX_LOCK → S6 releases the rate lock
+ ⏱️ T+34min  📢  Publish payment.failed → S7 Ledger writes reversal entries
+             🏁  STATE = FAILED (clean)
+```
+
+```mermaid
+flowchart TB
+    FAIL["❌ Chain confirmation timeout<br/>(T+30min)"] --> STACK
+
+    subgraph STACK["🧱 Compensation Stack — LIFO"]
+        direction TB
+        C3["🔄 [top] RETURN_CHAIN<br/>S4 returns on-chain funds"]
+        C2["🔄 REFUND_FIAT<br/>S3 refunds Stripe charge"]
+        C1["🔄 [bot] RELEASE_FX_LOCK<br/>S6 releases rate lock"]
+        C3 --> C2 --> C1
+    end
+
+    C1 --> PF["📢 S1 publishes<br/>payment.failed"]
+    PF --> S7["🧾 S7 Ledger<br/>reversal journal entries"]
+
+    style FAIL fill:#f44336,color:#fff
+    style PF fill:#FF5722,color:#fff
+```
+
+**Where it lives:** [`PaymentWorkflowImpl.java`](payment-orchestrator/payment-orchestrator/src/main/java/com/stablecoin/payments/orchestrator/domain/workflow/PaymentWorkflowImpl.java) — `private final Deque<String> compensationStack = new ArrayDeque<>()`. Each successful side-effect pushes a step prefix (`RELEASE_FX_LOCK_<id>`, `REFUND_FIAT_<id>`, `RETURN_CHAIN_<id>`) that a single `runCompensation()` method pops and dispatches to the right activity.
+
+**Non-retryable failures** (sanctions hits, unsupported corridors, insufficient liquidity, PSP rejections, insufficient balance) short-circuit retry and head straight into compensation — you don't want to retry a sanctions hit.
 
 ---
 
 ## Architecture
 
-<table>
-<tr><td><b>Pattern</b></td><td>Hexagonal Architecture (Ports & Adapters) with DDD</td></tr>
-<tr><td><b>Workflows</b></td><td>Temporal durable execution for saga orchestration</td></tr>
-<tr><td><b>Messaging</b></td><td>Event-driven with Kafka (transactional outbox, at-least-once delivery)</td></tr>
-<tr><td><b>Data</b></td><td>PostgreSQL per service, TimescaleDB for FX time-series, Redis caching</td></tr>
-<tr><td><b>Security</b></td><td>OAuth2 + API keys, mTLS service-to-service, HashiCorp Vault</td></tr>
-<tr><td><b>Observability</b></td><td>OpenTelemetry tracing, structured JSON logging, SonarCloud</td></tr>
-</table>
+StableBridge follows **Hexagonal Architecture (Ports &amp; Adapters)** with DDD tactical patterns, CQRS at the handler boundary, and event-driven propagation via a transactional outbox. Every service is shaped the same way so you can read one and you've read them all.
+
+| Decision | Why |
+|---|---|
+| **Hexagonal + DDD** | Keeps domain logic free of Spring, JPA, Temporal, and Kafka — swap an adapter without touching a single business rule |
+| **Database per service** | Each service owns its schema in its own PostgreSQL database — no shared tables, no cross-service JOINs |
+| **Transactional outbox (Namastack)** | Domain state and the outbound event land in the same DB transaction — no dual-write, at-least-once delivery |
+| **Temporal sagas** | Durable execution for multi-step flows that span hours and must survive restarts |
+| **Controllers → CommandHandlers (direct)** | No intermediate "application service" — the controller is a thin HTTP adapter, the handler owns the use case |
+| **ArchUnit enforced** | [`HexagonalArchitectureRules`](platform-test/src/testFixtures/java/com/stablecoin/payments/platform/test/HexagonalArchitectureRules.java) + per-service `ArchitectureTest` classes fail the build if the domain imports JPA |
 
 ### System Architecture
 
 ```mermaid
 graph TB
     subgraph Clients["Clients"]
-        direction LR
         MERCH["Merchant Apps<br/>(Portal / API)"]
-        AGENT["AI Agents<br/>(LLM / MCP)"]
-        OPS["Ops Dashboard"]
     end
 
     subgraph Platform["StableBridge Platform"]
-
         subgraph Edge["Edge Layer"]
-            S10["<b>S10</b> API Gateway & IAM<br/><i>OAuth2 &middot; API Keys &middot; mTLS &middot; Rate Limiting</i>"]
+            S10["<b>S10</b> API Gateway &amp; IAM<br/><i>OAuth2 · API Keys · JWT filters · Rate Limit · Audit</i>"]
         end
 
-        subgraph Identity["Identity & Merchant (Phase 1)"]
+        subgraph Identity["Identity &amp; Merchant"]
             direction LR
-            S11["<b>S11</b> Merchant<br/>Onboarding<br/><i>KYB &middot; Lifecycle</i>"]
-            S13["<b>S13</b> Merchant<br/>IAM<br/><i>Roles &middot; Permissions</i>"]
+            S11["<b>S11</b> Merchant<br/>Onboarding<br/><i>KYB · Temporal workflow</i>"]
+            S13["<b>S13</b> Merchant<br/>IAM<br/><i>Roles · JWT · MFA · Sessions</i>"]
         end
 
-        subgraph Core["Core Payment Engine (Phase 2)"]
-            S1["<b>S1</b> Payment Orchestrator<br/><i>Temporal Saga &middot; State Machine</i>"]
-            S2["<b>S2</b> Compliance &<br/>Travel Rule<br/><i>AML &middot; Sanctions &middot; FATF</i>"]
-            S6["<b>S6</b> FX & Liquidity<br/>Engine<br/><i>Quotes &middot; Rate Locking</i>"]
+        subgraph Core["Core Payment Engine"]
+            S1["<b>S1</b> Payment Orchestrator<br/><i>Temporal saga · LIFO compensation</i>"]
+            S2["<b>S2</b> Compliance &amp;<br/>Travel Rule<br/><i>AML · Sanctions · FATF</i>"]
+            S6["<b>S6</b> FX &amp; Liquidity<br/>Engine<br/><i>Quotes · Rate locking</i>"]
         end
 
-        subgraph Value["Value Movement (Phase 3)"]
-            S3["<b>S3</b> Fiat<br/>On-Ramp<br/><i>ACH Collection</i>"]
-            S4["<b>S4</b> Blockchain<br/>& Custody<br/><i>USDC &middot; Base L2</i>"]
-            S5["<b>S5</b> Fiat<br/>Off-Ramp<br/><i>SEPA Payout</i>"]
-            S7["<b>S7</b> Ledger &<br/>Accounting<br/><i>Double-Entry &middot; Recon</i>"]
+        subgraph Value["Value Movement"]
+            S3["<b>S3</b> Fiat<br/>On-Ramp<br/><i>Stripe ACH</i>"]
+            S4["<b>S4</b> Blockchain<br/>&amp; Custody<br/><i>USDC · Fireblocks · EVM · Solana</i>"]
+            S5["<b>S5</b> Fiat<br/>Off-Ramp<br/><i>Circle redeem · Modulr SEPA</i>"]
+            S7["<b>S7</b> Ledger &amp;<br/>Accounting<br/><i>Double-entry · Reconciliation</i>"]
         end
-
-        subgraph Ops["Operational (Phase 4 — Planned)"]
-            direction LR
-            S8["<b>S8</b> Partner<br/>Management"]
-            S9["<b>S9</b> Notification<br/>& Webhook"]
-        end
-    end
-
-    subgraph Infra["Infrastructure Layer"]
-        direction LR
-        PG[("PostgreSQL<br/>(per-service)")]
-        KF["Apache Kafka<br/>(Redpanda)"]
-        TMP["Temporal<br/>(Durable Workflows)"]
-        RD[("Redis<br/>(Cache)")]
-        VLT["HashiCorp Vault<br/>(Secrets)"]
-        ES["Elasticsearch<br/>(Search)"]
     end
 
     subgraph External["External Providers"]
         direction LR
         STRIPE["Stripe<br/>(ACH)"]
         MODULR["Modulr<br/>(SEPA)"]
-        FB["Fireblocks<br/>(MPC Custody)"]
-        CA["Chainalysis<br/>(AML/KYT)"]
-        CHAIN["Base L2<br/>(USDC on-chain)"]
-        ONFIDO["Onfido<br/>(KYC/KYB)"]
+        CIRCLE["Circle<br/>(USDC redeem)"]
+        FB["Fireblocks<br/>(MPC custody)"]
+        ONFIDO["Onfido<br/>(KYC / KYB)"]
+        PERSONA["Persona<br/>(KYC)"]
+        CHAINAL["Chainalysis<br/>(AML/KYT)"]
+        WC["WorldCheck<br/>(Sanctions)"]
+        OFAC["OFAC SDN<br/>(Sanctions)"]
+        NOTA["Notabene<br/>(Travel Rule)"]
+        CH["Companies House<br/>(UK registry)"]
+        FRANK["Frankfurter<br/>(FX rates)"]
     end
 
-    %% Client to Edge
     MERCH --> S10
-    AGENT --> S10
-    OPS --> S10
-
-    %% Edge to Services
     S10 --> S11
     S10 --> S13
     S10 --> S1
 
-    %% Orchestrator to Core
-    S1 -->|"compliance check"| S2
-    S1 -->|"lock FX rate"| S6
-    S1 -->|"collect fiat"| S3
-    S1 -->|"on-chain transfer"| S4
-    S1 -->|"payout fiat"| S5
-    S1 -->|"journal entries"| S7
+    S1 -->|"compliance"| S2
+    S1 -->|"lock FX"| S6
+    S1 -->|"collect"| S3
+    S1 -->|"transfer"| S4
+    S1 -->|"payout"| S5
+    S1 -.->|"events"| S7
 
-    %% External Integrations
     S3 -. "ACH" .-> STRIPE
     S5 -. "SEPA" .-> MODULR
-    S4 -. "MPC signing" .-> FB
-    S4 -. "RPC / tx" .-> CHAIN
-    S2 -. "screening" .-> CA
-    S11 -. "KYB verification" .-> ONFIDO
+    S5 -. "USDC" .-> CIRCLE
+    S4 -. "MPC" .-> FB
+    S2 -. "KYC" .-> ONFIDO
+    S2 -. "KYC" .-> PERSONA
+    S2 -. "KYT" .-> CHAINAL
+    S2 -. "sanctions" .-> WC
+    S2 -. "sanctions" .-> OFAC
+    S2 -. "travel rule" .-> NOTA
+    S11 -. "KYB" .-> ONFIDO
+    S11 -. "UK" .-> CH
+    S6 -. "rates" .-> FRANK
 
-    %% Infrastructure (implicit — all services use these)
-    S1 -.-> TMP
-
-    %% Styling
     style S10 fill:#607D8B,color:#fff
     style S1 fill:#FF5722,color:#fff
     style S2 fill:#9C27B0,color:#fff
@@ -181,283 +407,138 @@ graph TB
     style S7 fill:#4CAF50,color:#fff
     style S11 fill:#795548,color:#fff
     style S13 fill:#795548,color:#fff
-    style S8 fill:#9E9E9E,color:#fff,stroke-dasharray: 5 5
-    style S9 fill:#9E9E9E,color:#fff,stroke-dasharray: 5 5
-    style MERCH fill:#E8EAF6,color:#333
-    style AGENT fill:#E8EAF6,color:#333
-    style OPS fill:#E8EAF6,color:#333
 ```
 
-> **Solid lines** = synchronous REST calls (Temporal activities). **Dashed lines** = external provider integrations.
-> All inter-service events flow via **Kafka** using the transactional outbox pattern (Namastack).
-> Each service has its own **PostgreSQL** database (database-per-service pattern).
+> **Solid lines** = synchronous Temporal activities. **Dashed lines** = external provider integrations. Inter-service events flow via Kafka (Redpanda locally) using the Namastack transactional outbox.
 
-### Payment Flow
+### Hexagonal Layer Design
 
-```mermaid
-graph TD
-    GW["S10 API Gateway"] --> ORCH["S1 Payment Orchestrator\n(Temporal Saga)"]
+```text
+┌──────────────────────────────────────────────────────────────────────┐
+│                                                                      │
+│   application/  ──────────►  domain/  ◄──────────  infrastructure/  │
+│   (Inbound Adapters)         (Core)                (Outbound)       │
+│                                                                      │
+│   REST Controllers           Aggregates             PostgreSQL JPA  │
+│   Temporal Workflows         Value Objects          Kafka (Namastack│
+│   Scheduled Jobs             Command Handlers        outbox)         │
+│   Security Filters           Domain Events          Feign clients   │
+│                              Port interfaces        External adapters│
+│                              Domain exceptions      MapStruct maps  │
+│                                                                      │
+└──────────────────────────────────────────────────────────────────────┘
 
-    ORCH --> COMP["S2 Compliance\n& Travel Rule"]
-    ORCH --> FX["S6 FX Engine"]
-    ORCH --> LEDGER["S7 Ledger"]
-    ORCH -.-> NOTIFY["S9 Notifications\n(Planned)"]
-
-    COMP --> ONRAMP["S3 Fiat On-Ramp\n(Stripe ACH)"]
-    FX --> ONRAMP
-    ONRAMP --> CHAIN["S4 Blockchain\n& Custody"]
-    CHAIN --> OFFRAMP["S5 Fiat Off-Ramp\n(Modulr SEPA)"]
-
-    style GW fill:#607D8B,color:#fff
-    style ORCH fill:#FF5722,color:#fff
-    style COMP fill:#9C27B0,color:#fff
-    style FX fill:#2196F3,color:#fff
-    style LEDGER fill:#4CAF50,color:#fff
-    style NOTIFY fill:#9E9E9E,color:#fff,stroke-dasharray: 5 5
-    style ONRAMP fill:#00BCD4,color:#fff
-    style CHAIN fill:#FF9800,color:#fff
-    style OFFRAMP fill:#00BCD4,color:#fff
+Rules enforced by ArchUnit (platform-test/HexagonalArchitectureRules):
+  ✓ Domain layer has ZERO JPA imports
+  ✓ Domain defines port interfaces — infrastructure implements them
+  ✓ Controllers live in application.controller — no web/ package
+  ✓ Controller → CommandHandler directly — no intermediate service layer
+  ✓ No wildcard imports, no System.out, no @Autowired
 ```
 
-### Sandwich Flow &mdash; Service-to-Service Communication
+Every service ships its own `ArchitectureTest.java` that re-applies these rules. Merging a domain class that imports `jakarta.persistence.*` fails CI.
 
-The payment lifecycle uses three communication patterns:
+### Event-Driven Flow
 
-| Pattern | Usage | Example |
-|---------|-------|---------|
-| **Temporal Activity** (sync REST) | Critical-path orchestration with retries & timeouts | S1 &rarr; S2 compliance check |
-| **Kafka Event** (async outbox) | State propagation, audit trail, fan-out | S3 &rarr; S7 ledger entry |
-| **Temporal Signal** (async webhook relay) | External confirmations routed back to workflow | Stripe webhook &rarr; S1 |
+The transactional outbox pattern is used everywhere state changes need to fan out:
 
-<details>
-<summary><b>Happy Path Sequence (USD &rarr; EUR)</b></summary>
-
-```mermaid
-sequenceDiagram
-    participant Client
-    participant S1 as S1 Orchestrator<br/>(Temporal Saga)
-    participant S2 as S2 Compliance
-    participant S6 as S6 FX Engine
-    participant S3 as S3 Fiat On-Ramp
-    participant S4 as S4 Blockchain
-    participant S5 as S5 Fiat Off-Ramp
-
-    Client->>S1: POST /payments
-    S1-->>Client: 201 {payment_id}
-
-    rect rgb(232, 245, 233)
-        Note over S1,S6: Synchronous REST (Temporal Activities)
-        S1->>S2: [1] checkCompliance()
-        S2-->>S1: PASSED
-        S1->>S6: [2] lockFxRate()
-        S6-->>S1: LOCKED (rate, lockId)
-    end
-
-    rect rgb(227, 242, 253)
-        Note over S3,S5: Asynchronous (Kafka + Temporal Signals)
-        S3-)S1: [3] fiat.collected (Stripe webhook)
-        S1->>S4: [4] initiateTransfer()
-        S4-)S1: [5] chain.transfer.confirmed (Signal)
-        S1->>S5: [6] initiatePayout()
-        S5-)S1: [7] fiat.payout.completed (Signal)
-    end
-
-    Note over S1: STATE = COMPLETED
+```text
+┌──────────────────────────────────────────────────────────────────────┐
+│                     TRANSACTION (atomic)                             │
+│                                                                      │
+│   ┌─────────────┐         ┌──────────────────┐                      │
+│   │ Domain      │  save   │  Outbox Event    │                      │
+│   │ Aggregate   │────────►│  Table           │                      │
+│   │ (PostgreSQL)│         │  (PostgreSQL)    │                      │
+│   └─────────────┘         └──────────────────┘                      │
+│                                                                      │
+└────────────────────────────────────┬─────────────────────────────────┘
+                                     │
+                          ┌──────────▼──────────┐
+                          │ Namastack Relay     │  (scheduled worker)
+                          │ Poll → Publish →    │
+                          │ Mark sent           │
+                          └──────────┬──────────┘
+                                     │
+                          ┌──────────▼──────────┐
+                          │  Kafka (Redpanda)   │
+                          │  payment.* / fiat.* │
+                          │  chain.* / fx.*     │
+                          └─────────────────────┘
 ```
 
-</details>
-
-<details>
-<summary><b>Kafka Event Map</b></summary>
-
-Every event is published via the **transactional outbox** pattern (Namastack) &mdash; guaranteed at-least-once delivery.
-
-```mermaid
-graph LR
-    subgraph Producers
-        S1["S1 Orchestrator"]
-        S2["S2 Compliance"]
-        S3["S3 On-Ramp"]
-        S4["S4 Blockchain"]
-        S5["S5 Off-Ramp"]
-        S6["S6 FX Engine"]
-        S7L["S7 Ledger"]
-    end
-
-    subgraph Kafka Topics
-        T1(["payment.initiated"])
-        T2(["compliance.result"])
-        T3(["fx.rate.locked"])
-        T4(["fiat.collected"])
-        T5(["chain.transfer.*"])
-        T6(["fiat.payout.completed"])
-        T7(["payment.completed"])
-        T8(["payment.failed"])
-    end
-
-    subgraph Consumers
-        S7["S7 Ledger"]
-        S1C["S1 (signal relay)"]
-        S6C["S6 (lock lifecycle)"]
-    end
-
-    S1 --> T1 --> S7
-    S2 --> T2 --> S1C & S7
-    S6 --> T3 --> S7
-    S3 --> T4 --> S1C & S7
-    S4 --> T5 --> S1C & S7
-    S5 --> T6 --> S1C & S7
-    S1 --> T7 --> S6C & S7
-    S1 --> T8 --> S6C & S7
-```
-
-| Topic | Producer | Key Consumers | Partition Key |
-|-------|----------|---------------|---------------|
-| `payment.initiated` | S1 | S7 (audit) | `payment_id` |
-| `compliance.result` | S2 | S1, S7 | `payment_id` |
-| `fx.rate.locked` | S6 | S7 | `payment_id` |
-| `fiat.collected` | S3 | S1 (signal), S7 | `payment_id` |
-| `chain.transfer.submitted` | S4 | S7, S9* | `payment_id` |
-| `chain.transfer.confirmed` | S4 | S1 (signal), S7, S9* | `payment_id` |
-| `fiat.payout.completed` | S5 | S1 (signal), S7, S9* | `payment_id` |
-| `payment.completed` | S1 | S6, S7, S9*, S12 | `payment_id` |
-| `payment.failed` | S1 | S6, S7, S9* | `payment_id` |
-
-> *\*S9 (Notification Service) is planned &mdash; consumers will be added in Phase 4.*
-| `audit.event` | All | S7 (append-only journal) | `correlation_id` |
-
-</details>
-
-<details>
-<summary><b>Compensation &amp; Saga Rollback</b></summary>
-
-The Temporal workflow maintains a LIFO compensation stack. On failure at any step, compensations unwind in reverse order:
-
-```mermaid
-graph TD
-    FAIL["Failure at S4\n(blockchain transfer)"] --> STACK
-
-    subgraph STACK ["Compensation Stack (LIFO)"]
-        C3["[3] Refund fiat collection\nS3 POST /refund"]
-        C2["[2] Release FX lock\nS6 DELETE /fx/lock/{id}"]
-        C1["[1] Void compliance result\nS2 event: voided"]
-        C3 --> C2 --> C1
-    end
-
-    C1 --> PF["S1 publishes:\npayment.failed"]
-    PF --> S7["S7 Ledger:\nreversal journal entries"]
-    PF -.-> S9["S9 Notify:\nfailure webhook (Phase 4)"]
-
-    style FAIL fill:#f44336,color:#fff
-    style PF fill:#FF5722,color:#fff
-    style S9 fill:#9E9E9E,color:#fff,stroke-dasharray: 5 5
-```
-
-</details>
+**Why transactional outbox?** The classic dual-write problem: save to DB → publish to Kafka → crash in between = event lost. Save both the aggregate change and the outbox row in the **same transaction**, then a relay reads the outbox table and publishes at-least-once. The application code never touches a Kafka producer directly.
 
 ---
 
 ## Services
 
-| # | Service | Description | Tests | Status |
-|:---:|---------|-------------|:-----:|:------:|
-| S1 | [Payment Orchestrator](payment-orchestrator/) | Temporal-based payment lifecycle & saga engine | `237` | ![Done](https://img.shields.io/badge/-Done-success?style=flat-square) |
-| S2 | [Compliance & Travel Rule](compliance-travel-rule/) | AML/KYT screening, sanctions, Travel Rule (FATF) | `258` | ![Done](https://img.shields.io/badge/-Done-success?style=flat-square) |
-| S3 | [Fiat On-Ramp](fiat-on-ramp/) | Stripe ACH fiat collection | `302` | ![Done](https://img.shields.io/badge/-Done-success?style=flat-square) |
-| S4 | [Blockchain & Custody](blockchain-custody/) | USDC transfers, MPC custody (Fireblocks) | `418` | ![Done](https://img.shields.io/badge/-Done-success?style=flat-square) |
-| S5 | [Fiat Off-Ramp](fiat-off-ramp/) | Modulr SEPA fiat payout | `272` | ![Done](https://img.shields.io/badge/-Done-success?style=flat-square) |
-| S6 | [FX & Liquidity Engine](fx-liquidity-engine/) | Real-time FX quotes with margin, rate locking | `231` | ![Done](https://img.shields.io/badge/-Done-success?style=flat-square) |
-| S7 | [Ledger & Accounting](ledger-accounting/) | Double-entry bookkeeping, reconciliation | `337` | ![Done](https://img.shields.io/badge/-Done-success?style=flat-square) |
-| S8 | Partner Management | Bank/PSP partner lifecycle | - | ![Planned](https://img.shields.io/badge/-Planned-lightgrey?style=flat-square) |
-| S9 | Notification Service | Email/webhook delivery | - | ![Planned](https://img.shields.io/badge/-Planned-lightgrey?style=flat-square) |
-| S10 | [API Gateway & IAM](api-gateway-iam/) | Authentication, rate limiting, API key management | `298` | ![Done](https://img.shields.io/badge/-Done-success?style=flat-square) |
-| S11 | [Merchant Onboarding](merchant-onboarding/) | KYB verification, merchant lifecycle | `104` | ![Done](https://img.shields.io/badge/-Done-success?style=flat-square) |
-| S12 | Transaction History | Payment query & search service | - | ![Planned](https://img.shields.io/badge/-Planned-lightgrey?style=flat-square) |
-| S13 | [Merchant IAM](merchant-iam/) | Roles, permissions, API key management | `248` | ![Done](https://img.shields.io/badge/-Done-success?style=flat-square) |
-| S14 | Agentic Gateway | AI-powered payment routing | - | ![Planned](https://img.shields.io/badge/-Planned-lightgrey?style=flat-square) |
+All ten services are fully implemented, hexagonal, ArchUnit-enforced, and buildable Gradle modules in [`settings.gradle.kts`](settings.gradle.kts).
 
-> **2,700+ tests** across 10 implemented services
+| # | Service | Responsibility | Tests | External Adapters |
+|:---:|---|---|:---:|---|
+| **S1** | [Payment Orchestrator](payment-orchestrator/) | Temporal saga · LIFO compensation · payment state machine | `192` | — (orchestration only) |
+| **S2** | [Compliance &amp; Travel Rule](compliance-travel-rule/) | KYC · sanctions · AML/KYT · FATF Travel Rule | `276` | Onfido · Persona · WorldCheck · OFAC SDN · Chainalysis · Notabene |
+| **S3** | [Fiat On-Ramp](fiat-on-ramp/) | ACH collection · webhook relay · refund path | `268` | Stripe |
+| **S4** | [Blockchain &amp; Custody](blockchain-custody/) | USDC transfers · MPC signing · nonce mgmt · chain selection | `387` | Fireblocks · EVM RPC · Solana RPC · local dev (web3j) |
+| **S5** | [Fiat Off-Ramp](fiat-off-ramp/) | USDC redemption · SEPA payout | `282` | Circle · Modulr |
+| **S6** | [FX &amp; Liquidity Engine](fx-liquidity-engine/) | Rate quoting with margin · rate locking · history | `272` | Frankfurter · Refinitiv · Redis rate cache |
+| **S7** | [Ledger &amp; Accounting](ledger-accounting/) | Double-entry bookkeeping · event-sourced reconciliation | `335` | — |
+| **S10** | [API Gateway &amp; IAM](api-gateway-iam/) | OAuth2 · API key auth · rate limiting · audit filters · JWKS | `292` | — |
+| **S11** | [Merchant Onboarding](merchant-onboarding/) | KYB verification · onboarding Temporal workflow · approved corridors | `114` | Onfido · Companies House |
+| **S13** | [Merchant IAM](merchant-iam/) | Roles · permissions · JWT (ES256) · TOTP MFA · Redis sessions | `288` | — |
+
+> **2,706 tests** across the ten services (unit + integration + business tiers). Add `platform-infra` (30), `phase2-integration-tests` (5), and `phase3-integration-tests` (3) for platform-wide coverage.
 
 ---
 
-## Getting Started
+## External Provider Adapters
 
-### Prerequisites
+Every external integration sits behind a hexagonal port, with an **ACL DTO** package-private inside `infrastructure/provider/<name>/` and a **sandbox test** that hits the real provider sandbox when credentials are present.
 
-- **Java 25+** &mdash; [Adoptium Temurin](https://adoptium.net/)
-- **Docker 24+** with Compose v2
-- **Git 2.x**
+| Provider | Adapter | Sandbox Test | Used By |
+|---|---|---|---|
+| **Stripe** | `StripePspAdapter` | [`StripeAdapterSandboxTest`](fiat-on-ramp/fiat-on-ramp/src/test/java/com/stablecoin/payments/onramp/infrastructure/provider/stripe/StripeAdapterSandboxTest.java) | S3 |
+| **Modulr** | `ModulrPayoutAdapter` | [`ModulrPayoutAdapterSandboxTest`](fiat-off-ramp/fiat-off-ramp/src/test/java/com/stablecoin/payments/offramp/infrastructure/provider/modulr/ModulrPayoutAdapterSandboxTest.java) | S5 |
+| **Circle** | `CircleRedemptionAdapter` | [`CircleRedemptionAdapterSandboxTest`](fiat-off-ramp/fiat-off-ramp/src/test/java/com/stablecoin/payments/offramp/infrastructure/provider/circle/CircleRedemptionAdapterSandboxTest.java) | S5 |
+| **Fireblocks** | `FireblocksCustodyAdapter` (RS256 JWT) | [`FireblocksCustodyAdapterSandboxTest`](blockchain-custody/blockchain-custody/src/test/java/com/stablecoin/payments/custody/infrastructure/provider/fireblocks/FireblocksCustodyAdapterSandboxTest.java) | S4 |
+| **EVM RPC** | `EvmRpcAdapter` (Base, Ethereum) | [`EvmRpcAdapterSandboxTest`](blockchain-custody/blockchain-custody/src/test/java/com/stablecoin/payments/custody/infrastructure/provider/evm/EvmRpcAdapterSandboxTest.java) | S4 |
+| **Solana RPC** | `SolanaRpcAdapter` | [`SolanaRpcAdapterSandboxTest`](blockchain-custody/blockchain-custody/src/test/java/com/stablecoin/payments/custody/infrastructure/provider/solana/SolanaRpcAdapterSandboxTest.java) | S4 |
+| **Onfido KYC** | `OnfidoKycAdapter` | [`OnfidoKycAdapterSandboxTest`](compliance-travel-rule/compliance-travel-rule/src/test/java/com/stablecoin/payments/compliance/infrastructure/provider/onfido/OnfidoKycAdapterSandboxTest.java) | S2 |
+| **Onfido KYB** | `OnfidoKybAdapter` | [`OnfidoKybAdapterSandboxTest`](merchant-onboarding/merchant-onboarding/src/test/java/com/stablecoin/payments/merchant/onboarding/infrastructure/kyb/OnfidoKybAdapterSandboxTest.java) | S11 |
+| **Persona** | `PersonaKycAdapter` | — | S2 |
+| **WorldCheck** | `WorldCheckSanctionsAdapter` | — | S2 |
+| **OFAC SDN** | `OfacSdnSanctionsAdapter` | — | S2 |
+| **Chainalysis** | `ChainalysisAmlAdapter` | — | S2 |
+| **Notabene** | `NotabeneTravelRuleAdapter` | — | S2 |
+| **Companies House** | `CompaniesHouseAdapter` | [`CompaniesHouseAdapterSandboxTest`](merchant-onboarding/merchant-onboarding/src/test/java/com/stablecoin/payments/merchant/onboarding/infrastructure/kyb/CompaniesHouseAdapterSandboxTest.java) | S11 |
+| **Frankfurter** | `FrankfurterRateAdapter` | [`FrankfurterRateAdapterSandboxTest`](fx-liquidity-engine/fx-liquidity-engine/src/test/java/com/stablecoin/payments/fx/infrastructure/provider/frankfurter/FrankfurterRateAdapterSandboxTest.java) | S6 |
+| **Refinitiv** | `RefinitivRateAdapter` | — | S6 |
 
-### Quick Start
-
-```bash
-# 1. Clone the repository
-git clone https://github.com/Puneethkumarck/stablebridge-platform.git
-cd stablebridge-platform
-
-# 2. Start all infrastructure
-make infra-up
-
-# 3. Build all modules
-make build
-
-# 4. Run all tests
-make test
-
-# 5. Run a specific service
-make run-merchant-onboarding
-```
-
-<details>
-<summary><b>Makefile Reference</b></summary>
-
-Run `make help` for the full list.
-
-| Target | Description |
-|--------|-------------|
-| `make build` | Build all modules (skip tests) |
-| `make build-<service>` | Build a single service |
-| `make test` | Run all tests (unit + integration + business) |
-| `make test-unit` | Unit tests only |
-| `make test-integration` | Integration tests only (requires infra) |
-| `make test-business` | Business tests only (requires infra) |
-| `make test-<service>-all` | All tests for one service |
-| `make format` | Apply Spotless formatting |
-| `make lint` | Check formatting (CI) |
-| `make ci` | Full CI pipeline (lint + all tests) |
-| `make infra-up` | Start Docker Compose infrastructure |
-| `make infra-down` | Stop infrastructure |
-| `make infra-destroy` | Stop + remove volumes (full reset) |
-| `make infra-logs` | Tail all container logs |
-| `make db-psql` | Open psql shell |
-| `make run-<service>` | Run a service with dev profile |
-
-</details>
+Sandbox tests are triggered by `make sandbox-test` — each reads credentials from `.env.sandbox` and makes real API calls. WireMock stubs the same endpoints for local CI and `@SpringBootTest` scenarios.
 
 ---
 
-## Local Infrastructure
+## Tech Stack
 
-All external dependencies are replaced with local equivalents via Docker Compose &mdash; **$0 cost for development**.
-
-| Service | Local Replacement | Port(s) |
-|---------|-------------------|---------|
-| PostgreSQL | `postgres:18-alpine` | `5432` |
-| TimescaleDB | `timescale/timescaledb` | `5433` |
-| Kafka | Redpanda | `9092` &bull; Console: `9090` |
-| Redis | `redis:8-alpine` | `6379` |
-| Temporal | `temporalio/auto-setup` | `7233` &bull; UI: `8233` |
-| Vault | vault dev mode | `8200` |
-| Elasticsearch | `elasticsearch:9.x` | `9200` |
-| Email | Mailpit | SMTP: `1025` &bull; UI: `8025` |
-| External APIs | WireMock | `4444` |
-
-```bash
-docker compose -f docker-compose.dev.yml up -d    # Start
-docker compose -f docker-compose.dev.yml ps        # Status
-make infra-logs                                    # Logs
-make infra-destroy                                 # Full reset
-```
+| Component | Technology |
+|---|---|
+| **Language** | Java 25 (LTS) |
+| **Framework** | Spring Boot 4.0.3 · Spring Cloud 2025.1.1 |
+| **Build** | Gradle 9.x (Kotlin DSL) with convention plugins in [`buildSrc/`](buildSrc/) |
+| **Database** | PostgreSQL 18 (per-service) · TimescaleDB (FX rate history hypertable) |
+| **Migrations** | Flyway |
+| **Messaging** | Apache Kafka (Redpanda locally) via Spring Cloud Stream |
+| **Outbox** | Namastack JDBC (`namastack-outbox-starter-jdbc`) |
+| **Workflow Engine** | Temporal (payment orchestrator, merchant onboarding) |
+| **Cache / Sessions** | Redis 8 |
+| **Resilience** | Resilience4j 2.3.0 |
+| **Mapping** | MapStruct 1.6.3 |
+| **Auth** | Spring Security · JWT (ES256 via Nimbus) · bcrypt · TOTP MFA |
+| **Observability** | Micrometer · Prometheus · OpenTelemetry · Jaeger · Logstash Encoder |
+| **Secrets** | HashiCorp Vault (dev mode locally) |
+| **Testing** | JUnit 5 · AssertJ · Mockito BDD · Testcontainers · WireMock · ArchUnit |
+| **Quality** | Spotless · JaCoCo · ArchUnit · SonarCloud · OWASP Dependency Check |
 
 ---
 
@@ -465,51 +546,63 @@ make infra-destroy                                 # Full reset
 
 ```text
 stablebridge-platform/
-├── api-gateway-iam/              # S10 - API Gateway & IAM
-├── blockchain-custody/           # S4  - Blockchain & Custody
-├── compliance-travel-rule/       # S2  - Compliance & Travel Rule
-├── fiat-off-ramp/                # S5  - Fiat Off-Ramp
-├── fiat-on-ramp/                 # S3  - Fiat On-Ramp
-├── fx-liquidity-engine/          # S6  - FX & Liquidity Engine
-├── ledger-accounting/            # S7  - Ledger & Accounting
-├── merchant-iam/                 # S13 - Merchant IAM
-├── merchant-onboarding/          # S11 - Merchant Onboarding
-├── payment-orchestrator/         # S1  - Payment Orchestrator
-├── phase2-integration-tests/     # Cross-service integration tests
+├── platform-api/                       # Shared API contracts
+├── platform-infra/                     # Shared infra (AbstractOutboxHandler, etc.)
+├── platform-test/                      # Shared test utilities + HexagonalArchitectureRules
+│
+├── payment-orchestrator/               # S1  · Temporal saga
+├── compliance-travel-rule/             # S2  · KYC · sanctions · AML · Travel Rule
+├── fiat-on-ramp/                       # S3  · Stripe ACH
+├── blockchain-custody/                 # S4  · Fireblocks · EVM · Solana
+├── fiat-off-ramp/                      # S5  · Circle · Modulr
+├── fx-liquidity-engine/                # S6  · FX quoting + TimescaleDB history
+├── ledger-accounting/                  # S7  · Double-entry
+├── api-gateway-iam/                    # S10 · OAuth2 · API keys · JWT · rate limit
+├── merchant-onboarding/                # S11 · KYB · Temporal workflow
+├── merchant-iam/                       # S13 · Roles · JWT · MFA
+│
+├── phase2-integration-tests/           # Saga + load tests (Phase 2 cross-service)
+├── phase3-integration-tests/           # Full sandwich E2E (Phase3PaymentE2ETest)
 │
 ├── infra/local/
-│   ├── postgres/init.sql         # Multi-database init script
-│   └── wiremock/                 # WireMock stubs for external APIs
+│   ├── postgres/init.sql               # Multi-database init script
+│   └── wiremock/                       # WireMock stubs for provider sandboxes
 │
-├── services/                     # Service specification docs
-├── playbook/                     # Architecture & coding standards
-├── docker-compose.dev.yml        # Local development stack
-├── Makefile                      # Build, test, and infra shortcuts
-├── build.gradle.kts              # Root build config
-└── settings.gradle.kts           # Multi-module settings
+├── buildSrc/                           # Gradle convention plugins
+├── docker-compose.dev.yml              # Local development stack
+├── docker-compose.phase2-test.yml      # Phase 2 cross-service test stack
+├── docker-compose.phase3-test.yml      # Phase 3 E2E test stack
+├── docker-compose.sandbox.yml          # Real provider sandbox stack
+├── Makefile                            # Build, test, infra, and sandbox shortcuts
+├── build.gradle.kts                    # Root build config
+└── settings.gradle.kts                 # Multi-module settings
 ```
 
 <details>
-<summary><b>Service Module Layout (Hexagonal Architecture)</b></summary>
+<summary><b>Per-service module layout (tri-module hexagonal)</b></summary>
 
-Each service follows a tri-module structure:
+Each service ships three Gradle modules:
 
 ```text
 <service>/
-├── <service>-api/        # Request/response DTOs (shared contract)
-├── <service>-client/     # Feign client for inter-service calls
+├── <service>-api/        # Request/response DTOs (java-library, shared contract)
+├── <service>-client/     # Feign client for inter-service calls (java-library)
 └── <service>/            # Spring Boot application
-    └── src/main/java/com/stablecoin/payments/<service>/
-        ├── application/
-        │   └── controller/       # REST controllers (thin HTTP handlers)
-        ├── domain/
-        │   ├── model/            # Aggregates, value objects, enums
-        │   ├── port/             # Inbound & outbound port interfaces
-        │   └── service/          # Command handlers (business logic)
-        └── infrastructure/
-            ├── adapter/          # Port implementations (DB, Kafka, HTTP)
-            ├── config/           # Spring configuration
-            └── persistence/      # JPA entities, repositories
+    └── src/
+        ├── main/java/com/stablecoin/payments/<service>/
+        │   ├── application/controller/   # Thin REST controllers (no web/ package)
+        │   ├── domain/
+        │   │   ├── model/                # Aggregates, value objects, enums
+        │   │   ├── port/                 # Inbound + outbound port interfaces
+        │   │   └── service/              # Command handlers (business logic)
+        │   └── infrastructure/
+        │       ├── persistence/          # JPA entities + *PersistenceAdapter
+        │       ├── provider/<name>/      # External provider adapters + ACL DTOs
+        │       └── config/               # Spring configuration
+        ├── test/java                     # Unit tests + ArchitectureTest
+        ├── integration-test/java         # Testcontainers integration tests
+        ├── business-test/java            # End-to-end business scenarios
+        └── testFixtures/java             # Shared fixtures + TestUtils
 ```
 
 </details>
@@ -518,75 +611,181 @@ Each service follows a tri-module structure:
 
 ## Testing Strategy
 
-The project uses a three-tier testing approach with **2,700+ tests**:
-
 ```text
-┌──────────────────────────────────────────────────┐
-│               Business Tests                     │  End-to-end user scenarios
-│              (Testcontainers)                    │  src/business-test/
-├──────────────────────────────────────────────────┤
-│            Integration Tests                     │  DB, Kafka, REST endpoints
-│             (Testcontainers)                     │  src/integration-test/
-├──────────────────────────────────────────────────┤
-│               Unit Tests                         │  Domain logic, handlers, mappers
-│              (Mocks only)                        │  src/test/
-└──────────────────────────────────────────────────┘
+                    ┌───────────────────────┐
+                    │   Business Tests      │   End-to-end scenarios
+                    │  (Testcontainers)     │   src/business-test/
+                    ├───────────────────────┤
+                    │  Integration Tests    │   DB, Kafka, REST
+                    │  (Testcontainers)     │   src/integration-test/
+                    ├───────────────────────┤
+                    │  Architecture Tests   │   ArchUnit rules
+                    │  (ArchitectureTest)   │   src/test/
+                ┌───┴───────────────────────┴───┐
+                │        Unit Tests             │   Domain + handlers + mappers
+                │  Mockito BDD + AssertJ         │   src/test/
+                └────────────────────────────────┘
 ```
 
-**Quality gates:** ArchUnit (architecture boundaries) &bull; JaCoCo (coverage) &bull; Spotless (formatting) &bull; SonarCloud (static analysis)
+**Enforced conventions** (see [`docs/TESTING_STANDARDS.md`](docs/TESTING_STANDARDS.md)):
+
+- Single-assert pattern — build expected object, one `usingRecursiveComparison()`
+- BDD Mockito only: `given()` / `then()`, never `when()` / `verify()`
+- No generic matchers (`any()`, `anyString()`, `eq()`) — use actual values
+- `eqIgnoringTimestamps` / `eqIgnoring` from the per-service `TestUtils`
+- Test fixtures live in `src/testFixtures/java/.../fixtures/`
 
 ```bash
-make test-unit                    # Unit tests only
-make test-integration             # Integration tests (requires infra)
-make test-business                # Business tests (requires infra)
-make test-merchant-iam-all        # All tiers for one service
+make test                  # Unit + integration + business across every service
+make test-unit             # Unit tests only
+make test-integration      # Integration tests (requires Docker infra)
+make test-business         # Business tests (requires Docker infra)
+make test-merchant-iam-all # All tiers for one service
 ```
+
+**Quality gates** enforced in CI: Spotless · JaCoCo (XML → SonarCloud) · ArchUnit rules · OWASP Dependency Check (`failBuildOnCVSS=7.0`).
 
 ---
 
-## Roadmap
+## Getting Started
 
-| Phase | Name | Services | Status |
-|:-----:|------|----------|:------:|
-| 0 | Infrastructure Foundation | K8s, Kafka, DBs, Temporal, CI/CD | ![Done](https://img.shields.io/badge/-Done-success?style=flat-square) |
-| 1 | Identity & Merchant | S10 API Gateway, S11 Onboarding, S13 IAM | ![Done](https://img.shields.io/badge/-Done-success?style=flat-square) |
-| 2 | Core Payment Logic | S1 Orchestrator, S2 Compliance, S6 FX | ![Done](https://img.shields.io/badge/-Done-success?style=flat-square) |
-| 3 | Value Movement MVP | S3 On-Ramp, S4 Blockchain, S5 Off-Ramp, S7 Ledger | ![Done](https://img.shields.io/badge/-Done-success?style=flat-square) |
-| 4 | Operational Maturity | S8 Partner Mgmt, S9 Notifications | ![Planned](https://img.shields.io/badge/-Planned-lightgrey?style=flat-square) |
-| 5 | Merchant Experience | S12 Transaction History | ![Planned](https://img.shields.io/badge/-Planned-lightgrey?style=flat-square) |
-| 6 | Intelligence & Scale | S14 Agentic Gateway + multi-chain/corridor | ![Planned](https://img.shields.io/badge/-Planned-lightgrey?style=flat-square) |
+### Prerequisites
+
+- **Java 25** (Temurin recommended)
+- **Docker 24+** with Compose v2
+- **Make** (optional — every target maps to a Gradle command)
+
+### Quick Start
+
+```bash
+# 1. Clone
+git clone https://github.com/Puneethkumarck/stablebridge-platform.git
+cd stablebridge-platform
+
+# 2. Start local infrastructure (Postgres, Redis, Redpanda, Temporal, Vault, …)
+make infra-up
+
+# 3. Build all modules
+make build
+
+# 4. Run tests (unit + integration + business across all services)
+make test
+
+# 5. Run a service locally
+make run-merchant-onboarding
+```
+
+<details>
+<summary><b>Full Make target reference</b></summary>
+
+Run `make help` for the authoritative list. Highlights:
+
+| Target | What it does |
+|---|---|
+| `make build` | Build all modules (skip tests) |
+| `make build-<service>` | Build a single service |
+| `make test` | Unit + integration + business across every service |
+| `make test-unit` / `test-integration` / `test-business` | Run a single tier |
+| `make test-<service>-all` | All tiers for one service |
+| `make format` / `make lint` | Spotless apply / check |
+| `make check` | Full CI-equivalent check (excludes phase2/3 E2E) |
+| `make infra-up` / `infra-down` / `infra-destroy` | Docker Compose lifecycle |
+| `make infra-logs` / `infra-logs-<container>` | Tail logs |
+| `make db-psql` | Open `psql` shell |
+| `make topics` | List Redpanda topics |
+| `make run-<service>` | `bootRun` with dev profile |
+| `make e2e-up` / `e2e-test` | Phase 3 E2E stack + cross-service test |
+| `make sandbox-up` / `sandbox-test` | Real provider sandbox stack + adapter tests |
+
+</details>
+
+---
+
+## Local Infrastructure
+
+A single `docker compose -f docker-compose.dev.yml up -d` brings up **every external dependency** a developer needs — no cloud accounts, no API keys.
+
+| Service | Image | Port(s) | Purpose |
+|---|---|---|---|
+| PostgreSQL | `postgres:18-alpine` | `5432` | Per-service databases via `infra/local/postgres/init.sql` |
+| TimescaleDB | `timescale/timescaledb:latest-pg17` | `5433` | FX rate history hypertable (S6) |
+| Redis | `redis:8-alpine` | `6379` | Rate cache · sessions · rate limit counters |
+| Redpanda | `redpandadata/redpanda` | `9092` | Kafka-compatible event streaming |
+| Redpanda Console | `redpandadata/console` | `9090` | Topic browser |
+| Elasticsearch | `elasticsearch:9.3.1` | `9200` | Search (reserved for future use) |
+| Temporal | `temporalio/auto-setup` | `7233` | Workflow server (S1 &amp; S11) |
+| Temporal UI | `temporalio/ui` | `8233` | Workflow visualization |
+| Vault | `hashicorp/vault` | `8200` | Secrets (dev mode, token `dev-root-token`) |
+| Mailpit | `axllent/mailpit` | `1025` / `8025` | SMTP sink + web UI |
+| WireMock | `wiremock/wiremock` | `4444` | Provider sandboxes (stubs in `infra/local/wiremock/`) |
+| Jaeger | `jaegertracing/all-in-one:1.76.0` | `16686` / `4317` / `4318` | Distributed tracing UI + OTLP |
+| Prometheus | `prom/prometheus:v3.4.0` | `9091` | Metrics scrape |
+| Alertmanager | `prom/alertmanager:v0.28.1` | `9093` | Alert routing |
+
+```bash
+docker compose -f docker-compose.dev.yml up -d    # Start
+docker compose -f docker-compose.dev.yml ps       # Status
+make infra-logs                                   # Tail everything
+make infra-destroy                                # Stop + wipe volumes
+```
+
+**Real sandbox mode.** `make sandbox-up` uses [`docker-compose.sandbox.yml`](docker-compose.sandbox.yml) with real provider credentials pulled from `.env.sandbox` — Stripe, Alchemy, Circle, Modulr, Fireblocks, Onfido, Persona, Companies House. The `sandbox-tunnel` target starts `cloudflared` so Stripe webhooks reach the local on-ramp service.
+
+---
+
+## CI/CD Pipeline
+
+GitHub Actions workflow [`ci.yml`](.github/workflows/ci.yml):
+
+```text
+  ┌──────────┐     ┌──────────┐
+  │ spotless │     │ changes  │   (dorny/paths-filter scopes the matrix)
+  │  check   │     │ detector │
+  └────┬─────┘     └────┬─────┘
+       │                │
+       └────────┬───────┘
+                ▼
+        ┌───────────────┐
+        │      test     │   Matrix: one job per changed service
+        │  (per service)│   ./gradlew :<svc>:test :<svc>:jacocoTestReport
+        └───────┬───────┘            :<svc>:integrationTest :<svc>:businessTest
+                │
+        ┌───────┴───────┐
+        ▼               ▼
+  ┌──────────┐    ┌──────────┐
+  │ci-status │    │  sonar   │   (SonarCloud, push only)
+  └──────────┘    └──────────┘
+```
+
+- **Java:** 25 Temurin for build + tests; falls back to JDK 21 for SonarCloud (BouncyCastle MRJar compatibility)
+- **Testcontainers reuse:** `TESTCONTAINERS_REUSE_ENABLE=true` for faster reruns
+- **Scope-aware:** `changes` job uses path filters so only touched services run the full matrix
+- **Additional workflows:** [`security-scan.yml`](.github/workflows/security-scan.yml), [`coderabbit-autofix.yml`](.github/workflows/coderabbit-autofix.yml), [`claude.yml`](.github/workflows/claude.yml), [`stale.yml`](.github/workflows/stale.yml)
 
 ---
 
 ## Contributing
 
-Contributions are welcome! Please follow these steps:
-
 1. **Fork** the repository
-2. **Create a feature branch** from `main`
-
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-
-3. **Follow the coding standards** in [`playbook/01-coding-standards.md`](playbook/01-coding-standards.md)
-4. **Write tests** &mdash; all three tiers where applicable
-5. **Ensure CI passes**
-
-   ```bash
-   make ci
-   ```
-
-6. **Open a Pull Request** against `main`
+2. **Create a feature branch** — `feature/STA-<id>-<short-description>`
+3. **Read** [`docs/CODING_STANDARDS.md`](docs/CODING_STANDARDS.md) and [`docs/TESTING_STANDARDS.md`](docs/TESTING_STANDARDS.md) before writing code
+4. **Run** `make ci` locally before pushing
+5. **Open a PR** against `main` with `Closes STA-<id>` in the body
 
 <details>
-<summary><b>Code Style</b></summary>
+<summary><b>Style rules always applied</b></summary>
 
-- Java 25 with Lombok and MapStruct
-- Hexagonal architecture &mdash; domain must not depend on infrastructure
-- Single-assert test pattern with recursive comparison
-- No wildcard imports, static imports for readability
-- Spotless formatting enforced (`make format` to auto-fix)
+- No comments or Javadoc — code must be self-documenting
+- No `@Autowired` — use `@RequiredArgsConstructor` with `private final` fields
+- No `System.out` / `System.err` — use `@Slf4j`
+- No wildcard imports — every import explicit
+- `var` for local variables when the type is obvious
+- AssertJ only — no JUnit `assertEquals` / `assertTrue`
+- BDD Mockito only — `given()` / `then()`, never `when()` / `verify()`
+- No generic matchers — use actual values or the `eqIgnoringTimestamps` helper
+- Controllers live in `application.controller` — no `web/` package
+- Controller → CommandHandler directly — no intermediate service layer
+- Single-assert test pattern: build expected object → one `usingRecursiveComparison()`
 
 </details>
 
@@ -594,16 +793,16 @@ Contributions are welcome! Please follow these steps:
 
 ## Security
 
-If you discover a security vulnerability, please **do not** open a public issue. Instead, report it privately via [GitHub Security Advisories](https://github.com/Puneethkumarck/stablebridge-platform/security/advisories/new).
+If you discover a security vulnerability, please **do not** open a public issue. Report it privately via [GitHub Security Advisories](https://github.com/Puneethkumarck/stablebridge-platform/security/advisories/new).
 
 ---
 
 ## License
 
-This project is licensed under the MIT License &mdash; see the [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE](LICENSE).
 
 ---
 
-<p align="center">
-  <sub>Built with Java 25 &bull; Spring Boot 4 &bull; Temporal &bull; Kafka &bull; Base L2</sub>
-</p>
+<div align="center">
+  <sub>Built with Java 25 · Spring Boot 4 · Temporal · Kafka · Base L2</sub>
+</div>
