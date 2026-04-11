@@ -1,7 +1,9 @@
 package com.stablecoin.payments.fx.application.controller;
 
 import com.stablecoin.payments.fx.api.response.CorridorResponse;
-import com.stablecoin.payments.fx.application.service.LiquidityPoolApplicationService;
+import com.stablecoin.payments.fx.application.mapper.FxResponseMapper;
+import com.stablecoin.payments.fx.domain.service.LiquidityPoolQueryHandler;
+import com.stablecoin.payments.fx.domain.service.LiquidityPoolQueryHandler.CorridorSnapshot;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,6 +15,9 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
+import static com.stablecoin.payments.fx.fixtures.CorridorRateFixtures.aUsdEurRate;
+import static com.stablecoin.payments.fx.fixtures.LiquidityPoolFixtures.aGbpEurPool;
+import static com.stablecoin.payments.fx.fixtures.LiquidityPoolFixtures.aUsdEurPool;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.given;
 
@@ -21,41 +26,51 @@ import static org.mockito.BDDMockito.given;
 class CorridorControllerTest {
 
     @Mock
-    private LiquidityPoolApplicationService liquidityPoolApplicationService;
+    private LiquidityPoolQueryHandler queryHandler;
+
+    @Mock
+    private FxResponseMapper responseMapper;
 
     @InjectMocks
     private CorridorController controller;
 
     @Test
-    @DisplayName("should delegate to application service and return corridor list")
+    @DisplayName("should delegate to query handler and map each snapshot")
     void shouldListCorridors() {
-        // given
         var now = Instant.now();
-        var corridors = List.of(
-                new CorridorResponse("USD", "EUR", new BigDecimal("0.92"), 30, 30, "REFINITIV", now),
-                new CorridorResponse("GBP", "EUR", new BigDecimal("1.16"), 25, 25, "REFINITIV", now)
-        );
-        given(liquidityPoolApplicationService.listCorridors()).willReturn(corridors);
+        var usdEurPool = aUsdEurPool();
+        var gbpEurPool = aGbpEurPool();
+        var usdEurRate = aUsdEurRate();
+        var usdEurSnapshot = new CorridorSnapshot(usdEurPool, usdEurRate);
+        var gbpEurSnapshot = new CorridorSnapshot(gbpEurPool, null);
 
-        // when
+        var usdEurResponse = new CorridorResponse(
+                "USD", "EUR", new BigDecimal("0.92"), 30, 30, "REFINITIV", now);
+        var gbpEurResponse = new CorridorResponse(
+                "GBP", "EUR", null, 0, 0, "unavailable", null);
+
+        given(queryHandler.listCorridors()).willReturn(List.of(usdEurSnapshot, gbpEurSnapshot));
+        given(responseMapper.toResponse(usdEurSnapshot)).willReturn(usdEurResponse);
+        given(responseMapper.toResponse(gbpEurSnapshot)).willReturn(gbpEurResponse);
+
         var result = controller.listCorridors();
 
-        // then
-        assertThat(result)
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0))
                 .usingRecursiveComparison()
-                .isEqualTo(corridors);
+                .isEqualTo(usdEurResponse);
+        assertThat(result.get(1))
+                .usingRecursiveComparison()
+                .isEqualTo(gbpEurResponse);
     }
 
     @Test
     @DisplayName("should return empty list when no corridors available")
     void shouldReturnEmptyList() {
-        // given
-        given(liquidityPoolApplicationService.listCorridors()).willReturn(List.of());
+        given(queryHandler.listCorridors()).willReturn(List.of());
 
-        // when
         var result = controller.listCorridors();
 
-        // then
         assertThat(result).isEmpty();
     }
 }
