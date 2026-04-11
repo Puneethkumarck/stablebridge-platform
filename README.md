@@ -12,7 +12,6 @@
 ![Temporal](https://img.shields.io/badge/Temporal-Saga-000000?style=for-the-badge&logo=temporal&logoColor=white)
 ![Redis](https://img.shields.io/badge/Redis-8-DC382D?style=for-the-badge&logo=redis&logoColor=white)
 ![Architecture](https://img.shields.io/badge/Architecture-Hexagonal-purple?style=for-the-badge)
-![Tests](https://img.shields.io/badge/Tests-2,706-success?style=for-the-badge)
 ![License](https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge)
 
 [Why Stablecoin Rails?](#why-stablecoin-rails) · [The Sandwich Flow](#the-sandwich-flow) · [How a Payment Moves](#how-a-payment-moves) · [Architecture](#architecture) · [Getting Started](#getting-started)
@@ -35,15 +34,14 @@ A production-shaped payment platform where a **USD → EUR transfer clears in mi
 
 <div align="center">
 
-| Metric | Value |
-|--------|-------|
-| **Services** | 10 (hexagonal + DDD + CQRS) |
-| **Tests** | 2,706 across unit / integration / business tiers |
-| **Orchestration** | Temporal workflows with LIFO compensation |
+| What | How |
+|------|-----|
+| **Services** | 10 hexagonal microservices (DDD + CQRS) |
+| **Orchestration** | Temporal workflows with LIFO saga compensation |
 | **Event Delivery** | Transactional outbox (Namastack) + Kafka |
-| **External Adapters** | 14 real provider integrations (Stripe · Modulr · Circle · Fireblocks · Onfido · Persona · Chainalysis · Companies House · …) |
-| **Sandbox Tests** | 10 adapter tests that hit real provider sandboxes |
-| **Reference Corridor** | US → DE (USD → EUR) via Stripe ACH · USDC on Base · Modulr SEPA |
+| **External Adapters** | Real provider integrations — Stripe · Modulr · Circle · Fireblocks · Onfido · Persona · Chainalysis · Companies House · Notabene · WorldCheck · OFAC SDN · Frankfurter · Refinitiv |
+| **Sandbox Adapter Tests** | Real API calls into provider sandboxes behind `make sandbox-test` |
+| **Reference Corridor** | US → DE (USD → EUR) via Stripe ACH · USDC on Base L2 · Modulr SEPA |
 
 </div>
 
@@ -475,20 +473,20 @@ The transactional outbox pattern is used everywhere state changes need to fan ou
 
 All ten services are fully implemented, hexagonal, ArchUnit-enforced, and buildable Gradle modules in [`settings.gradle.kts`](settings.gradle.kts).
 
-| # | Service | Responsibility | Tests | External Adapters |
-|:---:|---|---|:---:|---|
-| **S1** | [Payment Orchestrator](payment-orchestrator/) | Temporal saga · LIFO compensation · payment state machine | `192` | — (orchestration only) |
-| **S2** | [Compliance &amp; Travel Rule](compliance-travel-rule/) | KYC · sanctions · AML/KYT · FATF Travel Rule | `276` | Onfido · Persona · WorldCheck · OFAC SDN · Chainalysis · Notabene |
-| **S3** | [Fiat On-Ramp](fiat-on-ramp/) | ACH collection · webhook relay · refund path | `268` | Stripe |
-| **S4** | [Blockchain &amp; Custody](blockchain-custody/) | USDC transfers · MPC signing · nonce mgmt · chain selection | `387` | Fireblocks · EVM RPC · Solana RPC · local dev (web3j) |
-| **S5** | [Fiat Off-Ramp](fiat-off-ramp/) | USDC redemption · SEPA payout | `282` | Circle · Modulr |
-| **S6** | [FX &amp; Liquidity Engine](fx-liquidity-engine/) | Rate quoting with margin · rate locking · history | `272` | Frankfurter · Refinitiv · Redis rate cache |
-| **S7** | [Ledger &amp; Accounting](ledger-accounting/) | Double-entry bookkeeping · event-sourced reconciliation | `335` | — |
-| **S10** | [API Gateway &amp; IAM](api-gateway-iam/) | OAuth2 · API key auth · rate limiting · audit filters · JWKS | `292` | — |
-| **S11** | [Merchant Onboarding](merchant-onboarding/) | KYB verification · onboarding Temporal workflow · approved corridors | `114` | Onfido · Companies House |
-| **S13** | [Merchant IAM](merchant-iam/) | Roles · permissions · JWT (ES256) · TOTP MFA · Redis sessions | `288` | — |
+| # | Service | Responsibility | External Adapters |
+|:---:|---|---|---|
+| **S1** | [Payment Orchestrator](payment-orchestrator/) | Temporal saga · LIFO compensation · payment state machine | — (orchestration only) |
+| **S2** | [Compliance &amp; Travel Rule](compliance-travel-rule/) | KYC · sanctions · AML/KYT · FATF Travel Rule | Onfido · Persona · WorldCheck · OFAC SDN · Chainalysis · Notabene |
+| **S3** | [Fiat On-Ramp](fiat-on-ramp/) | ACH collection · webhook relay · refund path | Stripe |
+| **S4** | [Blockchain &amp; Custody](blockchain-custody/) | USDC transfers · MPC signing · nonce mgmt · chain selection | Fireblocks · EVM RPC · Solana RPC · local dev (web3j) |
+| **S5** | [Fiat Off-Ramp](fiat-off-ramp/) | USDC redemption · SEPA payout | Circle · Modulr |
+| **S6** | [FX &amp; Liquidity Engine](fx-liquidity-engine/) | Rate quoting with margin · rate locking · history | Frankfurter · Refinitiv · Redis rate cache |
+| **S7** | [Ledger &amp; Accounting](ledger-accounting/) | Double-entry bookkeeping · event-sourced reconciliation | — |
+| **S10** | [API Gateway &amp; IAM](api-gateway-iam/) | OAuth2 · API key auth · rate limiting · audit filters · JWKS | — |
+| **S11** | [Merchant Onboarding](merchant-onboarding/) | KYB verification · onboarding Temporal workflow · approved corridors | Onfido · Companies House |
+| **S13** | [Merchant IAM](merchant-iam/) | Roles · permissions · JWT (ES256) · TOTP MFA · Redis sessions | — |
 
-> **2,706 tests** across the ten services (unit + integration + business tiers). Add `platform-infra` (30), `phase2-integration-tests` (5), and `phase3-integration-tests` (3) for platform-wide coverage.
+Every service carries its own unit, integration, and business test tiers with ArchUnit rules enforcing hexagonal boundaries. See [Testing Strategy](#testing-strategy) for conventions.
 
 ---
 
