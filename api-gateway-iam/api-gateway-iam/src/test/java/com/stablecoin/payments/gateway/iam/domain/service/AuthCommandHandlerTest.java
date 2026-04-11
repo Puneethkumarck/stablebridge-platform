@@ -23,16 +23,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoring;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
@@ -100,8 +100,10 @@ class AuthCommandHandlerTest {
             given(oauthClientRepository.findActiveById(CLIENT_ID)).willReturn(Optional.of(activeClient()));
             given(clientSecretHasher.matches("secret", "$2a$12$hash")).willReturn(true);
             given(merchantRepository.findById(MERCHANT_ID)).willReturn(Optional.of(activeMerchant()));
-            given(tokenIssuer.issueToken(eq(MERCHANT_ID), eq(CLIENT_ID), anyList())).willReturn("jwt-token");
-            given(accessTokenRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+            given(tokenIssuer.issueToken(MERCHANT_ID, CLIENT_ID, List.of("payments:read", "payments:write")))
+                    .willReturn("jwt-token");
+
+            authCommandHandler.issueToken(CLIENT_ID, "secret", null);
 
             var expected = AccessToken.builder()
                     .merchantId(MERCHANT_ID)
@@ -109,9 +111,6 @@ class AuthCommandHandlerTest {
                     .scopes(List.of("payments:read", "payments:write"))
                     .revoked(false)
                     .build();
-
-            authCommandHandler.issueToken(CLIENT_ID, "secret", null);
-
             then(accessTokenRepository).should().save(eqIgnoring(expected, "jti"));
         }
 
@@ -120,8 +119,10 @@ class AuthCommandHandlerTest {
             given(oauthClientRepository.findActiveById(CLIENT_ID)).willReturn(Optional.of(activeClient()));
             given(clientSecretHasher.matches("secret", "$2a$12$hash")).willReturn(true);
             given(merchantRepository.findById(MERCHANT_ID)).willReturn(Optional.of(activeMerchant()));
-            given(tokenIssuer.issueToken(eq(MERCHANT_ID), eq(CLIENT_ID), anyList())).willReturn("jwt-token");
-            given(accessTokenRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+            given(tokenIssuer.issueToken(MERCHANT_ID, CLIENT_ID, List.of("payments:read")))
+                    .willReturn("jwt-token");
+
+            authCommandHandler.issueToken(CLIENT_ID, "secret", List.of("payments:read"));
 
             var expected = AccessToken.builder()
                     .merchantId(MERCHANT_ID)
@@ -129,9 +130,6 @@ class AuthCommandHandlerTest {
                     .scopes(List.of("payments:read"))
                     .revoked(false)
                     .build();
-
-            authCommandHandler.issueToken(CLIENT_ID, "secret", List.of("payments:read"));
-
             then(accessTokenRepository).should().save(eqIgnoring(expected, "jti"));
         }
 
@@ -192,16 +190,19 @@ class AuthCommandHandlerTest {
                     .issuedAt(Instant.now()).expiresAt(Instant.now().plusSeconds(3600))
                     .revoked(false).build();
             given(accessTokenRepository.findByJti(jti)).willReturn(Optional.of(token));
-            given(accessTokenRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+            authCommandHandler.revokeToken(jti);
 
             var expected = token.toBuilder()
                     .revoked(true)
                     .build();
-
-            authCommandHandler.revokeToken(jti);
-
             then(accessTokenRepository).should().save(eqIgnoring(expected, "revokedAt"));
-            then(tokenRevocationCache).should().markRevoked(eq(jti), any());
+            then(tokenRevocationCache).should().markRevoked(argThat(id -> jti.equals(id)),
+                    argThat(duration -> {
+                        assertThat((Duration) duration)
+                                .isBetween(Duration.ofSeconds(3500), Duration.ofSeconds(3600));
+                        return true;
+                    }));
         }
     }
 

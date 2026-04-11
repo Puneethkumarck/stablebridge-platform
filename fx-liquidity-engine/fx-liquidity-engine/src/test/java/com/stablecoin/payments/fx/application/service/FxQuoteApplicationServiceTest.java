@@ -23,14 +23,10 @@ import java.util.UUID;
 
 import static com.stablecoin.payments.fx.fixtures.CorridorRateFixtures.aUsdEurRate;
 import static com.stablecoin.payments.fx.fixtures.FxQuoteFixtures.anActiveQuote;
-import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoringTimestamps;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
-import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("FxQuoteApplicationService")
@@ -84,7 +80,7 @@ class FxQuoteApplicationServiceTest {
                     .usingRecursiveComparison()
                     .isEqualTo(expectedResponse);
 
-            then(rateProvider).should(never()).getRate(any(), any());
+            then(rateProvider).shouldHaveNoInteractions();
         }
 
         @Test
@@ -114,7 +110,7 @@ class FxQuoteApplicationServiceTest {
                     .usingRecursiveComparison()
                     .isEqualTo(expectedResponse);
 
-            then(rateCache).should().put(eq("USD"), eq("EUR"), eqIgnoringTimestamps(corridorRate));
+            then(rateCache).should().put("USD", "EUR", corridorRate);
         }
 
         @Test

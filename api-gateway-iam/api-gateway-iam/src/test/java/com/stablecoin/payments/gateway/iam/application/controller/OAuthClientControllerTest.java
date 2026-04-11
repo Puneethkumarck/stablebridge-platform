@@ -19,8 +19,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
@@ -41,12 +39,14 @@ class OAuthClientControllerTest {
     void shouldCreateOAuthClient() {
         var merchantId = UUID.randomUUID();
         var clientId = UUID.randomUUID();
+        var commandResult = new OAuthClientCommandHandler.CreateOAuthClientResult(null, "raw-secret-hex");
         var response = new OAuthClientResponse(
                 clientId, "raw-secret-hex", merchantId, "My Client",
                 List.of("payments:read"), List.of("client_credentials"), Instant.now());
-        given(oauthClientCommandHandler.create(eq(merchantId), any(), any(), any()))
-                .willReturn(new OAuthClientCommandHandler.CreateOAuthClientResult(null, "raw-secret-hex"));
-        given(mapper.toOAuthClientResponse(any())).willReturn(response);
+        given(oauthClientCommandHandler.create(merchantId, "My Client",
+                List.of("payments:read"), List.of("client_credentials")))
+                .willReturn(commandResult);
+        given(mapper.toOAuthClientResponse(commandResult)).willReturn(response);
 
         var request = new CreateOAuthClientRequest(
                 "My Client", List.of("payments:read"), List.of("client_credentials"));
@@ -63,7 +63,8 @@ class OAuthClientControllerTest {
     @DisplayName("createOAuthClient should throw when merchant not found")
     void shouldThrowWhenMerchantNotFound() {
         var merchantId = UUID.randomUUID();
-        given(oauthClientCommandHandler.create(eq(merchantId), any(), any(), any()))
+        given(oauthClientCommandHandler.create(merchantId, "Client",
+                List.of(), List.of("client_credentials")))
                 .willThrow(MerchantNotFoundException.byId(merchantId));
 
         var request = new CreateOAuthClientRequest("Client", null, null);
@@ -76,7 +77,8 @@ class OAuthClientControllerTest {
     @DisplayName("createOAuthClient should throw when merchant not active")
     void shouldThrowWhenMerchantNotActive() {
         var merchantId = UUID.randomUUID();
-        given(oauthClientCommandHandler.create(eq(merchantId), any(), any(), any()))
+        given(oauthClientCommandHandler.create(merchantId, "Client",
+                List.of(), List.of("client_credentials")))
                 .willThrow(MerchantNotActiveException.of(merchantId));
 
         var request = new CreateOAuthClientRequest("Client", null, null);

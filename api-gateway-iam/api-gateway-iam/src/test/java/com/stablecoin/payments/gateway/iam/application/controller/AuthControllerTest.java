@@ -16,10 +16,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
@@ -42,7 +38,8 @@ class AuthControllerTest {
         var clientId = UUID.randomUUID();
         var tokenResult = new AuthCommandHandler.TokenResult("jwt-token", UUID.randomUUID(), 3600L, List.of("payments:read"));
         var tokenResponse = new TokenResponse("jwt-token", "Bearer", 3600, "payments:read");
-        given(authCommandHandler.issueToken(eq(clientId), anyString(), anyList())).willReturn(tokenResult);
+        given(authCommandHandler.issueToken(clientId, "secret", List.of("payments:read")))
+                .willReturn(tokenResult);
         given(mapper.toTokenResponse(tokenResult)).willReturn(tokenResponse);
 
         var request = new com.stablecoin.payments.gateway.iam.api.request.TokenRequest(
@@ -58,11 +55,12 @@ class AuthControllerTest {
     @Test
     @DisplayName("issueToken should propagate invalid credentials")
     void shouldPropagateInvalidCredentials() {
-        given(authCommandHandler.issueToken(any(), anyString(), anyList()))
+        var clientId = UUID.randomUUID();
+        given(authCommandHandler.issueToken(clientId, "wrong", List.of()))
                 .willThrow(InvalidClientCredentialsException.clientNotFound());
 
         var request = new com.stablecoin.payments.gateway.iam.api.request.TokenRequest(
-                "client_credentials", UUID.randomUUID(), "wrong", null);
+                "client_credentials", clientId, "wrong", null);
 
         assertThatThrownBy(() -> controller.issueToken(request))
                 .isInstanceOf(InvalidClientCredentialsException.class);

@@ -2,16 +2,21 @@ package com.stablecoin.payments.orchestrator.domain.workflow;
 
 import com.stablecoin.payments.orchestrator.domain.workflow.activity.ChainReturnRequest;
 import com.stablecoin.payments.orchestrator.domain.workflow.activity.ChainTransferActivity;
+import com.stablecoin.payments.orchestrator.domain.workflow.activity.ChainTransferRequest;
 import com.stablecoin.payments.orchestrator.domain.workflow.activity.ChainTransferResult;
 import com.stablecoin.payments.orchestrator.domain.workflow.activity.ComplianceCheckActivity;
+import com.stablecoin.payments.orchestrator.domain.workflow.activity.ComplianceRequest;
 import com.stablecoin.payments.orchestrator.domain.workflow.activity.ComplianceResult;
 import com.stablecoin.payments.orchestrator.domain.workflow.activity.EventPublishingActivity;
 import com.stablecoin.payments.orchestrator.domain.workflow.activity.FiatCollectionActivity;
+import com.stablecoin.payments.orchestrator.domain.workflow.activity.FiatCollectionRequest;
 import com.stablecoin.payments.orchestrator.domain.workflow.activity.FiatCollectionResult;
 import com.stablecoin.payments.orchestrator.domain.workflow.activity.FiatRefundRequest;
 import com.stablecoin.payments.orchestrator.domain.workflow.activity.FxLockActivity;
+import com.stablecoin.payments.orchestrator.domain.workflow.activity.FxLockRequest;
 import com.stablecoin.payments.orchestrator.domain.workflow.activity.FxReleaseRequest;
 import com.stablecoin.payments.orchestrator.domain.workflow.activity.OffRampActivity;
+import com.stablecoin.payments.orchestrator.domain.workflow.activity.OffRampRequest;
 import com.stablecoin.payments.orchestrator.domain.workflow.activity.OffRampResult;
 import com.stablecoin.payments.orchestrator.domain.workflow.activity.PaymentEventRequest;
 import com.stablecoin.payments.orchestrator.domain.workflow.activity.UpdatePaymentStateActivity;
@@ -48,13 +53,11 @@ import static com.stablecoin.payments.orchestrator.fixtures.WorkflowFixtures.aSu
 import static com.stablecoin.payments.orchestrator.fixtures.WorkflowFixtures.anInitiatedCollectionResult;
 import static com.stablecoin.payments.orchestrator.fixtures.WorkflowFixtures.anInitiatedPayoutResult;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willThrow;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 
 @DisplayName("PaymentWorkflow")
 class PaymentWorkflowTest {
@@ -66,6 +69,45 @@ class PaymentWorkflowTest {
     private final OffRampActivity offRampActivity = mock(OffRampActivity.class);
     private final UpdatePaymentStateActivity updateStateActivity = mock(UpdatePaymentStateActivity.class);
     private final EventPublishingActivity eventPublishingActivity = mock(EventPublishingActivity.class);
+
+    private static ComplianceRequest expectedComplianceRequest() {
+        var req = aPaymentRequest();
+        return new ComplianceRequest(
+                req.paymentId(), req.senderId(), req.recipientId(),
+                req.sourceAmount(), req.sourceCurrency(), req.targetCurrency(),
+                req.sourceCountry(), req.targetCountry());
+    }
+
+    private static FxLockRequest expectedFxLockRequest() {
+        var req = aPaymentRequest();
+        return new FxLockRequest(
+                req.idempotencyKey(), req.paymentId(),
+                req.sourceCurrency(), req.targetCurrency(),
+                req.sourceAmount(), req.sourceCountry(), req.targetCountry());
+    }
+
+    private static FiatCollectionRequest expectedFiatCollectionRequest() {
+        var req = aPaymentRequest();
+        return new FiatCollectionRequest(
+                req.paymentId(), req.correlationId(),
+                req.sourceAmount(), req.sourceCurrency(), req.sourceCountry());
+    }
+
+    private static ChainTransferRequest expectedChainTransferRequest() {
+        var req = aPaymentRequest();
+        return new ChainTransferRequest(
+                req.paymentId(), req.correlationId(),
+                "USDC", new BigDecimal("920.00"),
+                "0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18", "base");
+    }
+
+    private static OffRampRequest expectedOffRampRequest() {
+        var req = aPaymentRequest();
+        return new OffRampRequest(
+                req.paymentId(), req.correlationId(), TRANSFER_ID,
+                "USDC", new BigDecimal("920.00"), "EUR",
+                BigDecimal.ONE, req.recipientId());
+    }
 
     @RegisterExtension
     public TestWorkflowExtension testWorkflow = TestWorkflowExtension.newBuilder()
@@ -83,13 +125,13 @@ class PaymentWorkflowTest {
         @Test
         @DisplayName("should complete full payment sandwich: compliance → FX → fiat → chain → off-ramp")
         void shouldCompleteFullSandwich(WorkflowClient workflowClient, Worker worker) {
-            given(complianceActivity.checkCompliance(any()))
+            given(complianceActivity.checkCompliance(expectedComplianceRequest()))
                     .willReturn(new ComplianceResult(CHECK_ID, PASSED, null));
-            given(fxLockActivity.lockFxRate(any()))
+            given(fxLockActivity.lockFxRate(expectedFxLockRequest()))
                     .willReturn(aLockedFxResult());
 
             // Fiat collection: return INITIATED, send signal synchronously from activity
-            given(fiatCollectionActivity.initiateCollection(any()))
+            given(fiatCollectionActivity.initiateCollection(expectedFiatCollectionRequest()))
                     .willAnswer(invocation -> {
                         var stub = workflowClient.newWorkflowStub(
                                 PaymentWorkflow.class, "payment-" + PAYMENT_ID);
@@ -98,7 +140,7 @@ class PaymentWorkflowTest {
                     });
 
             // Chain transfer: return SUBMITTED, send confirmation signal synchronously
-            given(chainTransferActivity.submitTransfer(any()))
+            given(chainTransferActivity.submitTransfer(expectedChainTransferRequest()))
                     .willAnswer(invocation -> {
                         var stub = workflowClient.newWorkflowStub(
                                 PaymentWorkflow.class, "payment-" + PAYMENT_ID);
@@ -106,7 +148,7 @@ class PaymentWorkflowTest {
                         return aSubmittedTransferResult();
                     });
 
-            given(offRampActivity.initiatePayout(any()))
+            given(offRampActivity.initiatePayout(expectedOffRampRequest()))
                     .willReturn(anInitiatedPayoutResult());
 
             startWorkflow(workflowClient, worker);
@@ -120,11 +162,11 @@ class PaymentWorkflowTest {
                     .usingRecursiveComparison()
                     .isEqualTo(expected);
 
-            then(complianceActivity).should().checkCompliance(any());
-            then(fxLockActivity).should().lockFxRate(any());
-            then(fiatCollectionActivity).should().initiateCollection(any());
-            then(chainTransferActivity).should().submitTransfer(any());
-            then(offRampActivity).should().initiatePayout(any());
+            then(complianceActivity).should().checkCompliance(expectedComplianceRequest());
+            then(fxLockActivity).should().lockFxRate(expectedFxLockRequest());
+            then(fiatCollectionActivity).should().initiateCollection(expectedFiatCollectionRequest());
+            then(chainTransferActivity).should().submitTransfer(expectedChainTransferRequest());
+            then(offRampActivity).should().initiatePayout(expectedOffRampRequest());
         }
     }
 
@@ -136,7 +178,7 @@ class PaymentWorkflowTest {
         @DisplayName("should return FAILED when compliance check fails")
         void shouldFailWhenComplianceCheckFails(WorkflowClient workflowClient,
                                                 Worker worker) {
-            given(complianceActivity.checkCompliance(any()))
+            given(complianceActivity.checkCompliance(expectedComplianceRequest()))
                     .willReturn(new ComplianceResult(CHECK_ID,
                             ComplianceResult.ComplianceStatus.FAILED, "PEP match"));
 
@@ -148,8 +190,8 @@ class PaymentWorkflowTest {
                     .usingRecursiveComparison()
                     .isEqualTo(expected);
 
-            then(fxLockActivity).should(never()).lockFxRate(any());
-            then(fiatCollectionActivity).should(never()).initiateCollection(any());
+            then(fxLockActivity).shouldHaveNoInteractions();
+            then(fiatCollectionActivity).shouldHaveNoInteractions();
 
             var expectedEvent = PaymentEventRequest.failed(
                     PAYMENT_ID, aPaymentRequest().correlationId(),
@@ -162,7 +204,7 @@ class PaymentWorkflowTest {
         @DisplayName("should return FAILED when compliance detects sanctions hit")
         void shouldFailOnSanctionsHit(WorkflowClient workflowClient,
                                       Worker worker) {
-            given(complianceActivity.checkCompliance(any()))
+            given(complianceActivity.checkCompliance(expectedComplianceRequest()))
                     .willReturn(new ComplianceResult(CHECK_ID, SANCTIONS_HIT,
                             "OFAC sanctions list match"));
 
@@ -175,8 +217,8 @@ class PaymentWorkflowTest {
                     .usingRecursiveComparison()
                     .isEqualTo(expected);
 
-            then(fxLockActivity).should(never()).lockFxRate(any());
-            then(fiatCollectionActivity).should(never()).initiateCollection(any());
+            then(fxLockActivity).shouldHaveNoInteractions();
+            then(fiatCollectionActivity).shouldHaveNoInteractions();
 
             var expectedEvent = PaymentEventRequest.failed(
                     PAYMENT_ID, aPaymentRequest().correlationId(),
@@ -194,9 +236,9 @@ class PaymentWorkflowTest {
         @DisplayName("should return FAILED when FX rate lock fails — no compensation needed")
         void shouldFailWhenFxLockFails(WorkflowClient workflowClient,
                                        Worker worker) {
-            given(complianceActivity.checkCompliance(any()))
+            given(complianceActivity.checkCompliance(expectedComplianceRequest()))
                     .willReturn(new ComplianceResult(CHECK_ID, PASSED, null));
-            given(fxLockActivity.lockFxRate(any()))
+            given(fxLockActivity.lockFxRate(expectedFxLockRequest()))
                     .willReturn(new com.stablecoin.payments.orchestrator.domain.workflow.activity.FxLockResult(
                             null, null, null, null, null,
                             INSUFFICIENT_LIQUIDITY, "No liquidity for USD/EUR"));
@@ -210,7 +252,7 @@ class PaymentWorkflowTest {
                     .usingRecursiveComparison()
                     .isEqualTo(expected);
 
-            then(fiatCollectionActivity).should(never()).initiateCollection(any());
+            then(fiatCollectionActivity).shouldHaveNoInteractions();
 
             var expectedEvent = PaymentEventRequest.failed(
                     PAYMENT_ID, aPaymentRequest().correlationId(),
@@ -228,11 +270,11 @@ class PaymentWorkflowTest {
         @DisplayName("should fail and release FX lock when fiat collection is rejected")
         void shouldFailAndReleaseFxLockWhenCollectionRejected(WorkflowClient workflowClient,
                                                                Worker worker) {
-            given(complianceActivity.checkCompliance(any()))
+            given(complianceActivity.checkCompliance(expectedComplianceRequest()))
                     .willReturn(new ComplianceResult(CHECK_ID, PASSED, null));
-            given(fxLockActivity.lockFxRate(any()))
+            given(fxLockActivity.lockFxRate(expectedFxLockRequest()))
                     .willReturn(aLockedFxResult());
-            given(fiatCollectionActivity.initiateCollection(any()))
+            given(fiatCollectionActivity.initiateCollection(expectedFiatCollectionRequest()))
                     .willReturn(new FiatCollectionResult(null,
                             FiatCollectionStatus.FAILED, "PSP declined"));
 
@@ -249,7 +291,7 @@ class PaymentWorkflowTest {
             then(fxLockActivity).should().releaseLock(
                     new FxReleaseRequest(LOCK_ID, PAYMENT_ID,
                             "Fiat collection failed: PSP declined"));
-            then(chainTransferActivity).should(never()).submitTransfer(any());
+            then(chainTransferActivity).shouldHaveNoInteractions();
         }
     }
 
@@ -261,12 +303,12 @@ class PaymentWorkflowTest {
         @DisplayName("should fail and compensate fiat + FX when chain transfer is rejected")
         void shouldCompensateFiatAndFxWhenChainTransferFails(WorkflowClient workflowClient,
                                                               Worker worker) {
-            given(complianceActivity.checkCompliance(any()))
+            given(complianceActivity.checkCompliance(expectedComplianceRequest()))
                     .willReturn(new ComplianceResult(CHECK_ID, PASSED, null));
-            given(fxLockActivity.lockFxRate(any()))
+            given(fxLockActivity.lockFxRate(expectedFxLockRequest()))
                     .willReturn(aLockedFxResult());
 
-            given(fiatCollectionActivity.initiateCollection(any()))
+            given(fiatCollectionActivity.initiateCollection(expectedFiatCollectionRequest()))
                     .willAnswer(invocation -> {
                         var stub = workflowClient.newWorkflowStub(
                                 PaymentWorkflow.class, "payment-" + PAYMENT_ID);
@@ -275,7 +317,7 @@ class PaymentWorkflowTest {
                     });
 
             // Chain transfer fails
-            given(chainTransferActivity.submitTransfer(any()))
+            given(chainTransferActivity.submitTransfer(expectedChainTransferRequest()))
                     .willReturn(new ChainTransferResult(null, null, null,
                             FAILED, "Insufficient balance"));
 
@@ -296,7 +338,7 @@ class PaymentWorkflowTest {
             then(fxLockActivity).should().releaseLock(
                     new FxReleaseRequest(LOCK_ID, PAYMENT_ID,
                             "Chain transfer failed: Insufficient balance"));
-            then(offRampActivity).should(never()).initiatePayout(any());
+            then(offRampActivity).shouldHaveNoInteractions();
         }
     }
 
@@ -308,12 +350,12 @@ class PaymentWorkflowTest {
         @DisplayName("should fail and compensate chain + fiat + FX when off-ramp is rejected")
         void shouldCompensateAllWhenOffRampFails(WorkflowClient workflowClient,
                                                   Worker worker) {
-            given(complianceActivity.checkCompliance(any()))
+            given(complianceActivity.checkCompliance(expectedComplianceRequest()))
                     .willReturn(new ComplianceResult(CHECK_ID, PASSED, null));
-            given(fxLockActivity.lockFxRate(any()))
+            given(fxLockActivity.lockFxRate(expectedFxLockRequest()))
                     .willReturn(aLockedFxResult());
 
-            given(fiatCollectionActivity.initiateCollection(any()))
+            given(fiatCollectionActivity.initiateCollection(expectedFiatCollectionRequest()))
                     .willAnswer(invocation -> {
                         var stub = workflowClient.newWorkflowStub(
                                 PaymentWorkflow.class, "payment-" + PAYMENT_ID);
@@ -321,7 +363,7 @@ class PaymentWorkflowTest {
                         return anInitiatedCollectionResult();
                     });
 
-            given(chainTransferActivity.submitTransfer(any()))
+            given(chainTransferActivity.submitTransfer(expectedChainTransferRequest()))
                     .willAnswer(invocation -> {
                         var stub = workflowClient.newWorkflowStub(
                                 PaymentWorkflow.class, "payment-" + PAYMENT_ID);
@@ -330,7 +372,7 @@ class PaymentWorkflowTest {
                     });
 
             // Off-ramp fails
-            given(offRampActivity.initiatePayout(any()))
+            given(offRampActivity.initiatePayout(expectedOffRampRequest()))
                     .willReturn(new OffRampResult(null, OffRampStatus.FAILED,
                             "Payout partner rejected"));
 
@@ -366,10 +408,10 @@ class PaymentWorkflowTest {
         @DisplayName("should release FX lock when cancel received after FX lock succeeds")
         void shouldReleaseFxLockOnCancelAfterFxLock(WorkflowClient workflowClient,
                                                      Worker worker) {
-            given(complianceActivity.checkCompliance(any()))
+            given(complianceActivity.checkCompliance(expectedComplianceRequest()))
                     .willReturn(new ComplianceResult(CHECK_ID, PASSED, null));
 
-            given(fxLockActivity.lockFxRate(any()))
+            given(fxLockActivity.lockFxRate(expectedFxLockRequest()))
                     .willAnswer(invocation -> {
                         var stub = workflowClient.newWorkflowStub(
                                 PaymentWorkflow.class, "payment-" + PAYMENT_ID);
@@ -389,7 +431,7 @@ class PaymentWorkflowTest {
 
             then(fxLockActivity).should().releaseLock(new FxReleaseRequest(
                     LOCK_ID, PAYMENT_ID, "Customer requested cancellation"));
-            then(fiatCollectionActivity).should(never()).initiateCollection(any());
+            then(fiatCollectionActivity).shouldHaveNoInteractions();
 
             var expectedEvent = PaymentEventRequest.cancelled(
                     PAYMENT_ID, aPaymentRequest().correlationId(),
@@ -401,7 +443,7 @@ class PaymentWorkflowTest {
         @DisplayName("should not call releaseLock when cancel before FX lock")
         void shouldNotReleaseLockWhenCancelBeforeFxLock(WorkflowClient workflowClient,
                                                         Worker worker) {
-            given(complianceActivity.checkCompliance(any()))
+            given(complianceActivity.checkCompliance(expectedComplianceRequest()))
                     .willAnswer(invocation -> {
                         var stub = workflowClient.newWorkflowStub(
                                 PaymentWorkflow.class, "payment-" + PAYMENT_ID);
@@ -418,9 +460,8 @@ class PaymentWorkflowTest {
                     .usingRecursiveComparison()
                     .isEqualTo(expected);
 
-            then(fxLockActivity).should(never()).lockFxRate(any());
-            then(fxLockActivity).should(never()).releaseLock(any());
-            then(fiatCollectionActivity).should(never()).initiateCollection(any());
+            then(fxLockActivity).shouldHaveNoInteractions();
+            then(fiatCollectionActivity).shouldHaveNoInteractions();
 
             var expectedEvent = PaymentEventRequest.cancelled(
                     PAYMENT_ID, aPaymentRequest().correlationId(), "Changed mind");
@@ -431,10 +472,10 @@ class PaymentWorkflowTest {
         @DisplayName("should return FAILED even when compensation activity throws")
         void shouldReturnFailedWhenCompensationThrows(WorkflowClient workflowClient,
                                                        Worker worker) {
-            given(complianceActivity.checkCompliance(any()))
+            given(complianceActivity.checkCompliance(expectedComplianceRequest()))
                     .willReturn(new ComplianceResult(CHECK_ID, PASSED, null));
 
-            given(fxLockActivity.lockFxRate(any()))
+            given(fxLockActivity.lockFxRate(expectedFxLockRequest()))
                     .willAnswer(invocation -> {
                         var stub = workflowClient.newWorkflowStub(
                                 PaymentWorkflow.class, "payment-" + PAYMENT_ID);
@@ -444,7 +485,8 @@ class PaymentWorkflowTest {
                     });
 
             willThrow(new RuntimeException("FX engine unavailable"))
-                    .given(fxLockActivity).releaseLock(any());
+                    .given(fxLockActivity).releaseLock(
+                            new FxReleaseRequest(LOCK_ID, PAYMENT_ID, "Timeout"));
 
             startWorkflow(workflowClient, worker);
             var result = getResult(workflowClient);
@@ -467,12 +509,12 @@ class PaymentWorkflowTest {
         @DisplayName("should return current state via query after completion")
         void shouldReturnCurrentStateViaQuery(WorkflowClient workflowClient,
                                                Worker worker) {
-            given(complianceActivity.checkCompliance(any()))
+            given(complianceActivity.checkCompliance(expectedComplianceRequest()))
                     .willReturn(new ComplianceResult(CHECK_ID, PASSED, null));
-            given(fxLockActivity.lockFxRate(any()))
+            given(fxLockActivity.lockFxRate(expectedFxLockRequest()))
                     .willReturn(aLockedFxResult());
 
-            given(fiatCollectionActivity.initiateCollection(any()))
+            given(fiatCollectionActivity.initiateCollection(expectedFiatCollectionRequest()))
                     .willAnswer(invocation -> {
                         var stub = workflowClient.newWorkflowStub(
                                 PaymentWorkflow.class, "payment-" + PAYMENT_ID);
@@ -480,7 +522,7 @@ class PaymentWorkflowTest {
                         return anInitiatedCollectionResult();
                     });
 
-            given(chainTransferActivity.submitTransfer(any()))
+            given(chainTransferActivity.submitTransfer(expectedChainTransferRequest()))
                     .willAnswer(invocation -> {
                         var stub = workflowClient.newWorkflowStub(
                                 PaymentWorkflow.class, "payment-" + PAYMENT_ID);
@@ -488,7 +530,7 @@ class PaymentWorkflowTest {
                         return aSubmittedTransferResult();
                     });
 
-            given(offRampActivity.initiatePayout(any()))
+            given(offRampActivity.initiatePayout(expectedOffRampRequest()))
                     .willReturn(anInitiatedPayoutResult());
 
             startWorkflow(workflowClient, worker);

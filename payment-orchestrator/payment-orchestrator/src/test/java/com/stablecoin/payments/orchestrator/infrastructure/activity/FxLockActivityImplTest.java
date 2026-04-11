@@ -1,5 +1,6 @@
 package com.stablecoin.payments.orchestrator.infrastructure.activity;
 
+import com.stablecoin.payments.fx.api.request.FxRateLockRequest;
 import com.stablecoin.payments.fx.client.FxEngineClient;
 import com.stablecoin.payments.orchestrator.domain.workflow.activity.FxLockActivity;
 import com.stablecoin.payments.orchestrator.domain.workflow.activity.FxLockResult;
@@ -28,8 +29,6 @@ import static com.stablecoin.payments.orchestrator.fixtures.WorkflowFixtures.PAY
 import static com.stablecoin.payments.orchestrator.fixtures.WorkflowFixtures.QUOTE_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.mock;
@@ -63,7 +62,7 @@ class FxLockActivityImplTest {
         void shouldReturnLockedAfterQuoteAndLock() {
             given(fxEngineClient.getQuote("USD", "EUR", new BigDecimal("1000.00")))
                     .willReturn(aQuoteResponse());
-            given(fxEngineClient.lockRate(eq(QUOTE_ID), any()))
+            given(fxEngineClient.lockRate(QUOTE_ID, new FxRateLockRequest(PAYMENT_ID, PAYMENT_ID, "US", "DE")))
                     .willReturn(aLockResponse());
 
             var result = activity.lockFxRate(aFxLockRequest());
@@ -87,7 +86,7 @@ class FxLockActivityImplTest {
         void shouldReturnLockedOnConflict() {
             given(fxEngineClient.getQuote("USD", "EUR", new BigDecimal("1000.00")))
                     .willReturn(aQuoteResponse());
-            given(fxEngineClient.lockRate(eq(QUOTE_ID), any()))
+            given(fxEngineClient.lockRate(QUOTE_ID, new FxRateLockRequest(PAYMENT_ID, PAYMENT_ID, "US", "DE")))
                     .willThrow(new FeignException.Conflict("Conflict", dummyRequest(), null, null));
 
             var result = activity.lockFxRate(aFxLockRequest());
@@ -109,7 +108,7 @@ class FxLockActivityImplTest {
         void shouldThrowNonRetryableOnInsufficientLiquidity() {
             given(fxEngineClient.getQuote("USD", "EUR", new BigDecimal("1000.00")))
                     .willReturn(aQuoteResponse());
-            given(fxEngineClient.lockRate(eq(QUOTE_ID), any()))
+            given(fxEngineClient.lockRate(QUOTE_ID, new FxRateLockRequest(PAYMENT_ID, PAYMENT_ID, "US", "DE")))
                     .willThrow(new FeignException.UnprocessableEntity(
                             "Insufficient liquidity for corridor",
                             dummyRequest(), null, null));

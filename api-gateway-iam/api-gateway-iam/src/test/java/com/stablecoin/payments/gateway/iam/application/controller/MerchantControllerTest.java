@@ -18,7 +18,6 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 
 @ExtendWith(MockitoExtension.class)
@@ -38,15 +37,18 @@ class MerchantControllerTest {
     @DisplayName("createMerchant should return created merchant")
     void shouldCreateMerchant() {
         var merchantId = UUID.randomUUID();
+        var externalId = UUID.randomUUID();
+        var registered = Merchant.builder().build();
         var response = new MerchantResponse(
                 merchantId, UUID.randomUUID(), "Test Co", "US",
                 List.of("payments:read"), "ACTIVE", "VERIFIED", "STARTER", Instant.now());
-        given(merchantCommandHandler.register(any(), any(), any(), any(), any()))
-                .willReturn(Merchant.builder().build());
-        given(mapper.toMerchantResponse(any(Merchant.class))).willReturn(response);
+        given(merchantCommandHandler.register(externalId, "Test Co", "US",
+                List.of("payments:read"), List.of()))
+                .willReturn(registered);
+        given(mapper.toMerchantResponse(registered)).willReturn(response);
 
         var request = new com.stablecoin.payments.gateway.iam.api.request.CreateMerchantRequest(
-                UUID.randomUUID(), "Test Co", "US", List.of("payments:read"), null);
+                externalId, "Test Co", "US", List.of("payments:read"), null);
 
         var result = controller.createMerchant(request);
 
@@ -57,12 +59,12 @@ class MerchantControllerTest {
     @DisplayName("getMerchant should return merchant by id")
     void shouldGetMerchant() {
         var merchantId = UUID.randomUUID();
+        var merchant = Merchant.builder().build();
         var response = new MerchantResponse(
                 merchantId, UUID.randomUUID(), "Test Co", "US",
                 List.of("payments:read"), "ACTIVE", "VERIFIED", "STARTER", Instant.now());
-        given(merchantCommandHandler.findById(merchantId))
-                .willReturn(Merchant.builder().build());
-        given(mapper.toMerchantResponse(any(Merchant.class))).willReturn(response);
+        given(merchantCommandHandler.findById(merchantId)).willReturn(merchant);
+        given(mapper.toMerchantResponse(merchant)).willReturn(response);
 
         var result = controller.getMerchant(merchantId);
 

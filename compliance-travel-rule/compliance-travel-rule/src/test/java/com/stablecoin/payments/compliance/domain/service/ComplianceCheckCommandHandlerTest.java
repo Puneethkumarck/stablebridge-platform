@@ -11,6 +11,7 @@ import com.stablecoin.payments.compliance.domain.model.ComplianceCheckStatus;
 import com.stablecoin.payments.compliance.domain.model.Money;
 import com.stablecoin.payments.compliance.domain.model.OverallResult;
 import com.stablecoin.payments.compliance.domain.model.RiskScoringWeights;
+import com.stablecoin.payments.compliance.domain.model.TravelRulePackage;
 import com.stablecoin.payments.compliance.domain.port.AmlProvider;
 import com.stablecoin.payments.compliance.domain.port.ComplianceCheckRepository;
 import com.stablecoin.payments.compliance.domain.port.CustomerRiskProfileRepository;
@@ -42,10 +43,9 @@ import static com.stablecoin.payments.compliance.fixtures.ComplianceCheckFixture
 import static com.stablecoin.payments.compliance.fixtures.CustomerRiskProfileFixtures.aRiskProfile;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
@@ -105,8 +105,8 @@ class ComplianceCheckCommandHandlerTest {
             given(amlProvider.analyze(senderId, recipientId)).willReturn(anAmlClearResult(null));
             given(profileRepository.findByCustomerId(senderId))
                     .willReturn(Optional.of(aRiskProfile()));
-            given(travelRuleProvider.transmit(any())).willReturn("tr-ref-123");
-            given(checkRepository.save(any(ComplianceCheck.class)))
+            given(travelRuleProvider.transmit(argThat((TravelRulePackage p) -> p != null))).willReturn("tr-ref-123");
+            given(checkRepository.save(argThat((ComplianceCheck c) -> c != null)))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             var result = handler.initiateCheck(
@@ -128,13 +128,13 @@ class ComplianceCheckCommandHandlerTest {
             var senderId = UUID.randomUUID();
             var recipientId = UUID.randomUUID();
             given(checkRepository.findByPaymentId(paymentId)).willReturn(Optional.empty());
-            given(kycProvider.verify(any(), any())).willReturn(aKycResult(null));
-            given(sanctionsProvider.screen(any(), any())).willReturn(aSanctionsClearResult(null));
-            given(amlProvider.analyze(any(), any())).willReturn(anAmlClearResult(null));
-            given(profileRepository.findByCustomerId(any()))
+            given(kycProvider.verify(senderId, recipientId)).willReturn(aKycResult(null));
+            given(sanctionsProvider.screen(senderId, recipientId)).willReturn(aSanctionsClearResult(null));
+            given(amlProvider.analyze(senderId, recipientId)).willReturn(anAmlClearResult(null));
+            given(profileRepository.findByCustomerId(senderId))
                     .willReturn(Optional.of(aRiskProfile()));
-            given(travelRuleProvider.transmit(any())).willReturn("tr-ref-123");
-            given(checkRepository.save(any(ComplianceCheck.class)))
+            given(travelRuleProvider.transmit(argThat((TravelRulePackage p) -> p != null))).willReturn("tr-ref-123");
+            given(checkRepository.save(argThat((ComplianceCheck c) -> c != null)))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             handler.initiateCheck(
@@ -160,13 +160,13 @@ class ComplianceCheckCommandHandlerTest {
             var senderId = UUID.randomUUID();
             var recipientId = UUID.randomUUID();
             given(checkRepository.findByPaymentId(paymentId)).willReturn(Optional.empty());
-            given(kycProvider.verify(any(), any())).willReturn(aKycResult(null));
-            given(sanctionsProvider.screen(any(), any())).willReturn(aSanctionsClearResult(null));
-            given(amlProvider.analyze(any(), any())).willReturn(anAmlClearResult(null));
-            given(profileRepository.findByCustomerId(any()))
+            given(kycProvider.verify(senderId, recipientId)).willReturn(aKycResult(null));
+            given(sanctionsProvider.screen(senderId, recipientId)).willReturn(aSanctionsClearResult(null));
+            given(amlProvider.analyze(senderId, recipientId)).willReturn(anAmlClearResult(null));
+            given(profileRepository.findByCustomerId(senderId))
                     .willReturn(Optional.of(aRiskProfile()));
-            given(travelRuleProvider.transmit(any())).willReturn("tr-ref-123");
-            given(checkRepository.save(any(ComplianceCheck.class)))
+            given(travelRuleProvider.transmit(argThat((TravelRulePackage p) -> p != null))).willReturn("tr-ref-123");
+            given(checkRepository.save(argThat((ComplianceCheck c) -> c != null)))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             handler.initiateCheck(
@@ -192,12 +192,12 @@ class ComplianceCheckCommandHandlerTest {
             var senderId = UUID.randomUUID();
             var recipientId = UUID.randomUUID();
             given(checkRepository.findByPaymentId(paymentId)).willReturn(Optional.empty());
-            given(kycProvider.verify(any(), any())).willReturn(aKycResult(null));
-            given(sanctionsProvider.screen(any(), any())).willReturn(aSanctionsClearResult(null));
-            given(amlProvider.analyze(any(), any())).willReturn(anAmlClearResult(null));
-            given(profileRepository.findByCustomerId(any()))
+            given(kycProvider.verify(senderId, recipientId)).willReturn(aKycResult(null));
+            given(sanctionsProvider.screen(senderId, recipientId)).willReturn(aSanctionsClearResult(null));
+            given(amlProvider.analyze(senderId, recipientId)).willReturn(anAmlClearResult(null));
+            given(profileRepository.findByCustomerId(senderId))
                     .willReturn(Optional.of(aRiskProfile()));
-            given(checkRepository.save(any(ComplianceCheck.class)))
+            given(checkRepository.save(argThat((ComplianceCheck c) -> c != null)))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             var result = handler.initiateCheck(
@@ -210,7 +210,7 @@ class ComplianceCheckCommandHandlerTest {
                     .usingRecursiveComparison()
                     .comparingOnlyFields("paymentId", "status", "overallResult")
                     .isEqualTo(expected);
-            then(travelRuleProvider).should(never()).transmit(any());
+            then(travelRuleProvider).shouldHaveNoInteractions();
         }
 
         @Test
@@ -226,8 +226,8 @@ class ComplianceCheckCommandHandlerTest {
             given(amlProvider.analyze(senderId, recipientId)).willReturn(anAmlClearResult(null));
             given(profileRepository.findByCustomerId(senderId))
                     .willReturn(Optional.of(aRiskProfile()));
-            given(travelRuleProvider.transmit(any())).willReturn("tr-ref-123");
-            given(checkRepository.save(any(ComplianceCheck.class)))
+            given(travelRuleProvider.transmit(argThat((TravelRulePackage p) -> p != null))).willReturn("tr-ref-123");
+            given(checkRepository.save(argThat((ComplianceCheck c) -> c != null)))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             handler.initiateCheck(
@@ -236,9 +236,9 @@ class ComplianceCheckCommandHandlerTest {
             then(kycProvider).should().verify(senderId, recipientId);
             then(sanctionsProvider).should().screen(senderId, recipientId);
             then(amlProvider).should().analyze(senderId, recipientId);
-            then(travelRuleProvider).should().transmit(any());
-            then(checkRepository).should().save(any(ComplianceCheck.class));
-            then(eventPublisher).should().publish(any());
+            then(travelRuleProvider).should().transmit(argThat((TravelRulePackage p) -> p != null));
+            then(checkRepository).should().save(argThat((ComplianceCheck c) -> c != null));
+            then(eventPublisher).should().publish(argThat(o -> o instanceof ComplianceCheckPassed));
         }
     }
 
@@ -253,8 +253,8 @@ class ComplianceCheckCommandHandlerTest {
             var senderId = UUID.randomUUID();
             var recipientId = UUID.randomUUID();
             given(checkRepository.findByPaymentId(paymentId)).willReturn(Optional.empty());
-            given(kycProvider.verify(any(), any())).willReturn(aKycRejectedResult(null));
-            given(checkRepository.save(any(ComplianceCheck.class)))
+            given(kycProvider.verify(senderId, recipientId)).willReturn(aKycRejectedResult(null));
+            given(checkRepository.save(argThat((ComplianceCheck c) -> c != null)))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             var result = handler.initiateCheck(
@@ -267,8 +267,8 @@ class ComplianceCheckCommandHandlerTest {
                     .usingRecursiveComparison()
                     .comparingOnlyFields("paymentId", "status", "overallResult")
                     .isEqualTo(expected);
-            then(sanctionsProvider).should(never()).screen(any(), any());
-            then(amlProvider).should(never()).analyze(any(), any());
+            then(sanctionsProvider).shouldHaveNoInteractions();
+            then(amlProvider).shouldHaveNoInteractions();
         }
 
         @Test
@@ -278,8 +278,8 @@ class ComplianceCheckCommandHandlerTest {
             var senderId = UUID.randomUUID();
             var recipientId = UUID.randomUUID();
             given(checkRepository.findByPaymentId(paymentId)).willReturn(Optional.empty());
-            given(kycProvider.verify(any(), any())).willReturn(aKycRejectedResult(null));
-            given(checkRepository.save(any(ComplianceCheck.class)))
+            given(kycProvider.verify(senderId, recipientId)).willReturn(aKycRejectedResult(null));
+            given(checkRepository.save(argThat((ComplianceCheck c) -> c != null)))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             handler.initiateCheck(
@@ -306,8 +306,8 @@ class ComplianceCheckCommandHandlerTest {
             var senderId = UUID.randomUUID();
             var recipientId = UUID.randomUUID();
             given(checkRepository.findByPaymentId(paymentId)).willReturn(Optional.empty());
-            given(kycProvider.verify(any(), any())).willReturn(aKycRejectedResult(null));
-            given(checkRepository.save(any(ComplianceCheck.class)))
+            given(kycProvider.verify(senderId, recipientId)).willReturn(aKycRejectedResult(null));
+            given(checkRepository.save(argThat((ComplianceCheck c) -> c != null)))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             handler.initiateCheck(
@@ -337,9 +337,9 @@ class ComplianceCheckCommandHandlerTest {
             var senderId = UUID.randomUUID();
             var recipientId = UUID.randomUUID();
             given(checkRepository.findByPaymentId(paymentId)).willReturn(Optional.empty());
-            given(kycProvider.verify(any(), any())).willReturn(aKycResult(null));
-            given(sanctionsProvider.screen(any(), any())).willReturn(aSanctionsHitResult(null));
-            given(checkRepository.save(any(ComplianceCheck.class)))
+            given(kycProvider.verify(senderId, recipientId)).willReturn(aKycResult(null));
+            given(sanctionsProvider.screen(senderId, recipientId)).willReturn(aSanctionsHitResult(null));
+            given(checkRepository.save(argThat((ComplianceCheck c) -> c != null)))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             var result = handler.initiateCheck(
@@ -353,7 +353,7 @@ class ComplianceCheckCommandHandlerTest {
                     .usingRecursiveComparison()
                     .comparingOnlyFields("paymentId", "status", "overallResult")
                     .isEqualTo(expected);
-            then(amlProvider).should(never()).analyze(any(), any());
+            then(amlProvider).shouldHaveNoInteractions();
         }
 
         @Test
@@ -363,9 +363,9 @@ class ComplianceCheckCommandHandlerTest {
             var senderId = UUID.randomUUID();
             var recipientId = UUID.randomUUID();
             given(checkRepository.findByPaymentId(paymentId)).willReturn(Optional.empty());
-            given(kycProvider.verify(any(), any())).willReturn(aKycResult(null));
-            given(sanctionsProvider.screen(any(), any())).willReturn(aSanctionsHitResult(null));
-            given(checkRepository.save(any(ComplianceCheck.class)))
+            given(kycProvider.verify(senderId, recipientId)).willReturn(aKycResult(null));
+            given(sanctionsProvider.screen(senderId, recipientId)).willReturn(aSanctionsHitResult(null));
+            given(checkRepository.save(argThat((ComplianceCheck c) -> c != null)))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             handler.initiateCheck(
@@ -393,9 +393,9 @@ class ComplianceCheckCommandHandlerTest {
             var senderId = UUID.randomUUID();
             var recipientId = UUID.randomUUID();
             given(checkRepository.findByPaymentId(paymentId)).willReturn(Optional.empty());
-            given(kycProvider.verify(any(), any())).willReturn(aKycResult(null));
-            given(sanctionsProvider.screen(any(), any())).willReturn(aSanctionsHitResult(null));
-            given(checkRepository.save(any(ComplianceCheck.class)))
+            given(kycProvider.verify(senderId, recipientId)).willReturn(aKycResult(null));
+            given(sanctionsProvider.screen(senderId, recipientId)).willReturn(aSanctionsHitResult(null));
+            given(checkRepository.save(argThat((ComplianceCheck c) -> c != null)))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             handler.initiateCheck(
@@ -435,10 +435,10 @@ class ComplianceCheckCommandHandlerTest {
             var senderId = UUID.randomUUID();
             var recipientId = UUID.randomUUID();
             given(checkRepository.findByPaymentId(paymentId)).willReturn(Optional.empty());
-            given(kycProvider.verify(any(), any())).willReturn(aKycResult(null));
-            given(sanctionsProvider.screen(any(), any())).willReturn(aSanctionsClearResult(null));
-            given(amlProvider.analyze(any(), any())).willReturn(anAmlFlaggedResult(null));
-            given(checkRepository.save(any(ComplianceCheck.class)))
+            given(kycProvider.verify(senderId, recipientId)).willReturn(aKycResult(null));
+            given(sanctionsProvider.screen(senderId, recipientId)).willReturn(aSanctionsClearResult(null));
+            given(amlProvider.analyze(senderId, recipientId)).willReturn(anAmlFlaggedResult(null));
+            given(checkRepository.save(argThat((ComplianceCheck c) -> c != null)))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             var result = handler.initiateCheck(
@@ -452,7 +452,7 @@ class ComplianceCheckCommandHandlerTest {
                     .usingRecursiveComparison()
                     .comparingOnlyFields("paymentId", "status", "overallResult")
                     .isEqualTo(expected);
-            then(travelRuleProvider).should(never()).transmit(any());
+            then(travelRuleProvider).shouldHaveNoInteractions();
         }
 
         @Test
@@ -462,10 +462,10 @@ class ComplianceCheckCommandHandlerTest {
             var senderId = UUID.randomUUID();
             var recipientId = UUID.randomUUID();
             given(checkRepository.findByPaymentId(paymentId)).willReturn(Optional.empty());
-            given(kycProvider.verify(any(), any())).willReturn(aKycResult(null));
-            given(sanctionsProvider.screen(any(), any())).willReturn(aSanctionsClearResult(null));
-            given(amlProvider.analyze(any(), any())).willReturn(anAmlFlaggedResult(null));
-            given(checkRepository.save(any(ComplianceCheck.class)))
+            given(kycProvider.verify(senderId, recipientId)).willReturn(aKycResult(null));
+            given(sanctionsProvider.screen(senderId, recipientId)).willReturn(aSanctionsClearResult(null));
+            given(amlProvider.analyze(senderId, recipientId)).willReturn(anAmlFlaggedResult(null));
+            given(checkRepository.save(argThat((ComplianceCheck c) -> c != null)))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             handler.initiateCheck(
@@ -493,10 +493,10 @@ class ComplianceCheckCommandHandlerTest {
             var senderId = UUID.randomUUID();
             var recipientId = UUID.randomUUID();
             given(checkRepository.findByPaymentId(paymentId)).willReturn(Optional.empty());
-            given(kycProvider.verify(any(), any())).willReturn(aKycResult(null));
-            given(sanctionsProvider.screen(any(), any())).willReturn(aSanctionsClearResult(null));
-            given(amlProvider.analyze(any(), any())).willReturn(anAmlFlaggedResult(null));
-            given(checkRepository.save(any(ComplianceCheck.class)))
+            given(kycProvider.verify(senderId, recipientId)).willReturn(aKycResult(null));
+            given(sanctionsProvider.screen(senderId, recipientId)).willReturn(aSanctionsClearResult(null));
+            given(amlProvider.analyze(senderId, recipientId)).willReturn(anAmlFlaggedResult(null));
+            given(checkRepository.save(argThat((ComplianceCheck c) -> c != null)))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             handler.initiateCheck(
@@ -545,11 +545,11 @@ class ComplianceCheckCommandHandlerTest {
             var senderId = UUID.randomUUID();
             var recipientId = UUID.randomUUID();
             given(checkRepository.findByPaymentId(paymentId)).willReturn(Optional.empty());
-            given(kycProvider.verify(any(), any())).willReturn(aKycTier1Result(null));
-            given(sanctionsProvider.screen(any(), any())).willReturn(aSanctionsClearResult(null));
-            given(amlProvider.analyze(any(), any())).willReturn(anAmlClearResult(null));
-            given(profileRepository.findByCustomerId(any())).willReturn(Optional.empty());
-            given(checkRepository.save(any(ComplianceCheck.class)))
+            given(kycProvider.verify(senderId, recipientId)).willReturn(aKycTier1Result(null));
+            given(sanctionsProvider.screen(senderId, recipientId)).willReturn(aSanctionsClearResult(null));
+            given(amlProvider.analyze(senderId, recipientId)).willReturn(anAmlClearResult(null));
+            given(profileRepository.findByCustomerId(senderId)).willReturn(Optional.empty());
+            given(checkRepository.save(argThat((ComplianceCheck c) -> c != null)))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             var result = criticalHandler.initiateCheck(
@@ -563,7 +563,7 @@ class ComplianceCheckCommandHandlerTest {
                     .usingRecursiveComparison()
                     .comparingOnlyFields("paymentId", "status", "overallResult")
                     .isEqualTo(expected);
-            then(travelRuleProvider).should(never()).transmit(any());
+            then(travelRuleProvider).shouldHaveNoInteractions();
         }
 
         @Test
@@ -573,11 +573,11 @@ class ComplianceCheckCommandHandlerTest {
             var senderId = UUID.randomUUID();
             var recipientId = UUID.randomUUID();
             given(checkRepository.findByPaymentId(paymentId)).willReturn(Optional.empty());
-            given(kycProvider.verify(any(), any())).willReturn(aKycTier1Result(null));
-            given(sanctionsProvider.screen(any(), any())).willReturn(aSanctionsClearResult(null));
-            given(amlProvider.analyze(any(), any())).willReturn(anAmlClearResult(null));
-            given(profileRepository.findByCustomerId(any())).willReturn(Optional.empty());
-            given(checkRepository.save(any(ComplianceCheck.class)))
+            given(kycProvider.verify(senderId, recipientId)).willReturn(aKycTier1Result(null));
+            given(sanctionsProvider.screen(senderId, recipientId)).willReturn(aSanctionsClearResult(null));
+            given(amlProvider.analyze(senderId, recipientId)).willReturn(anAmlClearResult(null));
+            given(profileRepository.findByCustomerId(senderId)).willReturn(Optional.empty());
+            given(checkRepository.save(argThat((ComplianceCheck c) -> c != null)))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             criticalHandler.initiateCheck(
@@ -605,11 +605,11 @@ class ComplianceCheckCommandHandlerTest {
             var senderId = UUID.randomUUID();
             var recipientId = UUID.randomUUID();
             given(checkRepository.findByPaymentId(paymentId)).willReturn(Optional.empty());
-            given(kycProvider.verify(any(), any())).willReturn(aKycTier1Result(null));
-            given(sanctionsProvider.screen(any(), any())).willReturn(aSanctionsClearResult(null));
-            given(amlProvider.analyze(any(), any())).willReturn(anAmlClearResult(null));
-            given(profileRepository.findByCustomerId(any())).willReturn(Optional.empty());
-            given(checkRepository.save(any(ComplianceCheck.class)))
+            given(kycProvider.verify(senderId, recipientId)).willReturn(aKycTier1Result(null));
+            given(sanctionsProvider.screen(senderId, recipientId)).willReturn(aSanctionsClearResult(null));
+            given(amlProvider.analyze(senderId, recipientId)).willReturn(anAmlClearResult(null));
+            given(profileRepository.findByCustomerId(senderId)).willReturn(Optional.empty());
+            given(checkRepository.save(argThat((ComplianceCheck c) -> c != null)))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             criticalHandler.initiateCheck(
@@ -642,14 +642,14 @@ class ComplianceCheckCommandHandlerTest {
             var senderId = UUID.randomUUID();
             var recipientId = UUID.randomUUID();
             given(checkRepository.findByPaymentId(paymentId)).willReturn(Optional.empty());
-            given(kycProvider.verify(any(), any())).willReturn(aKycResult(null));
-            given(sanctionsProvider.screen(any(), any())).willReturn(aSanctionsClearResult(null));
-            given(amlProvider.analyze(any(), any())).willReturn(anAmlClearResult(null));
-            given(profileRepository.findByCustomerId(any()))
+            given(kycProvider.verify(senderId, recipientId)).willReturn(aKycResult(null));
+            given(sanctionsProvider.screen(senderId, recipientId)).willReturn(aSanctionsClearResult(null));
+            given(amlProvider.analyze(senderId, recipientId)).willReturn(anAmlClearResult(null));
+            given(profileRepository.findByCustomerId(senderId))
                     .willReturn(Optional.of(aRiskProfile()));
-            given(travelRuleProvider.transmit(any()))
+            given(travelRuleProvider.transmit(argThat((TravelRulePackage p) -> p != null)))
                     .willThrow(new RuntimeException("Network error"));
-            given(checkRepository.save(any(ComplianceCheck.class)))
+            given(checkRepository.save(argThat((ComplianceCheck c) -> c != null)))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             var result = handler.initiateCheck(
@@ -673,14 +673,14 @@ class ComplianceCheckCommandHandlerTest {
             var senderId = UUID.randomUUID();
             var recipientId = UUID.randomUUID();
             given(checkRepository.findByPaymentId(paymentId)).willReturn(Optional.empty());
-            given(kycProvider.verify(any(), any())).willReturn(aKycResult(null));
-            given(sanctionsProvider.screen(any(), any())).willReturn(aSanctionsClearResult(null));
-            given(amlProvider.analyze(any(), any())).willReturn(anAmlClearResult(null));
-            given(profileRepository.findByCustomerId(any()))
+            given(kycProvider.verify(senderId, recipientId)).willReturn(aKycResult(null));
+            given(sanctionsProvider.screen(senderId, recipientId)).willReturn(aSanctionsClearResult(null));
+            given(amlProvider.analyze(senderId, recipientId)).willReturn(anAmlClearResult(null));
+            given(profileRepository.findByCustomerId(senderId))
                     .willReturn(Optional.of(aRiskProfile()));
-            given(travelRuleProvider.transmit(any()))
+            given(travelRuleProvider.transmit(argThat((TravelRulePackage p) -> p != null)))
                     .willThrow(new RuntimeException("Connection refused"));
-            given(checkRepository.save(any(ComplianceCheck.class)))
+            given(checkRepository.save(argThat((ComplianceCheck c) -> c != null)))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             handler.initiateCheck(
@@ -707,14 +707,14 @@ class ComplianceCheckCommandHandlerTest {
             var senderId = UUID.randomUUID();
             var recipientId = UUID.randomUUID();
             given(checkRepository.findByPaymentId(paymentId)).willReturn(Optional.empty());
-            given(kycProvider.verify(any(), any())).willReturn(aKycResult(null));
-            given(sanctionsProvider.screen(any(), any())).willReturn(aSanctionsClearResult(null));
-            given(amlProvider.analyze(any(), any())).willReturn(anAmlClearResult(null));
-            given(profileRepository.findByCustomerId(any()))
+            given(kycProvider.verify(senderId, recipientId)).willReturn(aKycResult(null));
+            given(sanctionsProvider.screen(senderId, recipientId)).willReturn(aSanctionsClearResult(null));
+            given(amlProvider.analyze(senderId, recipientId)).willReturn(anAmlClearResult(null));
+            given(profileRepository.findByCustomerId(senderId))
                     .willReturn(Optional.of(aRiskProfile()));
-            given(travelRuleProvider.transmit(any()))
+            given(travelRuleProvider.transmit(argThat((TravelRulePackage p) -> p != null)))
                     .willThrow(new RuntimeException("Timeout"));
-            given(checkRepository.save(any(ComplianceCheck.class)))
+            given(checkRepository.save(argThat((ComplianceCheck c) -> c != null)))
                     .willAnswer(invocation -> invocation.getArgument(0));
 
             handler.initiateCheck(
@@ -747,8 +747,9 @@ class ComplianceCheckCommandHandlerTest {
                     .isInstanceOf(DuplicatePaymentException.class)
                     .hasMessageContaining(paymentId.toString());
 
-            then(kycProvider).should(never()).verify(any(), any());
-            then(checkRepository).should(never()).save(any());
+            then(kycProvider).shouldHaveNoInteractions();
+            then(checkRepository).should().findByPaymentId(paymentId);
+            then(checkRepository).shouldHaveNoMoreInteractions();
         }
     }
 

@@ -17,7 +17,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -39,10 +38,10 @@ import static com.stablecoin.payments.orchestrator.fixtures.PaymentFixtures.aCom
 import static com.stablecoin.payments.orchestrator.fixtures.PaymentFixtures.aFailedPayment;
 import static com.stablecoin.payments.orchestrator.fixtures.PaymentFixtures.anInitiatedPayment;
 import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoring;
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoringTimestamps;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.mock;
@@ -64,6 +63,10 @@ class PaymentCommandHandlerTest {
     @InjectMocks
     private PaymentCommandHandler handler;
 
+    private static <T> Class<T> argThatClass(Class<T> expected) {
+        return argThat(c -> c == expected);
+    }
+
     @Nested
     @DisplayName("initiatePayment")
     class InitiatePayment {
@@ -81,11 +84,13 @@ class PaymentCommandHandlerTest {
 
             given(paymentRepository.findByIdempotencyKey(IDEMPOTENCY_KEY))
                     .willReturn(Optional.empty());
-            given(paymentRepository.save(any(Payment.class)))
+            given(paymentRepository.save(eqIgnoring(expectedPayment, "paymentId", "createdAt", "updatedAt", "expiresAt")))
                     .willAnswer(inv -> inv.getArgument(0));
 
             var workflowStub = mock(PaymentWorkflow.class);
-            given(workflowClient.newWorkflowStub(eq(PaymentWorkflow.class), any(WorkflowOptions.class)))
+            given(workflowClient.newWorkflowStub(
+                    argThatClass(PaymentWorkflow.class),
+                    argThat((WorkflowOptions opts) -> opts != null && opts.getWorkflowId().startsWith("payment-"))))
                     .willReturn(workflowStub);
 
             // when
@@ -98,26 +103,21 @@ class PaymentCommandHandlerTest {
 
             // then
             assertThat(result.replay()).isFalse();
-            assertThat(result.payment())
-                    .usingRecursiveComparison()
-                    .ignoringFields("paymentId", "createdAt", "updatedAt", "expiresAt")
-                    .isEqualTo(expectedPayment);
 
-            then(paymentRepository).should().save(eqIgnoring(expectedPayment, "paymentId"));
+            then(paymentRepository).should().save(eqIgnoring(expectedPayment, "paymentId", "createdAt", "updatedAt", "expiresAt"));
 
-            var eventCaptor = ArgumentCaptor.forClass(Object.class);
-            then(eventPublisher).should().publish(eventCaptor.capture());
-            var publishedEvent = (PaymentInitiated) eventCaptor.getValue();
             var expectedEvent = new PaymentInitiated(
                     result.payment().paymentId(), IDEMPOTENCY_KEY, CORRELATION_ID,
                     SENDER_ID, RECIPIENT_ID, new Money(SOURCE_AMOUNT_VALUE, SOURCE_CURRENCY),
                     TARGET_CURRENCY, new Corridor(SOURCE_COUNTRY, TARGET_COUNTRY), null);
-            assertThat(publishedEvent)
-                    .usingRecursiveComparison()
-                    .ignoringFields("initiatedAt")
-                    .isEqualTo(expectedEvent);
+            then(eventPublisher).should().publish(eqIgnoringTimestamps(expectedEvent));
 
-            then(workflowClient).should().newWorkflowStub(eq(PaymentWorkflow.class), any(WorkflowOptions.class));
+            then(workflowClient).should().newWorkflowStub(
+                    argThat((Class<?> c) -> c == PaymentWorkflow.class),
+                    argThat((WorkflowOptions opts) ->
+                            opts != null
+                            && opts.getWorkflowId().equals("payment-" + result.payment().paymentId())
+                            && PaymentCommandHandler.TASK_QUEUE.equals(opts.getTaskQueue())));
         }
 
         @Test
@@ -142,23 +142,27 @@ class PaymentCommandHandlerTest {
                     .usingRecursiveComparison()
                     .isEqualTo(existingPayment);
 
-            then(paymentRepository).should(never()).save(any());
-            then(eventPublisher).should(never()).publish(any());
-            then(workflowClient).should(never()).newWorkflowStub(eq(PaymentWorkflow.class), any(WorkflowOptions.class));
+            then(paymentRepository).should(never()).save(existingPayment);
+            then(eventPublisher).shouldHaveNoInteractions();
+            then(workflowClient).shouldHaveNoInteractions();
         }
 
         @Test
         @DisplayName("should handle concurrent duplicate by returning existing payment")
         void shouldHandleConcurrentDuplicate() {
             // given
+            var expectedPayment = Payment.initiate(
+                    IDEMPOTENCY_KEY, CORRELATION_ID, SENDER_ID, RECIPIENT_ID,
+                    new Money(SOURCE_AMOUNT_VALUE, SOURCE_CURRENCY),
+                    SOURCE_CURRENCY, TARGET_CURRENCY,
+                    new Corridor(SOURCE_COUNTRY, TARGET_COUNTRY)
+            );
             var existingPayment = anInitiatedPayment();
-            given(paymentRepository.findByIdempotencyKey(IDEMPOTENCY_KEY))
-                    .willReturn(Optional.empty());
-            given(paymentRepository.save(any(Payment.class)))
-                    .willThrow(new DataIntegrityViolationException("duplicate key"));
             given(paymentRepository.findByIdempotencyKey(IDEMPOTENCY_KEY))
                     .willReturn(Optional.empty())
                     .willReturn(Optional.of(existingPayment));
+            given(paymentRepository.save(eqIgnoring(expectedPayment, "paymentId", "createdAt", "updatedAt", "expiresAt")))
+                    .willThrow(new DataIntegrityViolationException("duplicate key"));
 
             // when
             var result = handler.initiatePayment(
@@ -174,8 +178,8 @@ class PaymentCommandHandlerTest {
                     .usingRecursiveComparison()
                     .isEqualTo(existingPayment);
 
-            then(eventPublisher).should(never()).publish(any());
-            then(workflowClient).should(never()).newWorkflowStub(eq(PaymentWorkflow.class), any(WorkflowOptions.class));
+            then(eventPublisher).shouldHaveNoInteractions();
+            then(workflowClient).shouldHaveNoInteractions();
         }
     }
 
@@ -241,14 +245,8 @@ class PaymentCommandHandlerTest {
                     .usingRecursiveComparison()
                     .isEqualTo(payment);
 
-            var cancelCaptor = ArgumentCaptor.forClass(CancelRequest.class);
-            then(workflowStub).should().cancelPayment(cancelCaptor.capture());
-
-            var capturedRequest = cancelCaptor.getValue();
             var expectedCancel = new CancelRequest(payment.paymentId(), "Customer requested", "API");
-            assertThat(capturedRequest)
-                    .usingRecursiveComparison()
-                    .isEqualTo(expectedCancel);
+            then(workflowStub).should().cancelPayment(expectedCancel);
         }
 
         @Test

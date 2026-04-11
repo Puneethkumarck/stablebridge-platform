@@ -32,9 +32,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoring;
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoringTimestamps;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
@@ -84,7 +85,20 @@ class ApiKeyServiceTest {
             given(apiKeyGenerator.generate(ApiKeyEnvironment.LIVE))
                     .willReturn(new ApiKeyGenerator.GeneratedApiKey("pk_live_abc123", "pk_live_"));
             given(apiKeyHasher.hash("pk_live_abc123")).willReturn("sha256hash");
-            given(apiKeyRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+            var expected = ApiKey.builder()
+                    .merchantId(MERCHANT_ID)
+                    .keyHash("sha256hash")
+                    .keyPrefix("pk_live_")
+                    .name("My Key")
+                    .environment(ApiKeyEnvironment.LIVE)
+                    .scopes(List.of("payments:read"))
+                    .allowedIps(List.of("10.0.0.1"))
+                    .active(true)
+                    .version(0L)
+                    .build();
+            given(apiKeyRepository.save(eqIgnoring(expected, "keyId")))
+                    .willAnswer(inv -> inv.getArgument(0));
 
             var result = apiKeyService.create(MERCHANT_ID, "My Key", ApiKeyEnvironment.LIVE,
                     List.of("payments:read"), List.of("10.0.0.1"), null);
@@ -100,7 +114,20 @@ class ApiKeyServiceTest {
             given(apiKeyGenerator.generate(ApiKeyEnvironment.LIVE))
                     .willReturn(new ApiKeyGenerator.GeneratedApiKey("pk_live_abc123", "pk_live_"));
             given(apiKeyHasher.hash("pk_live_abc123")).willReturn("sha256hash");
-            given(apiKeyRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
+
+            var expected = ApiKey.builder()
+                    .merchantId(MERCHANT_ID)
+                    .keyHash("sha256hash")
+                    .keyPrefix("pk_live_")
+                    .name("My Key")
+                    .environment(ApiKeyEnvironment.LIVE)
+                    .scopes(List.of("payments:read", "payments:write"))
+                    .allowedIps(List.of())
+                    .active(true)
+                    .version(0L)
+                    .build();
+            given(apiKeyRepository.save(eqIgnoring(expected, "keyId")))
+                    .willAnswer(inv -> inv.getArgument(0));
 
             var result = apiKeyService.create(MERCHANT_ID, "My Key", ApiKeyEnvironment.LIVE,
                     null, null, null);
@@ -157,12 +184,13 @@ class ApiKeyServiceTest {
                     .active(true).createdAt(Instant.now())
                     .updatedAt(Instant.now()).version(0L).build();
             given(apiKeyRepository.findById(keyId)).willReturn(Optional.of(apiKey));
-            given(apiKeyRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
 
             apiKeyService.revoke(keyId);
 
-            then(apiKeyRepository).should().save(any());
-            then(eventPublisher).should().publish(any(ApiKeyRevokedEvent.class));
+            var expectedKey = apiKey.toBuilder().active(false).build();
+            var expectedEvent = new ApiKeyRevokedEvent(keyId, MERCHANT_ID, "pk_live_", null);
+            then(apiKeyRepository).should().save(eqIgnoringTimestamps(expectedKey));
+            then(eventPublisher).should().publish(eqIgnoringTimestamps(expectedEvent));
         }
 
         @Test

@@ -9,7 +9,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -18,14 +17,13 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static com.stablecoin.payments.gateway.iam.fixtures.TestUtils.eqIgnoring;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.BDDMockito.willThrow;
-import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 class AuditLogFilterTest {
@@ -65,7 +63,7 @@ class AuditLogFilterTest {
     void shouldSkipAuditWhenNotAuthenticated() throws ServletException, IOException {
         filter.doFilterInternal(request, response, filterChain);
 
-        then(auditLogRepository).should(never()).save(any());
+        then(auditLogRepository).shouldHaveNoInteractions();
     }
 
     @Nested
@@ -87,18 +85,17 @@ class AuditLogFilterTest {
 
             filter.doFilterInternal(request, response, filterChain);
 
-            var captor = ArgumentCaptor.forClass(AuditLogEntry.class);
-            then(auditLogRepository).should().save(captor.capture());
-
-            var entry = captor.getValue();
-            assertThat(entry.getMerchantId()).isEqualTo(merchantId);
-            assertThat(entry.getAction()).isEqualTo("POST");
-            assertThat(entry.getResource()).isEqualTo("/v1/payments");
-            assertThat(entry.getSourceIp()).isEqualTo("10.0.0.1");
-            assertThat(entry.getDetail()).containsEntry("status_code", 201);
-            assertThat(entry.getDetail()).containsEntry("auth_method", "API_KEY");
-            assertThat(entry.getDetail()).containsEntry("client_id", clientId.toString());
-            assertThat(entry.getOccurredAt()).isNotNull();
+            var expectedEntry = AuditLogEntry.builder()
+                    .merchantId(merchantId)
+                    .action("POST")
+                    .resource("/v1/payments")
+                    .sourceIp("10.0.0.1")
+                    .detail(Map.of(
+                            "status_code", 201,
+                            "auth_method", "API_KEY",
+                            "client_id", clientId.toString()))
+                    .build();
+            then(auditLogRepository).should().save(eqIgnoring(expectedEntry, "logId", "occurredAt"));
         }
 
         @Test
@@ -109,20 +106,37 @@ class AuditLogFilterTest {
 
             filter.doFilterInternal(request, response, filterChain);
 
-            var captor = ArgumentCaptor.forClass(AuditLogEntry.class);
-            then(auditLogRepository).should().save(captor.capture());
-            assertThat(captor.getValue().getDetail()).containsEntry("auth_method", "JWT");
+            var expectedEntry = AuditLogEntry.builder()
+                    .merchantId(merchantId)
+                    .action("POST")
+                    .resource("/v1/payments")
+                    .sourceIp("10.0.0.1")
+                    .detail(Map.of(
+                            "status_code", 200,
+                            "auth_method", "JWT",
+                            "client_id", clientId.toString()))
+                    .build();
+            then(auditLogRepository).should().save(eqIgnoring(expectedEntry, "logId", "occurredAt"));
         }
 
         @Test
         void shouldNotFailWhenRepositoryThrows() throws ServletException, IOException {
+            var throwingEntry = AuditLogEntry.builder()
+                    .merchantId(merchantId)
+                    .action("POST")
+                    .resource("/v1/payments")
+                    .sourceIp("10.0.0.1")
+                    .detail(Map.of(
+                            "status_code", 200,
+                            "auth_method", "API_KEY",
+                            "client_id", clientId.toString()))
+                    .build();
             willThrow(new RuntimeException("DB down"))
-                    .given(auditLogRepository).save(any());
+                    .given(auditLogRepository).save(eqIgnoring(throwingEntry, "logId", "occurredAt"));
 
             filter.doFilterInternal(request, response, filterChain);
 
             then(filterChain).should().doFilter(request, response);
-            // No exception propagated — filter swallows it
         }
 
         @Test
@@ -133,7 +147,17 @@ class AuditLogFilterTest {
             assertThatThrownBy(() -> filter.doFilterInternal(request, response, filterChain))
                     .isInstanceOf(ServletException.class);
 
-            then(auditLogRepository).should().save(any());
+            var expectedEntry = AuditLogEntry.builder()
+                    .merchantId(merchantId)
+                    .action("POST")
+                    .resource("/v1/payments")
+                    .sourceIp("10.0.0.1")
+                    .detail(Map.of(
+                            "status_code", 200,
+                            "auth_method", "API_KEY",
+                            "client_id", clientId.toString()))
+                    .build();
+            then(auditLogRepository).should().save(eqIgnoring(expectedEntry, "logId", "occurredAt"));
         }
     }
 }

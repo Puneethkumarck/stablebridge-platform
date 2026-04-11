@@ -1,5 +1,6 @@
 package com.stablecoin.payments.orchestrator.infrastructure.activity;
 
+import com.stablecoin.payments.compliance.api.request.InitiateComplianceCheckRequest;
 import com.stablecoin.payments.compliance.client.ComplianceCheckClient;
 import com.stablecoin.payments.orchestrator.domain.workflow.activity.ComplianceCheckActivity;
 import com.stablecoin.payments.orchestrator.domain.workflow.activity.ComplianceResult;
@@ -12,15 +13,19 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
+
 import static com.stablecoin.payments.orchestrator.domain.workflow.activity.ComplianceResult.ComplianceStatus.FAILED;
 import static com.stablecoin.payments.orchestrator.domain.workflow.activity.ComplianceResult.ComplianceStatus.PASSED;
 import static com.stablecoin.payments.orchestrator.fixtures.ComplianceActivityFixtures.aComplianceRequest;
 import static com.stablecoin.payments.orchestrator.fixtures.ComplianceActivityFixtures.aComplianceResponse;
 import static com.stablecoin.payments.orchestrator.fixtures.ComplianceActivityFixtures.aSanctionsHitResponse;
+import static com.stablecoin.payments.orchestrator.fixtures.PaymentFixtures.RECIPIENT_ID;
+import static com.stablecoin.payments.orchestrator.fixtures.PaymentFixtures.SENDER_ID;
 import static com.stablecoin.payments.orchestrator.fixtures.WorkflowFixtures.CHECK_ID;
+import static com.stablecoin.payments.orchestrator.fixtures.WorkflowFixtures.PAYMENT_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.mock;
@@ -46,6 +51,12 @@ class ComplianceCheckActivityImplTest {
         testActivityEnvironment.close();
     }
 
+    private static InitiateComplianceCheckRequest expectedS2Request() {
+        return new InitiateComplianceCheckRequest(
+                PAYMENT_ID, SENDER_ID, RECIPIENT_ID,
+                new BigDecimal("1000.00"), "USD", "US", "DE", "EUR");
+    }
+
     @Nested
     @DisplayName("compliance check passes")
     class ComplianceCheckPasses {
@@ -53,7 +64,7 @@ class ComplianceCheckActivityImplTest {
         @Test
         @DisplayName("should return PASSED when S2 returns PASSED immediately")
         void shouldReturnPassedWhenS2ReturnsPassed() {
-            given(complianceCheckClient.initiateCheck(any()))
+            given(complianceCheckClient.initiateCheck(expectedS2Request()))
                     .willReturn(aComplianceResponse("PASSED", "PASSED"));
 
             var result = activity.checkCompliance(aComplianceRequest());
@@ -72,7 +83,7 @@ class ComplianceCheckActivityImplTest {
         @Test
         @DisplayName("should return FAILED when S2 returns FAILED")
         void shouldReturnFailedWhenS2ReturnsFailed() {
-            given(complianceCheckClient.initiateCheck(any()))
+            given(complianceCheckClient.initiateCheck(expectedS2Request()))
                     .willReturn(aComplianceResponse("FAILED", "FAILED"));
 
             var result = activity.checkCompliance(aComplianceRequest());
@@ -86,7 +97,7 @@ class ComplianceCheckActivityImplTest {
         @Test
         @DisplayName("should return FAILED when S2 returns MANUAL_REVIEW")
         void shouldReturnFailedWhenManualReview() {
-            given(complianceCheckClient.initiateCheck(any()))
+            given(complianceCheckClient.initiateCheck(expectedS2Request()))
                     .willReturn(aComplianceResponse("MANUAL_REVIEW", "MANUAL_REVIEW"));
 
             var result = activity.checkCompliance(aComplianceRequest());
@@ -105,7 +116,7 @@ class ComplianceCheckActivityImplTest {
         @Test
         @DisplayName("should throw non-retryable ApplicationFailure on SANCTIONS_HIT")
         void shouldThrowNonRetryableOnSanctionsHit() {
-            given(complianceCheckClient.initiateCheck(any()))
+            given(complianceCheckClient.initiateCheck(expectedS2Request()))
                     .willReturn(aSanctionsHitResponse());
 
             assertThatThrownBy(() -> activity.checkCompliance(aComplianceRequest()))
@@ -129,7 +140,7 @@ class ComplianceCheckActivityImplTest {
             var pendingResponse = aComplianceResponse("KYC_IN_PROGRESS", null);
             var passedResponse = aComplianceResponse("PASSED", "PASSED");
 
-            given(complianceCheckClient.initiateCheck(any())).willReturn(pendingResponse);
+            given(complianceCheckClient.initiateCheck(expectedS2Request())).willReturn(pendingResponse);
             given(complianceCheckClient.getCheck(CHECK_ID))
                     .willReturn(aComplianceResponse("SANCTIONS_SCREENING", null))
                     .willReturn(passedResponse);

@@ -4,6 +4,7 @@ import com.stablecoin.payments.merchant.onboarding.domain.merchant.KybProvider;
 import com.stablecoin.payments.merchant.onboarding.domain.merchant.model.core.KybStatus;
 import com.stablecoin.payments.merchant.onboarding.domain.merchant.model.core.KybVerification;
 import com.stablecoin.payments.merchant.onboarding.infrastructure.kyb.OnfidoWebhookValidator;
+import com.stablecoin.payments.merchant.onboarding.infrastructure.temporal.signal.KybResultSignal;
 import com.stablecoin.payments.merchant.onboarding.infrastructure.temporal.workflow.MerchantOnboardingWorkflow;
 import io.temporal.client.WorkflowClient;
 import org.junit.jupiter.api.DisplayName;
@@ -20,12 +21,10 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("KybWebhookController")
@@ -50,7 +49,7 @@ class KybWebhookControllerTest {
     var response = controller.handleOnfidoWebhook(body, "bad-sig");
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
-    then(kybProvider).should(never()).handleWebhook(any());
+    then(kybProvider).shouldHaveNoInteractions();
   }
 
   @Test
@@ -67,13 +66,16 @@ class KybWebhookControllerTest {
     given(webhookValidator.isValid(body, "valid-sig")).willReturn(true);
     given(webhookValidator.parsePayload(body)).willReturn(payload);
     given(kybProvider.handleWebhook(payload)).willReturn(kybResult);
-    given(workflowClient.newWorkflowStub(eq(MerchantOnboardingWorkflow.class), eq("onboarding-" + merchantId)))
+    given(workflowClient.newWorkflowStub(MerchantOnboardingWorkflow.class, "onboarding-" + merchantId))
         .willReturn(workflowStub);
 
     var response = controller.handleOnfidoWebhook(body, "valid-sig");
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    then(workflowStub).should().kybResultReceived(any());
+    then(workflowStub).should().kybResultReceived(argThat((KybResultSignal s) ->
+        kybResult.kybId().equals(s.kybId())
+            && "onfido".equals(s.provider())
+            && KybStatus.PASSED.name().equals(s.status())));
   }
 
   @Test
@@ -89,7 +91,7 @@ class KybWebhookControllerTest {
     var response = controller.handleOnfidoWebhook(body, "sig");
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    then(workflowClient).should(never()).newWorkflowStub(any(Class.class), any(String.class));
+    then(workflowClient).shouldHaveNoInteractions();
   }
 
   @Test
@@ -108,7 +110,7 @@ class KybWebhookControllerTest {
     var response = controller.handleOnfidoWebhook(body, "sig");
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    then(workflowClient).should(never()).newWorkflowStub(any(Class.class), any(String.class));
+    then(workflowClient).shouldHaveNoInteractions();
   }
 
   @Test
@@ -126,12 +128,15 @@ class KybWebhookControllerTest {
     given(webhookValidator.isValid(body, "sig")).willReturn(true);
     given(webhookValidator.parsePayload(body)).willReturn(payload);
     given(kybProvider.handleWebhook(payload)).willReturn(kybResult);
-    given(workflowClient.newWorkflowStub(eq(MerchantOnboardingWorkflow.class), eq("onboarding-" + merchantId)))
+    given(workflowClient.newWorkflowStub(MerchantOnboardingWorkflow.class, "onboarding-" + merchantId))
         .willReturn(workflowStub);
 
     var response = controller.handleOnfidoWebhook(body, "sig");
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-    then(workflowStub).should().kybResultReceived(any());
+    then(workflowStub).should().kybResultReceived(argThat((KybResultSignal s) ->
+        kybResult.kybId().equals(s.kybId())
+            && "onfido".equals(s.provider())
+            && KybStatus.PASSED.name().equals(s.status())));
   }
 }

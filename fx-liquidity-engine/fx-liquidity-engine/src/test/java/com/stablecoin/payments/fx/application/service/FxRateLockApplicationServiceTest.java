@@ -35,12 +35,11 @@ import static com.stablecoin.payments.fx.fixtures.FxRateLockFixtures.TARGET_COUN
 import static com.stablecoin.payments.fx.fixtures.FxRateLockFixtures.anActiveLock;
 import static com.stablecoin.payments.fx.fixtures.LiquidityPoolFixtures.aPoolWithLowBalance;
 import static com.stablecoin.payments.fx.fixtures.LiquidityPoolFixtures.aUsdEurPool;
+import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoring;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
-import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("FxRateLockApplicationService")
@@ -110,7 +109,12 @@ class FxRateLockApplicationServiceTest {
                     .usingRecursiveComparison()
                     .isEqualTo(expected);
 
-            then(eventPublisher).should().publish(any(FxRateLocked.class));
+            var expectedEvent = new FxRateLocked(
+                    lock.lockId(), lock.quoteId(), lock.paymentId(), CORRELATION_ID,
+                    lock.fromCurrency(), lock.toCurrency(),
+                    lock.sourceAmount(), lock.targetAmount(), lock.lockedRate(),
+                    lock.feeBps(), lock.lockedAt(), lock.expiresAt());
+            then(eventPublisher).should().publish(eqIgnoring(expectedEvent));
         }
 
         @Test
@@ -140,10 +144,11 @@ class FxRateLockApplicationServiceTest {
                     .usingRecursiveComparison()
                     .isEqualTo(expected);
 
-            then(quoteRepository).should(never()).findById(any());
-            then(lockService).should(never()).lockRate(any(), any(), any(), any(), any(), any());
-            then(lockRepository).should(never()).save(any());
-            then(eventPublisher).should(never()).publish(any());
+            then(quoteRepository).shouldHaveNoInteractions();
+            then(lockService).shouldHaveNoInteractions();
+            then(lockRepository).should().findByPaymentId(PAYMENT_ID);
+            then(lockRepository).shouldHaveNoMoreInteractions();
+            then(eventPublisher).shouldHaveNoInteractions();
         }
 
         @Test
@@ -160,8 +165,9 @@ class FxRateLockApplicationServiceTest {
                     .isInstanceOf(QuoteNotFoundException.class)
                     .hasMessageContaining(quoteId.toString());
 
-            then(lockRepository).should(never()).save(any());
-            then(eventPublisher).should(never()).publish(any());
+            then(lockRepository).should().findByPaymentId(PAYMENT_ID);
+            then(lockRepository).shouldHaveNoMoreInteractions();
+            then(eventPublisher).shouldHaveNoInteractions();
         }
 
         @Test
@@ -179,8 +185,9 @@ class FxRateLockApplicationServiceTest {
                     .isInstanceOf(QuoteExpiredException.class)
                     .hasMessageContaining(quoteId.toString());
 
-            then(lockRepository).should(never()).save(any());
-            then(eventPublisher).should(never()).publish(any());
+            then(lockRepository).should().findByPaymentId(PAYMENT_ID);
+            then(lockRepository).shouldHaveNoMoreInteractions();
+            then(eventPublisher).shouldHaveNoInteractions();
         }
 
         @Test
@@ -198,8 +205,9 @@ class FxRateLockApplicationServiceTest {
                     .isInstanceOf(QuoteAlreadyLockedException.class)
                     .hasMessageContaining(quoteId.toString());
 
-            then(lockRepository).should(never()).save(any());
-            then(eventPublisher).should(never()).publish(any());
+            then(lockRepository).should().findByPaymentId(PAYMENT_ID);
+            then(lockRepository).shouldHaveNoMoreInteractions();
+            then(eventPublisher).shouldHaveNoInteractions();
         }
 
         @Test
@@ -218,8 +226,9 @@ class FxRateLockApplicationServiceTest {
                     .isInstanceOf(PoolNotFoundException.class)
                     .hasMessageContaining("USD:EUR");
 
-            then(lockRepository).should(never()).save(any());
-            then(eventPublisher).should(never()).publish(any());
+            then(lockRepository).should().findByPaymentId(PAYMENT_ID);
+            then(lockRepository).shouldHaveNoMoreInteractions();
+            then(eventPublisher).shouldHaveNoInteractions();
         }
 
         @Test
@@ -239,8 +248,9 @@ class FxRateLockApplicationServiceTest {
                     .isInstanceOf(InsufficientLiquidityException.class)
                     .hasMessageContaining("USD:EUR");
 
-            then(lockRepository).should(never()).save(any());
-            then(eventPublisher).should(never()).publish(any());
+            then(lockRepository).should().findByPaymentId(PAYMENT_ID);
+            then(lockRepository).shouldHaveNoMoreInteractions();
+            then(eventPublisher).shouldHaveNoInteractions();
         }
     }
 }

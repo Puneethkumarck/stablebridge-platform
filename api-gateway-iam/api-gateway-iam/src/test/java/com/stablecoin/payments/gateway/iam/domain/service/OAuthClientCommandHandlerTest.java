@@ -27,7 +27,6 @@ import java.util.UUID;
 
 import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoring;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 
@@ -93,7 +92,6 @@ class OAuthClientCommandHandlerTest {
             given(merchantRepository.findById(MERCHANT_ID)).willReturn(Optional.of(activeMerchant()));
             given(clientSecretGenerator.generate()).willReturn("raw-secret-hex");
             given(clientSecretHasher.hash("raw-secret-hex")).willReturn("$2a$12$hashed");
-            given(oauthClientRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
 
             var expected = OAuthClient.builder()
                     .merchantId(MERCHANT_ID)
@@ -104,6 +102,8 @@ class OAuthClientCommandHandlerTest {
                     .active(true)
                     .version(0L)
                     .build();
+            given(oauthClientRepository.save(eqIgnoring(expected, "clientId")))
+                    .willAnswer(inv -> inv.getArgument(0));
 
             commandHandler.create(MERCHANT_ID, "My Client",
                     List.of("payments:read"), List.of("client_credentials"));
@@ -117,7 +117,6 @@ class OAuthClientCommandHandlerTest {
             given(merchantRepository.findById(MERCHANT_ID)).willReturn(Optional.of(activeMerchant()));
             given(clientSecretGenerator.generate()).willReturn("secret");
             given(clientSecretHasher.hash("secret")).willReturn("hash");
-            given(oauthClientRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
 
             var expected = OAuthClient.builder()
                     .merchantId(MERCHANT_ID)
@@ -128,6 +127,8 @@ class OAuthClientCommandHandlerTest {
                     .active(true)
                     .version(0L)
                     .build();
+            given(oauthClientRepository.save(eqIgnoring(expected, "clientId")))
+                    .willAnswer(inv -> inv.getArgument(0));
 
             commandHandler.create(MERCHANT_ID, "Client", List.of(), List.of());
 
@@ -140,7 +141,6 @@ class OAuthClientCommandHandlerTest {
             given(merchantRepository.findById(MERCHANT_ID)).willReturn(Optional.of(activeMerchant()));
             given(clientSecretGenerator.generate()).willReturn("secret");
             given(clientSecretHasher.hash("secret")).willReturn("hash");
-            given(oauthClientRepository.save(any())).willAnswer(inv -> inv.getArgument(0));
 
             var expected = OAuthClient.builder()
                     .merchantId(MERCHANT_ID)
@@ -151,6 +151,8 @@ class OAuthClientCommandHandlerTest {
                     .active(true)
                     .version(0L)
                     .build();
+            given(oauthClientRepository.save(eqIgnoring(expected, "clientId")))
+                    .willAnswer(inv -> inv.getArgument(0));
 
             commandHandler.create(MERCHANT_ID, "Client", null, null);
 
