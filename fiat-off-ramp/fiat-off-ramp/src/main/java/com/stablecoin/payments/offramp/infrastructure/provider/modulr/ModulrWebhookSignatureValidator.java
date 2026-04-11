@@ -83,7 +83,7 @@ public class ModulrWebhookSignatureValidator implements WebhookSignatureValidato
             switch (kv[0].trim()) {
                 case "t" -> timestamp = kv[1].trim();
                 case "v1" -> v1Signature = kv[1].trim();
-                default -> { /* ignore unknown keys */ }
+                default -> { }
             }
         }
 

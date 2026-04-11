@@ -21,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -43,7 +42,7 @@ public class PaymentCommandHandler {
                                            String sourceCountry, String targetCountry) {
         log.info("Initiating payment idempotencyKey={}, correlationId={}", idempotencyKey, correlationId);
 
-        Optional<Payment> existing = paymentRepository.findByIdempotencyKey(idempotencyKey);
+        var existing = paymentRepository.findByIdempotencyKey(idempotencyKey);
         if (existing.isPresent()) {
             log.info("Idempotent replay for idempotencyKey={}, paymentId={}",
                     idempotencyKey, existing.get().paymentId());

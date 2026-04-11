@@ -1,7 +1,6 @@
 package com.stablecoin.payments.platform.infrastructure.http;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpRequest;
 import org.springframework.http.HttpStatusCode;
@@ -17,9 +16,8 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
 
+@Slf4j
 public class ExternalApiLoggingInterceptor implements ClientHttpRequestInterceptor {
-
-    private static final Logger log = LoggerFactory.getLogger(ExternalApiLoggingInterceptor.class);
 
     private static final Set<String> SENSITIVE_HEADERS = Set.of(
             "authorization", "x-api-key", "api-key", "x-api-secret"

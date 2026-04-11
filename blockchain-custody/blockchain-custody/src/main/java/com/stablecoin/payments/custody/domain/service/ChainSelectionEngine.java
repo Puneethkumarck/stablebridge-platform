@@ -88,7 +88,7 @@ public class ChainSelectionEngine {
         }
 
         // Determine selected chain
-        ChainCandidate selectedCandidate = resolveSelectedCandidate(scoredCandidates, request.preferredChain());
+        var selectedCandidate = resolveSelectedCandidate(scoredCandidates, request.preferredChain());
 
         // Build final candidates list with selected flag
         var finalCandidates = scoredCandidates.stream()

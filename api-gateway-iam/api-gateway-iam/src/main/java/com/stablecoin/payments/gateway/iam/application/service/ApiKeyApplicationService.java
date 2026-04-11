@@ -21,7 +21,7 @@ public class ApiKeyApplicationService {
 
     public ApiKeyResponse createApiKey(CreateApiKeyRequest request) {
         var environment = ApiKeyEnvironment.valueOf(request.environment().toUpperCase());
-        Instant expiresAt = request.expiresInSeconds() != null
+        var expiresAt = request.expiresInSeconds() != null
                 ? Instant.now().plusSeconds(request.expiresInSeconds())
                 : null;
 

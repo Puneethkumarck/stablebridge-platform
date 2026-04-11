@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -43,21 +42,21 @@ public class JournalCommandHandler {
             return findExistingTransaction(request);
         }
 
-        Instant now = clock.instant();
-        UUID transactionId = UUID.randomUUID();
-        int baseSequence = entryRepository.countByPaymentId(request.paymentId());
+        var now = clock.instant();
+        var transactionId = UUID.randomUUID();
+        var baseSequence = entryRepository.countByPaymentId(request.paymentId());
 
-        Map<String, BalanceUpdate> balanceUpdates = balanceCalculator.computeBalances(request.entries());
+        var balanceUpdates = balanceCalculator.computeBalances(request.entries());
 
-        List<JournalEntry> entries = buildEntries(request, transactionId, baseSequence, balanceUpdates, now);
+        var entries = buildEntries(request, transactionId, baseSequence, balanceUpdates, now);
 
-        LedgerTransaction transaction = new LedgerTransaction(
+        var transaction = new LedgerTransaction(
                 transactionId, request.paymentId(), request.correlationId(),
                 request.sourceEvent(), request.sourceEventId(), request.description(),
                 entries, now
         );
 
-        LedgerTransaction saved = transactionRepository.save(transaction);
+        var saved = transactionRepository.save(transaction);
 
         persistBalanceUpdates(entries, balanceUpdates, now);
 
@@ -80,11 +79,11 @@ public class JournalCommandHandler {
             Map<String, BalanceUpdate> balanceUpdates,
             Instant now
     ) {
-        List<JournalEntry> entries = new ArrayList<>();
-        for (int i = 0; i < request.entries().size(); i++) {
-            JournalEntryRequest req = request.entries().get(i);
-            String key = BalanceCalculator.balanceKey(req.accountCode(), req.currency());
-            BalanceUpdate update = balanceUpdates.get(key);
+        var entries = new ArrayList<JournalEntry>();
+        for (var i = 0; i < request.entries().size(); i++) {
+            var req = request.entries().get(i);
+            var key = BalanceCalculator.balanceKey(req.accountCode(), req.currency());
+            var update = balanceUpdates.get(key);
 
             entries.add(new JournalEntry(
                     UUID.randomUUID(),
@@ -111,11 +110,11 @@ public class JournalCommandHandler {
             Map<String, BalanceUpdate> updates,
             Instant now
     ) {
-        Set<String> persisted = new HashSet<>();
-        for (JournalEntry entry : entries) {
-            String key = BalanceCalculator.balanceKey(entry.accountCode(), entry.currency());
+        var persisted = new HashSet<String>();
+        for (var entry : entries) {
+            var key = BalanceCalculator.balanceKey(entry.accountCode(), entry.currency());
             if (persisted.add(key)) {
-                BalanceUpdate update = updates.get(key);
+                var update = updates.get(key);
                 balanceRepository.save(new AccountBalance(
                         entry.accountCode(),
                         entry.currency(),
@@ -134,7 +133,7 @@ public class JournalCommandHandler {
             int entryCount,
             Instant now
     ) {
-        String payload = "{\"transactionId\":\"" + transactionId
+        var payload = "{\"transactionId\":\"" + transactionId
                 + "\",\"sourceEvent\":\"" + request.sourceEvent()
                 + "\",\"entryCount\":" + entryCount + "}";
 

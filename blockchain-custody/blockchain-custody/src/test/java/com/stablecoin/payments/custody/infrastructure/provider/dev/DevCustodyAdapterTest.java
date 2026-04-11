@@ -15,7 +15,6 @@ import org.springframework.web.client.RestClient;
 import java.math.BigInteger;
 import java.net.http.HttpClient;
 import java.net.http.HttpClient.Version;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
@@ -83,7 +82,7 @@ class DevCustodyAdapterTest {
                 .requestFactory(requestFactory)
                 .build();
 
-        Map<String, RestClient> restClients = new ConcurrentHashMap<>();
+        var restClients = new ConcurrentHashMap<String, RestClient>();
         restClients.put("base", restClient);
         restClients.put("ethereum", restClient);
 

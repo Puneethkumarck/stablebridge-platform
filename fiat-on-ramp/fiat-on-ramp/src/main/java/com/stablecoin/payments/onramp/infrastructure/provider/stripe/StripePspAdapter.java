@@ -18,7 +18,6 @@ import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 
 import java.net.http.HttpClient;
@@ -60,7 +59,7 @@ public class StripePspAdapter implements PspGateway {
         log.info("[STRIPE] Initiating payment collectionId={} amount={} currency={}",
                 request.collectionId(), request.amount().amount(), request.amount().currency());
 
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        var formData = new LinkedMultiValueMap<String, String>();
         formData.add("amount", toMinorUnits(request));
         formData.add("currency", request.amount().currency().toLowerCase());
         formData.add("payment_method_types[]", "us_bank_account");
@@ -91,7 +90,7 @@ public class StripePspAdapter implements PspGateway {
         log.info("[STRIPE] Initiating refund collectionId={} pspRef={} amount={}",
                 request.collectionId(), request.pspReference(), request.refundAmount().amount());
 
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        var formData = new LinkedMultiValueMap<String, String>();
         formData.add("payment_intent", request.pspReference());
         formData.add("amount", toMinorUnitsFromRefund(request));
         formData.add("reason", "requested_by_customer");

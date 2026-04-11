@@ -38,10 +38,10 @@ public class KybWebhookController {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }
 
-    Map<String, Object> payload = webhookValidator.parsePayload(rawBody);
+    var payload = webhookValidator.parsePayload(rawBody);
     log.info("[WEBHOOK] Onfido webhook received action={}", payload.get("action"));
 
-    KybVerification result = kybProvider.handleWebhook(payload);
+    var result = kybProvider.handleWebhook(payload);
     if (result == null) {
       log.debug("[WEBHOOK] Non-check webhook ignored");
       return ResponseEntity.ok().build();

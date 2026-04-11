@@ -68,10 +68,10 @@ public class ChainalysisAmlAdapter implements AmlProvider {
         var senderResponse = registerAndAnalyzeTransfer(senderId.toString());
         var recipientResponse = registerAndAnalyzeTransfer(recipientId.toString());
 
-        List<String> flagReasons = collectFlagReasons(senderResponse, recipientResponse, senderId, recipientId);
-        boolean flagged = !flagReasons.isEmpty();
-        String chainAnalysis = buildChainAnalysis(senderResponse, recipientResponse);
-        String providerRef = buildProviderRef(senderId, recipientId);
+        var flagReasons = collectFlagReasons(senderResponse, recipientResponse, senderId, recipientId);
+        var flagged = !flagReasons.isEmpty();
+        var chainAnalysis = buildChainAnalysis(senderResponse, recipientResponse);
+        var providerRef = buildProviderRef(senderId, recipientId);
 
         var result = AmlResult.builder()
                 .amlResultId(UUID.randomUUID())
@@ -123,7 +123,7 @@ public class ChainalysisAmlAdapter implements AmlProvider {
     private List<String> collectFlagReasons(ChainalysisTransferResponse senderResp,
                                             ChainalysisTransferResponse recipientResp,
                                             UUID senderId, UUID recipientId) {
-        List<String> reasons = new ArrayList<>();
+        var reasons = new ArrayList<String>();
         addRatingReasons(reasons, senderResp, "sender", senderId);
         addRatingReasons(reasons, recipientResp, "recipient", recipientId);
         addAlertReasons(reasons, senderResp, "sender", senderId);
