@@ -93,7 +93,6 @@ public class PayoutOrderEntity {
     @Column(name = "error_code", length = 100)
     private String errorCode;
 
-    // -- BankAccount VO flattened --
     @Column(name = "bank_account_number", length = 50)
     private String bankAccountNumber;
 
@@ -106,7 +105,6 @@ public class PayoutOrderEntity {
     @Column(name = "bank_country", length = 2)
     private String bankCountry;
 
-    // -- MobileMoneyAccount VO flattened --
     @Column(name = "mobile_money_provider", length = 30)
     private String mobileMoneyProvider;
 

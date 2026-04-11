@@ -32,7 +32,6 @@ public class FxQuoteApplicationService {
         log.info("Getting FX quote for {}:{} amount={}", request.fromCurrency(),
                 request.toCurrency(), request.amount());
 
-        // Try cache first, then provider
         var corridorRate = rateCache.get(request.fromCurrency(), request.toCurrency())
                 .or(() -> {
                     log.info("Cache miss for {}:{}, fetching from provider",

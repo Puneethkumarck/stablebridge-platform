@@ -43,18 +43,15 @@ public class PaymentEventConsumer {
 
         var lock = lockOpt.get();
 
-        // Idempotency: already consumed
         if (lock.status() == FxRateLockStatus.CONSUMED) {
             log.info("[PAYMENT-EVENT] Lock already consumed lockId={} paymentId={}",
                     lock.lockId(), event.paymentId());
             return;
         }
 
-        // Consume the lock
         var consumedLock = lockService.consumeLock(lock, event.paymentId());
         lockRepository.save(consumedLock);
 
-        // Consume pool reservation
         var pool = poolRepository.findByCorridor(lock.fromCurrency(), lock.toCurrency())
                 .orElseThrow(() -> new IllegalStateException(
                         "Pool not found for corridor %s:%s".formatted(lock.fromCurrency(), lock.toCurrency())));
@@ -62,7 +59,6 @@ public class PaymentEventConsumer {
         var updatedPool = liquidityService.consumeReservation(pool, lock.targetAmount());
         poolRepository.save(updatedPool);
 
-        // Publish threshold breach event if needed
         if (updatedPool.isBelowThreshold()) {
             log.warn("[PAYMENT-EVENT] Liquidity threshold breached poolId={} available={} threshold={}",
                     updatedPool.poolId(), updatedPool.availableBalance(), updatedPool.minimumThreshold());
@@ -93,18 +89,15 @@ public class PaymentEventConsumer {
 
         var lock = lockOpt.get();
 
-        // Idempotency: already expired
         if (lock.status() == FxRateLockStatus.EXPIRED) {
             log.info("[PAYMENT-EVENT] Lock already expired lockId={} paymentId={}",
                     lock.lockId(), event.paymentId());
             return;
         }
 
-        // Expire the lock
         var expiredLock = lockService.expireLock(lock);
         lockRepository.save(expiredLock);
 
-        // Release pool reservation back to available
         var pool = poolRepository.findByCorridor(lock.fromCurrency(), lock.toCurrency())
                 .orElseThrow(() -> new IllegalStateException(
                         "Pool not found for corridor %s:%s".formatted(lock.fromCurrency(), lock.toCurrency())));

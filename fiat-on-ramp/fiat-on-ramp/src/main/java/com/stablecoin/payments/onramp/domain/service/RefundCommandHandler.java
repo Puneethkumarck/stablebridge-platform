@@ -34,11 +34,9 @@ public class RefundCommandHandler {
     private final CollectionEventPublisher eventPublisher;
 
     public Refund initiateRefund(UUID collectionId, Money refundAmount, String reason) {
-        // 1. Find collection order
         var order = collectionOrderRepository.findById(collectionId)
                 .orElseThrow(() -> new CollectionOrderNotFoundException(collectionId));
 
-        // 2. Idempotency: check if refund already exists for this collection
         var existingRefunds = refundRepository.findByCollectionId(collectionId);
         var existingActive = existingRefunds.stream()
                 .filter(r -> r.status() == RefundStatus.COMPLETED
@@ -51,41 +49,31 @@ public class RefundCommandHandler {
             return existingActive.get();
         }
 
-        // 3. Validate collection is in COLLECTED state
         if (order.status() != CollectionStatus.COLLECTED) {
             throw new RefundNotAllowedException(collectionId, order.status());
         }
 
-        // 4. Validate refund amount <= collected amount
         if (refundAmount.amount().compareTo(order.collectedAmount().amount()) > 0) {
             throw new RefundAmountExceededException(collectionId, refundAmount, order.collectedAmount());
         }
 
-        // 5. Create Refund in PENDING and transition to PROCESSING
         var refund = Refund.initiate(collectionId, order.paymentId(), refundAmount, reason)
                 .startProcessing();
 
-        // 6. Transition collection through refund states up to REFUND_PROCESSING
         var updatedOrder = order.initiateRefund()
                 .startRefundProcessing();
 
-        // 7. Call PSP for refund (between startRefundProcessing and completeRefund
-        //    so failure leaves order in REFUND_PROCESSING for retry/compensation)
         var pspResult = pspGateway.initiateRefund(new PspRefundRequest(
                 collectionId, order.pspReference(), refundAmount,
                 order.psp().pspName(), reason));
 
-        // 8. Complete refund with PSP reference: PROCESSING -> COMPLETED
         refund = refund.complete(pspResult.pspRefundRef());
 
-        // 9. Transition collection: REFUND_PROCESSING -> REFUNDED and persist once
         updatedOrder = updatedOrder.completeRefund();
         collectionOrderRepository.save(updatedOrder);
 
-        // 10. Save refund
         refund = refundRepository.save(refund);
 
-        // 11. Publish RefundCompletedEvent via outbox
         eventPublisher.publish(new RefundCompletedEvent(
                 refund.refundId(),
                 collectionId,

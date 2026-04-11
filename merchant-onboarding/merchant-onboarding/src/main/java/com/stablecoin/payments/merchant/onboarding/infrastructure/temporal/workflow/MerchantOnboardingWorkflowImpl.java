@@ -33,7 +33,6 @@ public class MerchantOnboardingWorkflowImpl implements MerchantOnboardingWorkflo
               RetryOptions.newBuilder().setMaximumAttempts(5).setInitialInterval(Duration.ofSeconds(1)).build())
           .build());
 
-  // Signal state
   private KybResultSignal kybResult;
   private ReviewDecisionSignal reviewResult;
   private String currentStatus = "STARTED";
@@ -87,11 +86,9 @@ public class MerchantOnboardingWorkflowImpl implements MerchantOnboardingWorkflo
       onboardingActivities.processKybResult(merchantId, kybResult);
       onboardingActivities.notifyOpsTeam(merchantId);
 
-      // Wait for ops review decision
       boolean reviewReceived = Workflow.await(REVIEW_TIMEOUT, () -> reviewResult != null);
 
       if (!reviewReceived) {
-        // Escalate and wait again
         onboardingActivities.escalateReview(merchantId);
         reviewReceived = Workflow.await(REVIEW_TIMEOUT, () -> reviewResult != null);
       }
@@ -109,8 +106,6 @@ public class MerchantOnboardingWorkflowImpl implements MerchantOnboardingWorkflo
         publishKybFailedEvent(merchantId, reviewResult.reason());
         return OnboardingResult.rejected(merchantId, reviewResult.reason());
       }
-
-      // APPROVED — fall through to risk tier calculation
     }
 
     var riskSignals = kybResult.riskSignals() != null ? kybResult.riskSignals() : Map.<String, Object>of();
@@ -132,7 +127,6 @@ public class MerchantOnboardingWorkflowImpl implements MerchantOnboardingWorkflo
 
   @Override
   public void documentUploaded(DocumentUploadedSignal signal) {
-    // Future: track document uploads for document-wait phase
   }
 
   @Override

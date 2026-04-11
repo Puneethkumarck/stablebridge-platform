@@ -65,21 +65,17 @@ public record ComplianceCheck(
 
     private static final StateMachine<ComplianceCheckStatus, ComplianceCheckTrigger> STATE_MACHINE =
             new StateMachine<>(List.of(
-                    // Happy path
                     new StateTransition<>(PENDING, START_KYC, KYC_IN_PROGRESS),
                     new StateTransition<>(KYC_IN_PROGRESS, KYC_PASSED, SANCTIONS_SCREENING),
                     new StateTransition<>(SANCTIONS_SCREENING, SANCTIONS_CLEAR, AML_SCREENING),
                     new StateTransition<>(AML_SCREENING, AML_CLEAR, RISK_SCORING),
                     new StateTransition<>(RISK_SCORING, RISK_SCORED, TRAVEL_RULE_PACKAGING),
                     new StateTransition<>(TRAVEL_RULE_PACKAGING, TRAVEL_RULE_COMPLETE, PASSED),
-                    // Risk critical path
                     new StateTransition<>(RISK_SCORING, RISK_CRITICAL, MANUAL_REVIEW),
-                    // Failure paths
                     new StateTransition<>(KYC_IN_PROGRESS, KYC_FAILED, FAILED),
                     new StateTransition<>(SANCTIONS_SCREENING, SANCTIONS_HIT_DETECTED, SANCTIONS_HIT),
                     new StateTransition<>(AML_SCREENING, AML_FLAGGED, MANUAL_REVIEW),
                     new StateTransition<>(TRAVEL_RULE_PACKAGING, TRAVEL_RULE_FAILED, FAILED),
-                    // Sanctions hit escalation
                     new StateTransition<>(SANCTIONS_HIT, ESCALATE_MANUAL_REVIEW, MANUAL_REVIEW)
             ));
 

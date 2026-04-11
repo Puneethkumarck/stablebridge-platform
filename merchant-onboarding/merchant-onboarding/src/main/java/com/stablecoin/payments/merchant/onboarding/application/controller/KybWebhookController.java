@@ -53,7 +53,6 @@ public class KybWebhookController {
       return ResponseEntity.ok().build();
     }
 
-    // Signal the Temporal workflow with the KYB result
     var signal = new KybResultSignal(result.kybId(), result.provider(), result.providerRef(), result.status().name(),
         result.riskSignals(), result.reviewNotes(), result.completedAt());
 

@@ -135,13 +135,11 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
                             .build())
                     .build());
 
-    // Workflow state — deterministic, no external I/O
     private String currentState = "INITIATED";
     private boolean cancelRequested;
     private CancelRequest cancelReason;
     private final Deque<String> compensationStack = new ArrayDeque<>();
 
-    // Async signal state
     private FiatCollectedSignal fiatCollectedSignal;
     private ChainConfirmedSignal chainConfirmedSignal;
 
@@ -274,7 +272,6 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
         log.info("Fiat collection initiated for paymentId={}, collectionId={}, waiting for signal",
                 request.paymentId(), fiatResult.collectionId());
 
-        // Wait for fiat collected signal (Stripe webhook → S3 → Kafka → S1 signal)
         boolean fiatReceived = Workflow.await(FIAT_COLLECTION_TIMEOUT,
                 () -> fiatCollectedSignal != null);
 
@@ -305,8 +302,8 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
                     request.correlationId(),
                     "USDC",
                     fxResult.targetAmount(),
-                    "0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18", // Default recipient wallet
-                    "base" // Preferred chain
+                    "0x742d35Cc6634C0532925a3b844Bc9e7595f2bD18",
+                    "base"
             ));
         } catch (Exception e) {
             currentState = "FAILED";
@@ -332,7 +329,6 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
         log.info("Chain transfer submitted for paymentId={}, transferId={}, txHash={}, waiting for confirmation",
                 request.paymentId(), chainResult.transferId(), chainResult.txHash());
 
-        // Wait for chain confirmation signal (S4 monitor → Kafka → S1 signal)
         boolean chainConfirmed = Workflow.await(CHAIN_CONFIRMATION_TIMEOUT,
                 () -> chainConfirmedSignal != null);
 
@@ -394,7 +390,6 @@ public class PaymentWorkflowImpl implements PaymentWorkflow {
         currentState = "COMPLETED";
         log.info("Payment workflow completed for paymentId={}", request.paymentId());
 
-        // Sync terminal state to DB
         syncStateToDb(PaymentStateUpdate.completed(
                 request.paymentId(), fxResult.quoteId(), fxResult.lockedRate(),
                 fxResult.targetAmount(), fxResult.targetCurrency(),

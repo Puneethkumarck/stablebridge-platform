@@ -74,7 +74,6 @@ public class ChainSelectionEngine {
 
         var candidateConfigs = new ArrayList<>(MVP_CHAINS.values());
 
-        // Filter and score candidates
         var scoredCandidates = candidateConfigs.stream()
                 .filter(config -> hasWalletWithSufficientBalance(config.chainId(), request.stablecoin(), request.amount()))
                 .filter(config -> chainHealthProvider.getHealthScore(config.chainId()) > 0)
@@ -87,10 +86,8 @@ public class ChainSelectionEngine {
                             .formatted(request.transferId()));
         }
 
-        // Determine selected chain
         var selectedCandidate = resolveSelectedCandidate(scoredCandidates, request.preferredChain());
 
-        // Build final candidates list with selected flag
         var finalCandidates = scoredCandidates.stream()
                 .map(candidate -> candidate.toBuilder()
                         .selected(candidate.chainId().equals(selectedCandidate.chainId()))

@@ -48,7 +48,6 @@ public class ComplianceCheckActivityImpl implements ComplianceCheckActivity {
         log.info("Compliance check initiated for paymentId={}, checkId={}, status={}",
                 request.paymentId(), response.checkId(), response.status());
 
-        // Poll until terminal state
         while (!isTerminal(response.status())) {
             Activity.getExecutionContext().heartbeat(response.status());
             sleep(POLL_INTERVAL_MS);

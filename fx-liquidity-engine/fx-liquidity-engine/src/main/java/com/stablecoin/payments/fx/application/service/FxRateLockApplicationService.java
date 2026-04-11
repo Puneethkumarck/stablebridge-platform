@@ -45,7 +45,6 @@ public class FxRateLockApplicationService {
     public LockRateResult lockRate(UUID quoteId, FxRateLockRequest request) {
         log.info("Locking rate for quote={} payment={}", quoteId, request.paymentId());
 
-        // Idempotency: check if a lock already exists for this paymentId
         var existingLock = lockRepository.findByPaymentId(request.paymentId());
         if (existingLock.isPresent()) {
             log.info("Idempotent lock return for payment={} lockId={}",
@@ -53,35 +52,29 @@ public class FxRateLockApplicationService {
             return new LockRateResult(responseMapper.toResponse(existingLock.get()), false);
         }
 
-        // Load and validate quote
         var quote = quoteRepository.findById(quoteId)
                 .orElseThrow(() -> QuoteNotFoundException.withId(quoteId));
 
         validateQuote(quote);
 
-        // Load liquidity pool for corridor
         var pool = poolRepository.findByCorridor(quote.fromCurrency(), quote.toCurrency())
                 .orElseThrow(() -> PoolNotFoundException.forCorridor(
                         quote.fromCurrency(), quote.toCurrency()));
 
-        // Check sufficient liquidity
         if (!pool.hasSufficientLiquidity(quote.targetAmount())) {
             throw InsufficientLiquidityException.forCorridor(
                     quote.fromCurrency(), quote.toCurrency(),
                     quote.targetAmount(), pool.availableBalance());
         }
 
-        // Delegate to domain service
         var lockResult = lockService.lockRate(
                 quote, request.paymentId(), request.correlationId(),
                 request.sourceCountry(), request.targetCountry(), pool);
 
-        // Persist all changes
         quoteRepository.save(lockResult.lockedQuote());
         var savedLock = lockRepository.save(lockResult.lock());
         poolRepository.save(lockResult.updatedPool());
 
-        // Publish domain event via outbox
         publishFxRateLockedEvent(savedLock, request.correlationId());
 
         log.info("Rate locked: lockId={} rate={} expires={}",
@@ -105,7 +98,6 @@ public class FxRateLockApplicationService {
         var expiredLock = lock.expire();
         lockRepository.save(expiredLock);
 
-        // Release reserved liquidity back to the pool
         poolRepository.findByCorridor(lock.fromCurrency(), lock.toCurrency())
                 .ifPresentOrElse(
                         pool -> {

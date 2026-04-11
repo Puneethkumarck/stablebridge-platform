@@ -31,7 +31,6 @@ public abstract class AbstractOutboxEventPublisher {
                     return String.valueOf(value);
                 }
             } catch (NoSuchMethodException ignored) {
-                // try next field name
             } catch (Exception e) {
                 throw new IllegalArgumentException(
                         "Error invoking accessor '" + fieldName + "' on " + event.getClass().getName(), e);

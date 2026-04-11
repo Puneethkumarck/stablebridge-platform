@@ -59,7 +59,6 @@ public class RoleRepositoryAdapter implements RoleRepository {
             entity.setCreatedBy(role.createdBy());
             entity.setUpdatedAt(role.updatedAt());
 
-            // Determine whether permissions have changed
             var incomingPerms = role.permissions().stream()
                     .map(p -> p.namespace() + ":" + p.action())
                     .collect(Collectors.toSet());
@@ -68,17 +67,14 @@ public class RoleRepositoryAdapter implements RoleRepository {
                     .collect(Collectors.toSet());
 
             if (!incomingPerms.equals(existingPerms)) {
-                // Clear the managed collection so orphanRemoval issues DELETEs,
-                // flush to push DELETEs to DB before new INSERTs (avoids unique constraint violation),
-                // then add the replacement permission entities.
+                // Clear + flush before re-adding: orphanRemoval DELETEs must hit the DB before
+                // new INSERTs to avoid a unique constraint violation on (role_id, permission).
                 entity.getPermissions().clear();
                 entityManager.flush();
                 entity.getPermissions().addAll(mapper.buildPermissionEntities(entity, role.permissions()));
             }
 
-            // Save non-permission fields; the updated permissions collection is cascade-flushed.
             jpa.save(entity);
-            // Evict and reload to get a clean domain object with the persisted permissions.
             entityManager.flush();
             entityManager.refresh(entity);
             return mapper.toDomain(entity);
