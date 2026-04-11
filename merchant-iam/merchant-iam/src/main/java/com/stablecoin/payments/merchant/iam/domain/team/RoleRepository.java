@@ -14,8 +14,6 @@ public interface RoleRepository {
 
     List<Role> findByMerchantId(UUID merchantId);
 
-    long countActiveUsersByRoleId(UUID roleId);
-
     Role save(Role role);
 
     List<Role> saveAll(List<Role> roles);

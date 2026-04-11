@@ -66,6 +66,21 @@ class AuditLogFilterTest {
         then(auditLogRepository).shouldHaveNoInteractions();
     }
 
+    private static AuditLogEntry expectedAuditEntry(
+            UUID merchantId, String action, String resource, String sourceIp,
+            int statusCode, String authMethod, UUID clientId) {
+        return AuditLogEntry.builder()
+                .merchantId(merchantId)
+                .action(action)
+                .resource(resource)
+                .sourceIp(sourceIp)
+                .detail(Map.of(
+                        "status_code", statusCode,
+                        "auth_method", authMethod,
+                        "client_id", clientId.toString()))
+                .build();
+    }
+
     @Nested
     class WhenAuthenticated {
 
@@ -85,16 +100,8 @@ class AuditLogFilterTest {
 
             filter.doFilterInternal(request, response, filterChain);
 
-            var expectedEntry = AuditLogEntry.builder()
-                    .merchantId(merchantId)
-                    .action("POST")
-                    .resource("/v1/payments")
-                    .sourceIp("10.0.0.1")
-                    .detail(Map.of(
-                            "status_code", 201,
-                            "auth_method", "API_KEY",
-                            "client_id", clientId.toString()))
-                    .build();
+            var expectedEntry = expectedAuditEntry(
+                    merchantId, "POST", "/v1/payments", "10.0.0.1", 201, "API_KEY", clientId);
             then(auditLogRepository).should().save(eqIgnoring(expectedEntry, "logId", "occurredAt"));
         }
 
@@ -106,37 +113,22 @@ class AuditLogFilterTest {
 
             filter.doFilterInternal(request, response, filterChain);
 
-            var expectedEntry = AuditLogEntry.builder()
-                    .merchantId(merchantId)
-                    .action("POST")
-                    .resource("/v1/payments")
-                    .sourceIp("10.0.0.1")
-                    .detail(Map.of(
-                            "status_code", 200,
-                            "auth_method", "JWT",
-                            "client_id", clientId.toString()))
-                    .build();
+            var expectedEntry = expectedAuditEntry(
+                    merchantId, "POST", "/v1/payments", "10.0.0.1", 200, "JWT", clientId);
             then(auditLogRepository).should().save(eqIgnoring(expectedEntry, "logId", "occurredAt"));
         }
 
         @Test
         void shouldNotFailWhenRepositoryThrows() throws ServletException, IOException {
-            var throwingEntry = AuditLogEntry.builder()
-                    .merchantId(merchantId)
-                    .action("POST")
-                    .resource("/v1/payments")
-                    .sourceIp("10.0.0.1")
-                    .detail(Map.of(
-                            "status_code", 200,
-                            "auth_method", "API_KEY",
-                            "client_id", clientId.toString()))
-                    .build();
+            var expectedEntry = expectedAuditEntry(
+                    merchantId, "POST", "/v1/payments", "10.0.0.1", 200, "API_KEY", clientId);
             willThrow(new RuntimeException("DB down"))
-                    .given(auditLogRepository).save(eqIgnoring(throwingEntry, "logId", "occurredAt"));
+                    .given(auditLogRepository).save(eqIgnoring(expectedEntry, "logId", "occurredAt"));
 
             filter.doFilterInternal(request, response, filterChain);
 
             then(filterChain).should().doFilter(request, response);
+            then(auditLogRepository).should().save(eqIgnoring(expectedEntry, "logId", "occurredAt"));
         }
 
         @Test
@@ -147,16 +139,8 @@ class AuditLogFilterTest {
             assertThatThrownBy(() -> filter.doFilterInternal(request, response, filterChain))
                     .isInstanceOf(ServletException.class);
 
-            var expectedEntry = AuditLogEntry.builder()
-                    .merchantId(merchantId)
-                    .action("POST")
-                    .resource("/v1/payments")
-                    .sourceIp("10.0.0.1")
-                    .detail(Map.of(
-                            "status_code", 200,
-                            "auth_method", "API_KEY",
-                            "client_id", clientId.toString()))
-                    .build();
+            var expectedEntry = expectedAuditEntry(
+                    merchantId, "POST", "/v1/payments", "10.0.0.1", 200, "API_KEY", clientId);
             then(auditLogRepository).should().save(eqIgnoring(expectedEntry, "logId", "occurredAt"));
         }
     }

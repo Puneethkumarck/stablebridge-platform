@@ -260,6 +260,7 @@ class MerchantCommandHandlerTest {
             var externalId = UUID.randomUUID();
             var merchantId = UUID.randomUUID();
             var clientId = UUID.randomUUID();
+            var rawSecret = UUID.randomUUID().toString();
             var merchant = Merchant.builder()
                     .merchantId(merchantId)
                     .externalId(externalId)
@@ -299,7 +300,7 @@ class MerchantCommandHandlerTest {
             given(oauthClientCommandHandler.create(
                     merchantId, "Acme Corp Default Client",
                     List.of("payments:read"), List.of("client_credentials")))
-                    .willReturn(new OAuthClientCommandHandler.CreateOAuthClientResult(oauthClient, "raw-secret"));
+                    .willReturn(new OAuthClientCommandHandler.CreateOAuthClientResult(oauthClient, rawSecret));
 
             merchantCommandHandler.activateAndProvisionOAuthClient(
                     externalId, "Acme Corp", "US", List.of("payments:read"));
@@ -308,7 +309,7 @@ class MerchantCommandHandlerTest {
                     merchantId, "Acme Corp Default Client",
                     List.of("payments:read"), List.of("client_credentials"));
             var expectedEvent = new OAuthClientProvisionedEvent(
-                    clientId, merchantId, "raw-secret", "Acme Corp Default Client",
+                    clientId, merchantId, rawSecret, "Acme Corp Default Client",
                     List.of("payments:read"), List.of("client_credentials"), createdAt);
             then(eventPublisher).should().publish(expectedEvent);
         }

@@ -10,13 +10,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-import static com.stablecoin.payments.platform.test.TestUtils.eqIgnoring;
-import static org.mockito.ArgumentMatchers.argThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.mock;
 
@@ -47,13 +47,22 @@ class LedgerOutboxEventPublisherTest {
 
             publisher.publishReconciliationCompleted(domainEvent);
 
+            var eventCaptor = ArgumentCaptor.forClass(ReconciliationCompletedEvent.class);
+            var keyCaptor = ArgumentCaptor.forClass(String.class);
+            then(outbox).should().schedule(eventCaptor.capture(), keyCaptor.capture());
+
             var expectedEvent = new ReconciliationCompletedEvent(
                     ReconciliationCompletedEvent.SCHEMA_VERSION,
                     null,
                     ReconciliationCompletedEvent.EVENT_TYPE,
                     REC_ID, PAYMENT_ID, "RECONCILED", NOW);
-            then(outbox).should().schedule(eqIgnoring(expectedEvent, "eventId"),
-                    argThat((String s) -> PAYMENT_ID.toString().equals(s)));
+            assertThat(eventCaptor.getValue())
+                    .usingRecursiveComparison()
+                    .ignoringFields("eventId")
+                    .isEqualTo(expectedEvent);
+            assertThat(eventCaptor.getValue().completedAt()).isEqualTo(NOW);
+            assertThat(eventCaptor.getValue().eventId()).isNotNull();
+            assertThat(keyCaptor.getValue()).isEqualTo(PAYMENT_ID.toString());
         }
     }
 
@@ -70,14 +79,23 @@ class LedgerOutboxEventPublisherTest {
 
             publisher.publishReconciliationDiscrepancy(domainEvent);
 
+            var eventCaptor = ArgumentCaptor.forClass(ReconciliationDiscrepancyEvent.class);
+            var keyCaptor = ArgumentCaptor.forClass(String.class);
+            then(outbox).should().schedule(eventCaptor.capture(), keyCaptor.capture());
+
             var expectedEvent = new ReconciliationDiscrepancyEvent(
                     ReconciliationDiscrepancyEvent.SCHEMA_VERSION,
                     null,
                     ReconciliationDiscrepancyEvent.EVENT_TYPE,
                     REC_ID, PAYMENT_ID, new BigDecimal("1.50"), "USDC",
                     "Stablecoin discrepancy", NOW);
-            then(outbox).should().schedule(eqIgnoring(expectedEvent, "eventId"),
-                    argThat((String s) -> PAYMENT_ID.toString().equals(s)));
+            assertThat(eventCaptor.getValue())
+                    .usingRecursiveComparison()
+                    .ignoringFields("eventId")
+                    .isEqualTo(expectedEvent);
+            assertThat(eventCaptor.getValue().detectedAt()).isEqualTo(NOW);
+            assertThat(eventCaptor.getValue().eventId()).isNotNull();
+            assertThat(keyCaptor.getValue()).isEqualTo(PAYMENT_ID.toString());
         }
     }
 }

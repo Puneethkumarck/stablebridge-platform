@@ -45,7 +45,6 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("PaymentCommandHandler")
@@ -142,7 +141,8 @@ class PaymentCommandHandlerTest {
                     .usingRecursiveComparison()
                     .isEqualTo(existingPayment);
 
-            then(paymentRepository).should(never()).save(existingPayment);
+            then(paymentRepository).should().findByIdempotencyKey(existingPayment.idempotencyKey());
+            then(paymentRepository).shouldHaveNoMoreInteractions();
             then(eventPublisher).shouldHaveNoInteractions();
             then(workflowClient).shouldHaveNoInteractions();
         }

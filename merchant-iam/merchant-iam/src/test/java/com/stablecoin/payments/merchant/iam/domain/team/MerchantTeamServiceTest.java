@@ -12,10 +12,12 @@ import com.stablecoin.payments.merchant.iam.domain.team.model.core.BuiltInRole;
 import com.stablecoin.payments.merchant.iam.domain.team.model.core.InvitationStatus;
 import com.stablecoin.payments.merchant.iam.domain.team.model.core.Permission;
 import com.stablecoin.payments.merchant.iam.domain.team.model.core.UserStatus;
+import com.stablecoin.payments.merchant.iam.domain.team.model.events.MerchantUserInvitedEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -23,7 +25,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -130,13 +131,24 @@ class MerchantTeamServiceTest {
 
             then(userRepository).should().save(eqIgnoring(expectedUser, "userId"));
             then(invitationRepository).should().save(eqIgnoring(expectedInvitation, "invitationId"));
+            var expiresAtCaptor = ArgumentCaptor.forClass(Instant.class);
             then(emailSenderProvider).should().sendInvitationEmail(
                     argThat((String s) -> "new@test.com".equals(s)),
                     argThat((String s) -> "New User".equals(s)),
                     argThat((String s) -> "ACME Corp".equals(s)),
                     argThat((String s) -> "plain-token".equals(s)),
-                    argThat((Instant i) -> i != null));
-            then(eventPublisher).should().publish(argThat(Objects::nonNull));
+                    expiresAtCaptor.capture());
+            assertThat(expiresAtCaptor.getValue()).isAfter(Instant.now());
+            var expectedEvent = MerchantUserInvitedEvent.builder()
+                    .schemaVersion(MerchantUserInvitedEvent.SCHEMA_VERSION)
+                    .eventType(MerchantUserInvitedEvent.EVENT_TYPE)
+                    .merchantId(MERCHANT_ID)
+                    .emailHash("new-hash")
+                    .roleId(VIEWER_ROLE_ID)
+                    .roleName(viewerRole.roleName())
+                    .invitedBy(adminUser.userId())
+                    .build();
+            then(eventPublisher).should().publish(eqIgnoring(expectedEvent, "eventId", "invitationId", "userId"));
         }
 
         @Test
@@ -455,12 +467,14 @@ class MerchantTeamServiceTest {
 
             then(invitationRepository).should().save(eqIgnoring(expectedInvitation,
                     "invitationId", "roleId", "invitedBy"));
+            var expiresAtCaptor = ArgumentCaptor.forClass(Instant.class);
             then(emailSenderProvider).should().sendInvitationEmail(
                     argThat((String s) -> "admin@test.com".equals(s)),
                     argThat((String s) -> "Admin User".equals(s)),
                     argThat((String s) -> "ACME Corp".equals(s)),
                     argThat((String s) -> "invite-token".equals(s)),
-                    argThat((Instant i) -> i != null));
+                    expiresAtCaptor.capture());
+            assertThat(expiresAtCaptor.getValue()).isAfter(Instant.now());
         }
     }
 }

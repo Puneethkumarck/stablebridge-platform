@@ -50,6 +50,7 @@ class KybWebhookControllerTest {
 
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     then(kybProvider).shouldHaveNoInteractions();
+    then(workflowClient).shouldHaveNoInteractions();
   }
 
   @Test

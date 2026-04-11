@@ -42,11 +42,6 @@ public class RoleRepositoryAdapter implements RoleRepository {
     }
 
     @Override
-    public long countActiveUsersByRoleId(UUID roleId) {
-        return 0L;
-    }
-
-    @Override
     @Transactional
     public Role save(Role role) {
         var existing = jpa.findById(role.roleId());

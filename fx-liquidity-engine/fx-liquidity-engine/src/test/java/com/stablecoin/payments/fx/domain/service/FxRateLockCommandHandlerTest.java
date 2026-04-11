@@ -2,6 +2,7 @@ package com.stablecoin.payments.fx.domain.service;
 
 import com.stablecoin.payments.fx.domain.event.FxRateLocked;
 import com.stablecoin.payments.fx.domain.exception.InsufficientLiquidityException;
+import com.stablecoin.payments.fx.domain.exception.LockNotFoundException;
 import com.stablecoin.payments.fx.domain.exception.PoolNotFoundException;
 import com.stablecoin.payments.fx.domain.exception.QuoteAlreadyLockedException;
 import com.stablecoin.payments.fx.domain.exception.QuoteExpiredException;
@@ -208,6 +209,81 @@ class FxRateLockCommandHandlerTest {
 
             then(lockRepository).should().findByPaymentId(PAYMENT_ID);
             then(lockRepository).shouldHaveNoMoreInteractions();
+            then(eventPublisher).shouldHaveNoInteractions();
+        }
+    }
+
+    @Nested
+    @DisplayName("releaseLock")
+    class ReleaseLock {
+
+        @Test
+        void shouldThrowWhenLockNotFound() {
+            var lockId = UUID.randomUUID();
+            given(lockRepository.findById(lockId)).willReturn(Optional.empty());
+
+            assertThatThrownBy(() -> handler.releaseLock(lockId))
+                    .isInstanceOf(LockNotFoundException.class)
+                    .hasMessageContaining(lockId.toString());
+
+            then(lockRepository).should().findById(lockId);
+            then(lockRepository).shouldHaveNoMoreInteractions();
+            then(poolRepository).shouldHaveNoInteractions();
+            then(liquidityService).shouldHaveNoInteractions();
+            then(eventPublisher).shouldHaveNoInteractions();
+        }
+
+        @Test
+        void shouldSkipReleaseWhenLockIsNotActive() {
+            var activeLock = anActiveLock(UUID.randomUUID());
+            var expiredLock = activeLock.expire();
+            var lockId = expiredLock.lockId();
+            given(lockRepository.findById(lockId)).willReturn(Optional.of(expiredLock));
+
+            handler.releaseLock(lockId);
+
+            then(lockRepository).should().findById(lockId);
+            then(lockRepository).shouldHaveNoMoreInteractions();
+            then(poolRepository).shouldHaveNoInteractions();
+            then(liquidityService).shouldHaveNoInteractions();
+            then(eventPublisher).shouldHaveNoInteractions();
+        }
+
+        @Test
+        void shouldReleaseActiveLockAndReturnLiquidityToPool() {
+            var activeLock = anActiveLock(UUID.randomUUID());
+            var lockId = activeLock.lockId();
+            var pool = aUsdEurPool();
+            var releasedPool = aUsdEurPool();
+
+            given(lockRepository.findById(lockId)).willReturn(Optional.of(activeLock));
+            given(poolRepository.findByCorridor("USD", "EUR")).willReturn(Optional.of(pool));
+            given(liquidityService.release(pool, activeLock.targetAmount())).willReturn(releasedPool);
+
+            handler.releaseLock(lockId);
+
+            var expectedExpiredLock = activeLock.expire();
+            then(lockRepository).should().save(eqIgnoring(expectedExpiredLock));
+            then(poolRepository).should().save(releasedPool);
+            then(liquidityService).should().release(pool, activeLock.targetAmount());
+            then(eventPublisher).shouldHaveNoInteractions();
+        }
+
+        @Test
+        void shouldReleaseActiveLockButLogWarnWhenPoolMissing() {
+            var activeLock = anActiveLock(UUID.randomUUID());
+            var lockId = activeLock.lockId();
+
+            given(lockRepository.findById(lockId)).willReturn(Optional.of(activeLock));
+            given(poolRepository.findByCorridor("USD", "EUR")).willReturn(Optional.empty());
+
+            handler.releaseLock(lockId);
+
+            var expectedExpiredLock = activeLock.expire();
+            then(lockRepository).should().save(eqIgnoring(expectedExpiredLock));
+            then(poolRepository).should().findByCorridor("USD", "EUR");
+            then(poolRepository).shouldHaveNoMoreInteractions();
+            then(liquidityService).shouldHaveNoInteractions();
             then(eventPublisher).shouldHaveNoInteractions();
         }
     }

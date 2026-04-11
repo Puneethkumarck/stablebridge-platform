@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -46,6 +47,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.times;
 
 @ExtendWith(MockitoExtension.class)
@@ -233,12 +235,14 @@ class ComplianceCheckCommandHandlerTest {
             handler.initiateCheck(
                     paymentId, senderId, recipientId, ABOVE_THRESHOLD, "US", "DE", "EUR");
 
-            then(kycProvider).should().verify(senderId, recipientId);
-            then(sanctionsProvider).should().screen(senderId, recipientId);
-            then(amlProvider).should().analyze(senderId, recipientId);
-            then(travelRuleProvider).should().transmit(argThat((TravelRulePackage p) -> p != null));
-            then(checkRepository).should().save(argThat((ComplianceCheck c) -> c != null));
-            then(eventPublisher).should().publish(argThat(o -> o instanceof ComplianceCheckPassed));
+            InOrder inOrder = inOrder(
+                    kycProvider, sanctionsProvider, amlProvider, travelRuleProvider, checkRepository, eventPublisher);
+            inOrder.verify(kycProvider).verify(senderId, recipientId);
+            inOrder.verify(sanctionsProvider).screen(senderId, recipientId);
+            inOrder.verify(amlProvider).analyze(senderId, recipientId);
+            inOrder.verify(travelRuleProvider).transmit(argThat((TravelRulePackage p) -> p != null));
+            inOrder.verify(checkRepository).save(argThat((ComplianceCheck c) -> c != null));
+            inOrder.verify(eventPublisher).publish(argThat(o -> o instanceof ComplianceCheckPassed));
         }
     }
 

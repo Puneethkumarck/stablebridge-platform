@@ -143,6 +143,7 @@ class PaymentEventConsumerTest {
             then(lockRepository).should().findByPaymentId(paymentId);
             then(lockRepository).shouldHaveNoMoreInteractions();
             then(poolRepository).shouldHaveNoInteractions();
+            then(eventPublisher).shouldHaveNoInteractions();
         }
 
         @Test
@@ -156,6 +157,7 @@ class PaymentEventConsumerTest {
             then(lockRepository).should().findByPaymentId(paymentId);
             then(lockRepository).shouldHaveNoMoreInteractions();
             then(poolRepository).shouldHaveNoInteractions();
+            then(eventPublisher).shouldHaveNoInteractions();
         }
     }
 
@@ -213,6 +215,7 @@ class PaymentEventConsumerTest {
             then(lockRepository).should().findByPaymentId(paymentId);
             then(lockRepository).shouldHaveNoMoreInteractions();
             then(poolRepository).shouldHaveNoInteractions();
+            then(eventPublisher).shouldHaveNoInteractions();
         }
 
         @Test
@@ -225,6 +228,8 @@ class PaymentEventConsumerTest {
 
             then(lockRepository).should().findByPaymentId(paymentId);
             then(lockRepository).shouldHaveNoMoreInteractions();
+            then(poolRepository).shouldHaveNoInteractions();
+            then(eventPublisher).shouldHaveNoInteractions();
         }
     }
 }

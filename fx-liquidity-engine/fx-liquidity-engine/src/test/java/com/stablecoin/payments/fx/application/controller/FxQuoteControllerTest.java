@@ -5,6 +5,7 @@ import com.stablecoin.payments.fx.api.request.FxRateLockRequest;
 import com.stablecoin.payments.fx.api.response.FxQuoteResponse;
 import com.stablecoin.payments.fx.api.response.FxRateLockResponse;
 import com.stablecoin.payments.fx.application.mapper.FxResponseMapper;
+import com.stablecoin.payments.fx.domain.exception.LockNotFoundException;
 import com.stablecoin.payments.fx.domain.exception.QuoteAlreadyLockedException;
 import com.stablecoin.payments.fx.domain.exception.QuoteExpiredException;
 import com.stablecoin.payments.fx.domain.exception.QuoteNotFoundException;
@@ -35,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.BDDMockito.then;
+import static org.mockito.BDDMockito.willThrow;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("FxQuoteController")
@@ -241,6 +243,34 @@ class FxQuoteControllerTest {
             assertThatThrownBy(() -> controller.lockRate(quoteId, request))
                     .isInstanceOf(QuoteAlreadyLockedException.class)
                     .hasMessageContaining(quoteId.toString());
+        }
+    }
+
+    @Nested
+    @DisplayName("DELETE /v1/fx/lock/{lockId}")
+    class ReleaseLock {
+
+        @Test
+        @DisplayName("should return 204 No Content when release succeeds")
+        void shouldReturnNoContentWhenReleaseSucceeds() {
+            var lockId = UUID.randomUUID();
+
+            var result = controller.releaseLock(lockId);
+
+            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+            then(rateLockCommandHandler).should().releaseLock(lockId);
+        }
+
+        @Test
+        @DisplayName("should propagate LockNotFoundException")
+        void shouldPropagateExceptionWhenLockNotFound() {
+            var lockId = UUID.randomUUID();
+            willThrow(LockNotFoundException.withId(lockId))
+                    .given(rateLockCommandHandler).releaseLock(lockId);
+
+            assertThatThrownBy(() -> controller.releaseLock(lockId))
+                    .isInstanceOf(LockNotFoundException.class)
+                    .hasMessageContaining(lockId.toString());
         }
     }
 }
