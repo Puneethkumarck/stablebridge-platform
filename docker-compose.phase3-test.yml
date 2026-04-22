@@ -154,7 +154,7 @@ services:
       retries: 15
 
   temporal-ui:
-    image: temporalio/ui:2.35.0
+    image: temporalio/ui:2.49.1
     container_name: p3t-temporal-ui
     ports:
       - "8233:8080"
