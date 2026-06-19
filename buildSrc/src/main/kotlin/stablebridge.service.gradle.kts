@@ -204,7 +204,7 @@ tasks.withType<Test> {
 // JaCoCo — disabled until JaCoCo supports Java 25 (0.8.14 is incompatible)
 // ---------------------------------------------------------------------------
 jacoco {
-    toolVersion = "0.8.14"
+    toolVersion = "0.8.15"
 }
 
 tasks.test {
