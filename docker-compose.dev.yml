@@ -284,7 +284,7 @@ services:
   # UI: http://localhost:9093
   # ─────────────────────────────────────────────
   alertmanager:
-    image: prom/alertmanager:v0.28.1
+    image: prom/alertmanager:v0.33.1
     container_name: sp-alertmanager
     ports:
       - "9093:9093"
