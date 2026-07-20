@@ -129,7 +129,7 @@ services:
     restart: on-failure
 
   temporal:
-    image: temporalio/auto-setup:1.26.2
+    image: temporalio/auto-setup:1.29.7
     container_name: p3t-temporal
     ports:
       - "7233:7233"
